@@ -1,6 +1,8 @@
 import { useCallback, useRef } from 'react';
-import { useEditorStore } from '../store/editorStore';
+import { useEditorStore, type SnapLine } from '../store/editorStore';
 import type { CanvasElement } from '@/lib/api';
+
+const SNAP_THRESHOLD = 6; // canvas-space pixels
 
 interface UseDragOptions {
   element: CanvasElement;
@@ -8,11 +10,85 @@ interface UseDragOptions {
   scale: number;
 }
 
+// ─── Snap helpers ─────────────────────────────────────────────────────────────
+
+interface Rect { x: number; y: number; width: number; height: number }
+
+function xAnchors(r: Rect) {
+  return [r.x, r.x + r.width / 2, r.x + r.width];
+}
+function yAnchors(r: Rect) {
+  return [r.y, r.y + r.height / 2, r.y + r.height];
+}
+
+/**
+ * Given the dragged element's tentative position and all reference rects
+ * (other elements + canvas), return:
+ *  - snapped x / y (adjusted if within threshold)
+ *  - snap lines to display
+ */
+function computeSnap(
+  dragged: Rect,
+  refs: Rect[],
+  canvas: { width: number; height: number },
+): { snappedX: number; snappedY: number; lines: SnapLine[] } {
+  // Reference x/y values: canvas edges + center + every other element's anchors
+  const refXs: number[] = [0, canvas.width / 2, canvas.width];
+  const refYs: number[] = [0, canvas.height / 2, canvas.height];
+  for (const r of refs) {
+    refXs.push(...xAnchors(r));
+    refYs.push(...yAnchors(r));
+  }
+
+  const dragXs = xAnchors(dragged); // [left, center, right]
+  const dragYs = yAnchors(dragged); // [top,  center, bottom]
+
+  let bestXDelta = Infinity;
+  let bestXLine: number | null = null;
+  let snappedX = dragged.x;
+
+  for (const dragAnchor of dragXs) {
+    for (const ref of refXs) {
+      const delta = ref - dragAnchor;
+      if (Math.abs(delta) < SNAP_THRESHOLD && Math.abs(delta) < Math.abs(bestXDelta)) {
+        bestXDelta = delta;
+        bestXLine = ref;
+      }
+    }
+  }
+  if (bestXLine !== null) snappedX = dragged.x + bestXDelta;
+
+  let bestYDelta = Infinity;
+  let bestYLine: number | null = null;
+  let snappedY = dragged.y;
+
+  for (const dragAnchor of dragYs) {
+    for (const ref of refYs) {
+      const delta = ref - dragAnchor;
+      if (Math.abs(delta) < SNAP_THRESHOLD && Math.abs(delta) < Math.abs(bestYDelta)) {
+        bestYDelta = delta;
+        bestYLine = ref;
+      }
+    }
+  }
+  if (bestYLine !== null) snappedY = dragged.y + bestYDelta;
+
+  const lines: SnapLine[] = [];
+  if (bestXLine !== null) lines.push({ type: 'v', pos: bestXLine });
+  if (bestYLine !== null) lines.push({ type: 'h', pos: bestYLine });
+
+  return { snappedX, snappedY, lines };
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
   const updateElement = useEditorStore((s) => s.updateElement);
   const selectElement = useEditorStore((s) => s.selectElement);
+  const setSnapLines  = useEditorStore((s) => s.setSnapLines);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
-  const project = useEditorStore((s) => s.project);
+  const project       = useEditorStore((s) => s.project);
+  const currentPageId = useEditorStore((s) => s.currentPageId);
 
   const dragRef = useRef({
     active: false,
@@ -25,7 +101,6 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (isPreviewMode) return;
-      // Only drag on the element body, not on resize handles
       if ((e.target as HTMLElement).dataset.handle) return;
 
       e.stopPropagation();
@@ -40,25 +115,34 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
       d.startElY = element.y;
 
       const onMove = (me: MouseEvent) => {
-        if (!d.active) return;
-        const canvas = canvasRef.current;
-        if (!canvas || !project) return;
+        if (!d.active || !project) return;
 
         const dx = (me.clientX - d.startMouseX) / scale;
         const dy = (me.clientY - d.startMouseY) / scale;
 
-        const newX = Math.round(
-          Math.max(0, Math.min(d.startElX + dx, project.canvas.width - element.width)),
-        );
-        const newY = Math.round(
-          Math.max(0, Math.min(d.startElY + dy, project.canvas.height - element.height)),
+        const rawX = Math.max(0, Math.min(d.startElX + dx, project.canvas.width  - element.width));
+        const rawY = Math.max(0, Math.min(d.startElY + dy, project.canvas.height - element.height));
+
+        // Other elements on the current page (excluding self)
+        const page = project.pages.find((p) => p.id === currentPageId);
+        const others = (page?.elements ?? []).filter((e) => e.id !== element.id);
+
+        const { snappedX, snappedY, lines } = computeSnap(
+          { x: rawX, y: rawY, width: element.width, height: element.height },
+          others,
+          project.canvas,
         );
 
-        updateElement(element.id, { x: newX, y: newY });
+        setSnapLines(lines);
+        updateElement(element.id, {
+          x: Math.round(snappedX),
+          y: Math.round(snappedY),
+        });
       };
 
       const onUp = () => {
         d.active = false;
+        setSnapLines([]);
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
       };
@@ -66,7 +150,7 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [element, canvasRef, scale, project, updateElement, selectElement, isPreviewMode],
+    [element, scale, project, currentPageId, updateElement, selectElement, setSnapLines, isPreviewMode],
   );
 
   return { onMouseDown };

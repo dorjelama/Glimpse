@@ -147,6 +147,7 @@ export default function Canvas() {
   const project = useEditorStore((s) => s.project);
   const currentPageId = useEditorStore((s) => s.currentPageId);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
+  const snapLines = useEditorStore((s) => s.snapLines);
 
   const {
     canvasRef,
@@ -202,6 +203,41 @@ export default function Canvas() {
             scale={scale}
           />
         ))}
+
+        {/* Smart guide lines — rendered in canvas-space, above all elements */}
+        {!isPreviewMode && snapLines.map((line, i) =>
+          line.type === 'v' ? (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: line.pos,
+                width: 1,
+                height: '100%',
+                background: '#00d9ff',
+                zIndex: 99999,
+                pointerEvents: 'none',
+                boxShadow: '0 0 4px #00d9ff88',
+              }}
+            />
+          ) : (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: line.pos,
+                height: 1,
+                width: '100%',
+                background: '#00d9ff',
+                zIndex: 99999,
+                pointerEvents: 'none',
+                boxShadow: '0 0 4px #00d9ff88',
+              }}
+            />
+          )
+        )}
       </div>
     </div>
   );

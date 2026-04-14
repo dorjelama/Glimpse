@@ -60,3 +60,4 @@ cd ../.. && pnpm dev                           # run both apps
 
 ## CLAUDE.md rule
 Every module folder has its own CLAUDE.md. Always update it when adding features. Always update it when debugging as well.
+Keep interviewing until we've covered everything.

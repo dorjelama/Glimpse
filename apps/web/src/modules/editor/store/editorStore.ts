@@ -7,6 +7,11 @@ import { useStatusStore } from '@/lib/statusStore';
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 
+export interface SnapLine {
+  type: 'v' | 'h'; // vertical (x=pos) or horizontal (y=pos)
+  pos: number;      // canvas-space coordinate
+}
+
 interface EditorState {
   project: Project | null;
   currentPageId: string | null;
@@ -14,6 +19,7 @@ interface EditorState {
   isPreviewMode: boolean;
   isSaving: boolean;
   saveError: string | null;
+  snapLines: SnapLine[];
 
   // Actions
   loadProject: (id: string) => Promise<void>;
@@ -47,6 +53,9 @@ interface EditorState {
   scheduleSave: () => void;
 
   setPreviewMode: (val: boolean) => void;
+
+  // Snap guides (ephemeral drag state — never saved)
+  setSnapLines: (lines: SnapLine[]) => void;
 }
 
 // ─── Store ───────────────────────────────────────────────────────────────────
@@ -59,6 +68,7 @@ export const useEditorStore = create<EditorState>()(
     isPreviewMode: false,
     isSaving: false,
     saveError: null,
+    snapLines: [],
 
     loadProject: async (id) => {
       const project = await api.getProject(id);
@@ -344,6 +354,10 @@ export const useEditorStore = create<EditorState>()(
         s.isPreviewMode = val;
         if (val) s.selectedId = null;
       });
+    },
+
+    setSnapLines: (lines) => {
+      set((s) => { s.snapLines = lines; });
     },
   })),
 );
