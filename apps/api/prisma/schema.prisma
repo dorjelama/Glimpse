@@ -1,0 +1,127 @@
+// Prisma schema for Glimpse — invitation builder
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────
+
+enum ProjectStatus {
+  draft
+  published
+}
+
+enum ElementType {
+  text
+  image
+  shape
+  button
+  divider
+  guestname
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  projects     Project[]
+
+  @@map("users")
+}
+
+model Project {
+  id            String        @id
+  title         String        @default("Untitled Invitation")
+  status        ProjectStatus @default(draft)
+  slug          String?       @unique
+
+  // Shared canvas dimensions across all pages
+  canvasWidth    Int           @default(1080)
+  canvasHeight   Int           @default(1920)
+  pageTransition String        @default("none")
+
+  owner         User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  ownerId       String?
+
+  pages         Page[]
+  guests        Guest[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("projects")
+}
+
+model Page {
+  id        String   @id @default(uuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+
+  name      String   @default("Page 1")
+  order     Int      @default(0)
+
+  // Per-page background
+  bgColor   String   @default("#ffffff")
+  bgImage   String?
+
+  elements  Element[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([projectId, order])
+  @@map("pages")
+}
+
+model Guest {
+  id        String   @id @default(uuid())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId String
+  name      String
+  email     String?
+  token     String   @unique @default(uuid())
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([token])
+  @@map("guests")
+}
+
+model Element {
+  id     String @id @default(uuid())
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId String
+
+  type   ElementType
+  x      Int
+  y      Int
+  width  Int
+  height Int
+  zIndex Int
+
+  // Flexible per-type styling (font, color, borderRadius, opacity, etc.)
+  styles  Json    @default("{}")
+
+  // Type-specific content fields
+  content String?     // text / button label
+  src     String?     // image URL
+  alt     String?     // image alt text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pageId])
+  @@map("elements")
+}
