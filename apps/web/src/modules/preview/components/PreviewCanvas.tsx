@@ -22,11 +22,14 @@ function renderElement(el: CanvasElement, guestName?: string) {
     case 'shape':     return <ShapeElement element={el} />;
     case 'button':    return <ButtonElement element={el} isPreview />;
     case 'divider':   return <DividerElement element={el} />;
-    case 'guestname':  return <GuestNameElement element={el} guestName={guestName} isPreview />;
-    case 'countdown':  return <CountdownElement element={el} />;
-    default:           return null;
+    case 'guestname': return <GuestNameElement element={el} guestName={guestName} isPreview />;
+    case 'countdown': return <CountdownElement element={el} />;
+    default:          return null;
   }
 }
+
+// Button elements are interactive in the viewer; all others are non-interactive.
+const INTERACTIVE_TYPES = new Set(['button']);
 
 function PageBlock({ page, canvasWidth, canvasHeight, scale, guestName }: {
   page: Page;
@@ -71,7 +74,8 @@ function PageBlock({ page, canvasWidth, canvasHeight, scale, guestName }: {
               width: el.width,
               height: el.height,
               zIndex: el.zIndex,
-              pointerEvents: 'none',
+              // Allow interactive element types to receive pointer events
+              pointerEvents: INTERACTIVE_TYPES.has(el.type) ? 'auto' : 'none',
             }}
           >
             {renderElement(el, guestName)}
@@ -100,15 +104,39 @@ export default function PreviewCanvas({ project, guestName }: Props) {
   // Transition visual state
   const [outStyle, setOutStyle] = useState<React.CSSProperties>({});
   const [inStyle,  setInStyle]  = useState<React.CSSProperties>({});
-  const [showBoth, setShowBoth] = useState(false); // render both pages during crossfade/slide
+  const [showBoth, setShowBoth] = useState(false);
   const [nextIndex, setNextIndex] = useState<number | null>(null);
+
+  // Touch swipe tracking
+  const touchStartX = useRef<number | null>(null);
+
+  // Swipe hint — shown on mount for multi-page, auto-fades after 3 glow cycles
+  const [swipeHint, setSwipeHint] = useState<'visible' | 'fading' | 'gone'>('visible');
+
+  const canvasWidth  = project.canvas.width;
+  const canvasHeight = project.canvas.height;
+
+  // ── Scale to fit ────────────────────────────────────────────────────────────
+  // On mobile: fit by width, allow vertical scroll.
+  // On desktop: fit both axes so the whole page is visible without scrolling.
 
   const fitToContainer = useCallback(() => {
     if (!containerRef.current) return;
-    const { clientWidth } = containerRef.current;
-    const padding = clientWidth < 640 ? 16 : 64;
-    setScale(Math.min((clientWidth - padding) / project.canvas.width, 1));
-  }, [project.canvas.width]);
+    const { clientWidth, clientHeight } = containerRef.current;
+    const isMobile = clientWidth < 640;
+    const hPad = isMobile ? 16 : 64;
+    // Reserve vertical room for dots + start-over button below the canvas
+    const vReserve = isMobile ? 80 : 120;
+
+    const byWidth  = (clientWidth  - hPad)     / canvasWidth;
+    const byHeight = (clientHeight - vReserve) / canvasHeight;
+
+    if (isMobile) {
+      setScale(Math.min(byWidth, 1));
+    } else {
+      setScale(Math.min(byWidth, byHeight, 1));
+    }
+  }, [canvasWidth, canvasHeight]);
 
   useEffect(() => {
     fitToContainer();
@@ -136,12 +164,10 @@ export default function PreviewCanvas({ project, guestName }: Props) {
     setNextIndex(target);
 
     if (transition === 'fade') {
-      // Start: outgoing visible, incoming hidden
       setOutStyle({ opacity: 1, transition: `opacity ${FADE_MS}ms ease` });
       setInStyle({ opacity: 0, transition: `opacity ${FADE_MS}ms ease` });
       setShowBoth(true);
 
-      // Trigger fade
       requestAnimationFrame(() => requestAnimationFrame(() => {
         setOutStyle({ opacity: 0, transition: `opacity ${FADE_MS}ms ease` });
         setInStyle({ opacity: 1,  transition: `opacity ${FADE_MS}ms ease` });
@@ -157,10 +183,10 @@ export default function PreviewCanvas({ project, guestName }: Props) {
       }, FADE_MS + 20);
 
     } else if (transition === 'slide') {
-      const fromX =  dir * 100; // incoming starts offscreen in direction of travel
-      const toX   = -dir * 100; // outgoing exits in opposite direction
+      const fromX =  dir * 100;
+      const toX   = -dir * 100;
 
-      setOutStyle({ transform: 'translateX(0%)',      transition: `transform ${SLIDE_MS}ms ease` });
+      setOutStyle({ transform: 'translateX(0%)',       transition: `transform ${SLIDE_MS}ms ease` });
       setInStyle({ transform: `translateX(${fromX}%)`, transition: `transform ${SLIDE_MS}ms ease` });
       setShowBoth(true);
 
@@ -179,7 +205,6 @@ export default function PreviewCanvas({ project, guestName }: Props) {
       }, SLIDE_MS + 20);
 
     } else if (transition === 'flip') {
-      // Phase 1: rotate outgoing to 90deg
       setOutStyle({
         transform: 'perspective(1200px) rotateY(0deg)',
         transition: `transform ${FLIP_MS}ms ease-in`,
@@ -195,7 +220,6 @@ export default function PreviewCanvas({ project, guestName }: Props) {
         });
       }));
 
-      // Phase 2: swap + rotate incoming from -90deg to 0
       setTimeout(() => {
         setCurrentIndex(target);
         setOutStyle({});
@@ -222,7 +246,27 @@ export default function PreviewCanvas({ project, guestName }: Props) {
     }
   }, [animating, currentIndex, pages.length, transition]);
 
-  // Keyboard navigation
+  // ── Swipe hint lifecycle ─────────────────────────────────────────────────────
+  // 3 glow cycles × 1.6 s = 4.8 s, then 0.7 s fade-out, then unmount.
+
+  useEffect(() => {
+    if (pages.length <= 1) { setSwipeHint('gone'); return; }
+    const fade   = setTimeout(() => setSwipeHint('fading'), 4800);
+    const remove = setTimeout(() => setSwipeHint('gone'),   5500);
+    return () => { clearTimeout(fade); clearTimeout(remove); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Dismiss immediately once the user navigates
+  useEffect(() => {
+    if (currentIndex !== 0 && swipeHint !== 'gone') {
+      setSwipeHint('fading');
+      const t = setTimeout(() => setSwipeHint('gone'), 500);
+      return () => clearTimeout(t);
+    }
+  }, [currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Keyboard navigation ──────────────────────────────────────────────────────
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') navigate(1);
@@ -232,55 +276,155 @@ export default function PreviewCanvas({ project, guestName }: Props) {
     return () => window.removeEventListener('keydown', onKey);
   }, [navigate]);
 
-  const canvasWidth  = project.canvas.width;
-  const canvasHeight = project.canvas.height;
+  // ── Touch swipe ──────────────────────────────────────────────────────────────
 
-  // Click left half → prev, right half → next
-  const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (pages.length <= 1) return;
-    const { left, width } = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - left;
-    navigate(x < width / 2 ? -1 : 1);
-  }, [pages.length, navigate]);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) > 40) navigate(dx < 0 ? 1 : -1);
+  }, [navigate]);
+
+  // ── Render ───────────────────────────────────────────────────────────────────
+
+  const scaledW = canvasWidth  * scale;
+  const scaledH = canvasHeight * scale;
 
   return (
     <div ref={containerRef} className="flex-1 overflow-auto bg-canvas">
       <div className="flex flex-col items-center py-8">
 
-        {/* Page display — click left half for prev, right half for next */}
+        {/* Canvas + overlay arrows */}
         <div
-          onClick={handleCanvasClick}
-          style={{
-            position: 'relative',
-            overflow: 'hidden',
-            cursor: pages.length > 1 && !(currentIndex === pages.length - 1) ? 'pointer' : 'default',
-          }}
+          style={{ position: 'relative', width: scaledW, height: scaledH }}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
         >
-          {showBoth && nextIndex !== null ? (
-            <div style={{ position: 'relative', width: canvasWidth * scale, height: canvasHeight * scale }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, ...outStyle }}>
+          {/* Pages — clipped within canvas bounds; click left/right half to navigate on desktop */}
+          <div
+            style={{ position: 'absolute', inset: 0, overflow: 'hidden', cursor: pages.length > 1 ? 'pointer' : 'default' }}
+            onClick={(e) => {
+              if (pages.length <= 1) return;
+              const { left, width } = e.currentTarget.getBoundingClientRect();
+              navigate(e.clientX - left < width / 2 ? -1 : 1);
+            }}
+          >
+            {showBoth && nextIndex !== null ? (
+              <div style={{ position: 'relative', width: scaledW, height: scaledH }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, ...outStyle }}>
+                  <PageBlock page={pages[currentIndex]} canvasWidth={canvasWidth} canvasHeight={canvasHeight} scale={scale} guestName={guestName} />
+                </div>
+                <div style={{ position: 'absolute', top: 0, left: 0, ...inStyle }}>
+                  <PageBlock page={pages[nextIndex]} canvasWidth={canvasWidth} canvasHeight={canvasHeight} scale={scale} guestName={guestName} />
+                </div>
+              </div>
+            ) : (
+              <div style={Object.keys(inStyle).length > 0 ? inStyle : outStyle}>
                 <PageBlock page={pages[currentIndex]} canvasWidth={canvasWidth} canvasHeight={canvasHeight} scale={scale} guestName={guestName} />
               </div>
-              <div style={{ position: 'absolute', top: 0, left: 0, ...inStyle }}>
-                <PageBlock page={pages[nextIndex]} canvasWidth={canvasWidth} canvasHeight={canvasHeight} scale={scale} guestName={guestName} />
-              </div>
-            </div>
-          ) : (
-            <div style={Object.keys(inStyle).length > 0 ? inStyle : outStyle}>
-              <PageBlock page={pages[currentIndex]} canvasWidth={canvasWidth} canvasHeight={canvasHeight} scale={scale} guestName={guestName} />
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        {/* Start over — shown only on last page of multi-page projects */}
-        {pages.length > 1 && currentIndex === pages.length - 1 && !animating && (
-          <button
-            onClick={() => { setCurrentIndex(0); setAnimating(false); }}
-            className="mt-4 px-6 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors"
-          >
-            ↩ Start over
-          </button>
-        )}
+          {/* Swipe hint */}
+          {swipeHint !== 'gone' && (
+            <>
+              <style>{`
+                @keyframes _glimpse-glow {
+                  0%, 100% {
+                    border-color: rgba(255,255,255,0.35);
+                    box-shadow: 0 0 0 0 rgba(255,255,255,0);
+                  }
+                  50% {
+                    border-color: rgba(255,255,255,0.95);
+                    box-shadow: 0 0 0 10px rgba(255,255,255,0.08), 0 0 24px rgba(255,255,255,0.35);
+                  }
+                }
+                @keyframes _glimpse-arrow {
+                  0%   { transform: translateX(5px); opacity: 0.4; }
+                  40%  { transform: translateX(-5px); opacity: 1; }
+                  70%  { transform: translateX(-5px); opacity: 1; }
+                  100% { transform: translateX(5px); opacity: 0.4; }
+                }
+                .glimpse-swipe-ring {
+                  animation: _glimpse-glow 1.6s ease-in-out 3;
+                }
+                .glimpse-swipe-arrow {
+                  animation: _glimpse-arrow 1.6s ease-in-out 3;
+                }
+              `}</style>
+
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 28,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  zIndex: 20,
+                  pointerEvents: 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 8,
+                  opacity: swipeHint === 'fading' ? 0 : 1,
+                  transition: swipeHint === 'fading' ? 'opacity 0.6s ease' : 'none',
+                }}
+              >
+                {/* Glowing ring */}
+                <div
+                  className="glimpse-swipe-ring"
+                  style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: '50%',
+                    border: '2px solid rgba(255,255,255,0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'rgba(0,0,0,0.25)',
+                    backdropFilter: 'blur(6px)',
+                    WebkitBackdropFilter: 'blur(6px)',
+                  }}
+                >
+                  {/* Left-pointing chevron — slides left inside the ring */}
+                  <svg
+                    className="glimpse-swipe-arrow"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                  >
+                    <path
+                      d="M13 3 L5 10 L13 17"
+                      stroke="white"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+
+                {/* Label */}
+                <span
+                  style={{
+                    color: 'white',
+                    fontSize: 10,
+                    fontWeight: 600,
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    opacity: 0.75,
+                  }}
+                >
+                  Swipe
+                </span>
+              </div>
+            </>
+          )}
+
+        </div>
 
       </div>
     </div>
