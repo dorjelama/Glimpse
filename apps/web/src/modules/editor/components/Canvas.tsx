@@ -13,6 +13,7 @@ import ShapeElement from './elements/ShapeElement';
 import ButtonElement from './elements/ButtonElement';
 import DividerElement from './elements/DividerElement';
 import GuestNameElement from './elements/GuestNameElement';
+import CountdownElement from './elements/CountdownElement';
 
 const HANDLES: ResizeHandle[] = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
 
@@ -27,6 +28,14 @@ const HANDLE_POSITIONS: Record<ResizeHandle, { top?: string; bottom?: string; le
   se: { bottom: '-4px', right: '-4px', cursor: 'se-resize' },
 };
 
+// Stable group-indicator colours keyed by a simple hash of groupId
+const GROUP_COLORS = ['#7c3aed', '#2563eb', '#16a34a', '#dc2626', '#d97706', '#db2777'];
+function groupColor(groupId: string): string {
+  let hash = 0;
+  for (let i = 0; i < groupId.length; i++) hash = (hash * 31 + groupId.charCodeAt(i)) & 0xffff;
+  return GROUP_COLORS[hash % GROUP_COLORS.length];
+}
+
 function ElementWrapper({
   element,
   canvasRef,
@@ -36,18 +45,21 @@ function ElementWrapper({
   canvasRef: React.RefObject<HTMLDivElement>;
   scale: number;
 }) {
-  const selectedId = useEditorStore((s) => s.selectedId);
-  const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
-  const selectElement = useEditorStore((s) => s.selectElement);
-  const updateElement = useEditorStore((s) => s.updateElement);
+  const selectedIds    = useEditorStore((s) => s.selectedIds);
+  const isPreviewMode  = useEditorStore((s) => s.isPreviewMode);
+  const selectElement  = useEditorStore((s) => s.selectElement);
+  const addToSelection = useEditorStore((s) => s.addToSelection);
+  const updateElement  = useEditorStore((s) => s.updateElement);
 
-  const isSelected = selectedId === element.id;
+  const isSelected = selectedIds.includes(element.id);
+  const isLocked   = !!element.styles?._locked;
+  const groupId    = element.styles?._groupId as string | undefined;
+
   const { onMouseDown } = useDrag({ element, canvasRef, scale });
   const { onHandleMouseDown } = useResize({ element, scale });
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Image upload on double-click
   const handleDoubleClick = useCallback(
     async (e: React.MouseEvent) => {
       if (isPreviewMode || element.type !== 'image') return;
@@ -61,7 +73,6 @@ function ElementWrapper({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      // For MVP, use local object URL; swap for real upload in production
       const url = URL.createObjectURL(file);
       updateElement(element.id, { src: url, alt: file.name });
       e.target.value = '';
@@ -71,28 +82,68 @@ function ElementWrapper({
 
   const renderContent = () => {
     switch (element.type) {
-      case 'text':
-        return <TextElement element={element} isSelected={isSelected} isPreview={isPreviewMode} />;
-      case 'image':
-        return <ImageElement element={element} />;
-      case 'shape':
-        return <ShapeElement element={element} />;
-      case 'button':
-        return <ButtonElement element={element} isPreview={isPreviewMode} />;
-      case 'divider':
-        return <DividerElement element={element} />;
-      case 'guestname':
-        return <GuestNameElement element={element} isPreview={isPreviewMode} />;
-      default:
-        return null;
+      case 'text':      return <TextElement element={element} isSelected={isSelected} isPreview={isPreviewMode} />;
+      case 'image':     return <ImageElement element={element} />;
+      case 'shape':     return <ShapeElement element={element} />;
+      case 'button':    return <ButtonElement element={element} isPreview={isPreviewMode} />;
+      case 'divider':   return <DividerElement element={element} />;
+      case 'guestname': return <GuestNameElement element={element} isPreview={isPreviewMode} />;
+      case 'countdown': return <CountdownElement element={element} />;
+      default:          return null;
     }
   };
+
+  // Locked elements: render visually but block all canvas interaction
+  if (isLocked && !isPreviewMode) {
+    return (
+      <div
+        style={{
+          position: 'absolute',
+          left: element.x,
+          top: element.y,
+          width: element.width,
+          height: element.height,
+          zIndex: element.zIndex,
+          pointerEvents: 'none',
+        }}
+      >
+        {renderContent()}
+        {/* Lock badge */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 3,
+            right: 3,
+            fontSize: '9px',
+            lineHeight: 1,
+            background: 'rgba(0,0,0,0.55)',
+            color: '#fbbf24',
+            borderRadius: '3px',
+            padding: '2px 4px',
+            userSelect: 'none',
+            pointerEvents: 'none',
+          }}
+        >
+          🔒
+        </div>
+      </div>
+    );
+  }
+
+  // Outline colour: group colour when part of a group, accent purple otherwise
+  const outlineColor = groupId ? groupColor(groupId) : '#7c3aed';
 
   return (
     <div
       onMouseDown={onMouseDown}
       onDoubleClick={handleDoubleClick}
-      onClick={(e) => { e.stopPropagation(); if (!isPreviewMode) selectElement(element.id); }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!isPreviewMode) {
+          if (e.ctrlKey || e.metaKey) addToSelection(element.id);
+          else selectElement(element.id);
+        }
+      }}
       style={{
         position: 'absolute',
         left: element.x,
@@ -102,7 +153,7 @@ function ElementWrapper({
         zIndex: element.zIndex,
         cursor: isPreviewMode ? 'default' : 'move',
         userSelect: 'none',
-        outline: isSelected && !isPreviewMode ? '2px solid #7c3aed' : 'none',
+        outline: isSelected && !isPreviewMode ? `2px solid ${outlineColor}` : 'none',
         outlineOffset: '1px',
       }}
     >
@@ -131,7 +182,7 @@ function ElementWrapper({
               width: 8,
               height: 8,
               background: 'white',
-              border: '2px solid #7c3aed',
+              border: `2px solid ${outlineColor}`,
               borderRadius: '2px',
               zIndex: 9999,
               ...HANDLE_POSITIONS[handle],
@@ -144,9 +195,10 @@ function ElementWrapper({
 }
 
 export default function Canvas() {
-  const project = useEditorStore((s) => s.project);
+  const event         = useEditorStore((s) => s.event);
   const currentPageId = useEditorStore((s) => s.currentPageId);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
+  const snapLines     = useEditorStore((s) => s.snapLines);
 
   const {
     canvasRef,
@@ -157,14 +209,14 @@ export default function Canvas() {
     handleCanvasClick,
   } = useCanvas();
 
-  if (!project) return null;
+  if (!event) return null;
 
-  const currentPage = project.pages.find((p) => p.id === currentPageId) ?? project.pages[0];
+  const currentPage = event.pages.find((p) => p.id === currentPageId) ?? event.pages[0];
   if (!currentPage) return null;
 
   const canvasStyle: React.CSSProperties = {
-    width: project.canvas.width,
-    height: project.canvas.height,
+    width: event.canvas.width,
+    height: event.canvas.height,
     backgroundColor: currentPage.backgroundColor,
     backgroundImage: currentPage.backgroundImage
       ? `url(${currentPage.backgroundImage})`
@@ -178,8 +230,10 @@ export default function Canvas() {
     boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
   };
 
-  // Sort current page's elements by zIndex for render order
-  const sortedElements = [...currentPage.elements].sort((a, b) => a.zIndex - b.zIndex);
+  // Hidden elements are excluded from the canvas render (editor-only toggle)
+  const sortedElements = [...currentPage.elements]
+    .filter((el) => !el.styles?._hidden)
+    .sort((a, b) => a.zIndex - b.zIndex);
 
   return (
     <div
@@ -202,6 +256,41 @@ export default function Canvas() {
             scale={scale}
           />
         ))}
+
+        {/* Smart guide lines */}
+        {!isPreviewMode && snapLines.map((line, i) =>
+          line.type === 'v' ? (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: line.pos,
+                width: 1,
+                height: '100%',
+                background: '#00d9ff',
+                zIndex: 99999,
+                pointerEvents: 'none',
+                boxShadow: '0 0 4px #00d9ff88',
+              }}
+            />
+          ) : (
+            <div
+              key={i}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: line.pos,
+                height: 1,
+                width: '100%',
+                background: '#00d9ff',
+                zIndex: 99999,
+                pointerEvents: 'none',
+                boxShadow: '0 0 4px #00d9ff88',
+              }}
+            />
+          )
+        )}
       </div>
     </div>
   );

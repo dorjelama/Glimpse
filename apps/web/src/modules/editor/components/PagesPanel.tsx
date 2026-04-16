@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useEditorStore } from '../store/editorStore';
 
 export default function PagesPanel() {
-  const project = useEditorStore((s) => s.project);
+  const event = useEditorStore((s) => s.event);
   const currentPageId = useEditorStore((s) => s.currentPageId);
   const setCurrentPage = useEditorStore((s) => s.setCurrentPage);
   const addPage = useEditorStore((s) => s.addPage);
@@ -24,9 +24,9 @@ export default function PagesPanel() {
     }
   }, [renamingId]);
 
-  if (!project) return null;
+  if (!event) return null;
 
-  const pages = project.pages;
+  const pages = event.pages;
   const canDelete = pages.length > 1;
 
   const startRename = (id: string, currentName: string) => {

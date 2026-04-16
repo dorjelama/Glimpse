@@ -3,11 +3,11 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateElementDto {
   @ApiProperty({
-    enum: ['text', 'image', 'shape', 'button', 'divider'],
+    enum: ['text', 'image', 'shape', 'button', 'divider', 'guestname', 'countdown'],
     example: 'text',
     description: 'Element type — determines which renderer and default styles are applied.',
   })
-  @IsIn(['text', 'image', 'shape', 'button', 'divider'])
+  @IsIn(['text', 'image', 'shape', 'button', 'divider', 'guestname', 'countdown'])
   type: string;
 
   @ApiProperty({ example: 100, description: 'X position in canvas-space pixels.' })

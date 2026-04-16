@@ -78,25 +78,43 @@ function SelectInput({
   );
 }
 
+function LockIcon({ locked }: { locked: boolean }) {
+  return locked ? (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0110 0v4" />
+    </svg>
+  ) : (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 019.9-1" />
+    </svg>
+  );
+}
+
 export default function PropertiesPanel() {
-  const selectedId = useEditorStore((s) => s.selectedId);
-  const project = useEditorStore((s) => s.project);
-  const currentPageId = useEditorStore((s) => s.currentPageId);
-  const updateElement = useEditorStore((s) => s.updateElement);
-  const updateCanvas = useEditorStore((s) => s.updateCanvas);
+  const selectedId      = useEditorStore((s) => s.selectedId);
+  const selectedIds     = useEditorStore((s) => s.selectedIds);
+  const event           = useEditorStore((s) => s.event);
+  const currentPageId   = useEditorStore((s) => s.currentPageId);
+  const updateElement   = useEditorStore((s) => s.updateElement);
+  const updateCanvas    = useEditorStore((s) => s.updateCanvas);
   const updateTransition = useEditorStore((s) => s.updateTransition);
-  const deleteElement = useEditorStore((s) => s.deleteElement);
+  const deleteElement   = useEditorStore((s) => s.deleteElement);
   const duplicateElement = useEditorStore((s) => s.duplicateElement);
-  const bringForward = useEditorStore((s) => s.bringForward);
-  const sendBackward = useEditorStore((s) => s.sendBackward);
-  const bringToFront = useEditorStore((s) => s.bringToFront);
-  const sendToBack = useEditorStore((s) => s.sendToBack);
-  const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
+  const bringForward    = useEditorStore((s) => s.bringForward);
+  const sendBackward    = useEditorStore((s) => s.sendBackward);
+  const bringToFront    = useEditorStore((s) => s.bringToFront);
+  const sendToBack      = useEditorStore((s) => s.sendToBack);
+  const toggleLock      = useEditorStore((s) => s.toggleLock);
+  const groupSelected   = useEditorStore((s) => s.groupSelected);
+  const ungroupElement  = useEditorStore((s) => s.ungroupElement);
+  const isPreviewMode   = useEditorStore((s) => s.isPreviewMode);
 
   if (isPreviewMode) return null;
-  if (!project) return null;
+  if (!event) return null;
 
-  const currentPage = project.pages.find((p) => p.id === currentPageId) ?? project.pages[0];
+  const currentPage = event.pages.find((p) => p.id === currentPageId) ?? event.pages[0];
   const element = selectedId ? currentPage?.elements.find((e) => e.id === selectedId) : null;
 
   const set = (changes: Record<string, any>) =>
@@ -104,6 +122,11 @@ export default function PropertiesPanel() {
 
   const setStyle = (changes: Record<string, any>) =>
     element && updateElement(element.id, { styles: changes });
+
+  const isLocked  = !!element?.styles?._locked;
+  const groupId   = element?.styles?._groupId as string | undefined;
+  const canGroup  = selectedIds.length > 1;
+  const canUngroup = !!groupId;
 
   // === Canvas settings panel ===
   if (!element) {
@@ -116,7 +139,7 @@ export default function PropertiesPanel() {
           <Row>
             <Label>Width (px)</Label>
             <NumberInput
-              value={project.canvas.width}
+              value={event.canvas.width}
               onChange={(v) => updateCanvas({ width: v })}
               min={100}
               max={4000}
@@ -125,7 +148,7 @@ export default function PropertiesPanel() {
           <Row>
             <Label>Height (px)</Label>
             <NumberInput
-              value={project.canvas.height}
+              value={event.canvas.height}
               onChange={(v) => updateCanvas({ height: v })}
               min={100}
               max={8000}
@@ -152,7 +175,7 @@ export default function PropertiesPanel() {
               </Row>
             </>
           )}
-          {project.pages.length > 1 && (
+          {event.pages.length > 1 && (
             <Row>
               <Label>Page Transition</Label>
               <SelectInput
@@ -178,12 +201,34 @@ export default function PropertiesPanel() {
   // === Element properties panel ===
   return (
     <aside className="w-60 bg-panel border-l border-white/10 flex flex-col overflow-y-auto">
+
+      {/* Header: type label + z-index + lock toggle */}
       <div className="px-3 py-3 border-b border-white/10 flex items-center justify-between">
         <h2 className="text-xs font-semibold text-purple-300 uppercase tracking-widest">
           {element.type}
         </h2>
-        <span className="text-[10px] text-gray-500">z:{element.zIndex}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-[10px] text-gray-500">z:{element.zIndex}</span>
+          <button
+            onClick={() => toggleLock(element.id)}
+            title={isLocked ? 'Unlock element' : 'Lock element (prevents canvas interaction)'}
+            className={`p-1 rounded transition-colors ${
+              isLocked
+                ? 'text-yellow-400 bg-yellow-400/10 hover:bg-yellow-400/20'
+                : 'text-gray-500 hover:text-gray-300 hover:bg-white/10'
+            }`}
+          >
+            <LockIcon locked={isLocked} />
+          </button>
+        </div>
       </div>
+
+      {/* Multi-select banner */}
+      {selectedIds.length > 1 && (
+        <div className="mx-3 mt-3 px-2 py-1.5 rounded-md bg-accent/10 border border-accent/20 text-[10px] text-purple-300">
+          {selectedIds.length} elements selected
+        </div>
+      )}
 
       <div className="p-3 flex flex-col gap-4 overflow-y-auto">
 
@@ -222,9 +267,9 @@ export default function PropertiesPanel() {
           <div className="grid grid-cols-4 gap-1 mt-1">
             {[
               { label: '⬆⬆', action: () => bringToFront(element.id), title: 'Bring to Front' },
-              { label: '⬆', action: () => bringForward(element.id), title: 'Bring Forward' },
-              { label: '⬇', action: () => sendBackward(element.id), title: 'Send Backward' },
-              { label: '⬇⬇', action: () => sendToBack(element.id), title: 'Send to Back' },
+              { label: '⬆',  action: () => bringForward(element.id), title: 'Bring Forward' },
+              { label: '⬇',  action: () => sendBackward(element.id), title: 'Send Backward' },
+              { label: '⬇⬇', action: () => sendToBack(element.id),  title: 'Send to Back' },
             ].map(({ label, action, title }) => (
               <button
                 key={title}
@@ -283,9 +328,9 @@ export default function PropertiesPanel() {
                 value={element.styles.textAlign || 'left'}
                 onChange={(v) => setStyle({ textAlign: v })}
                 options={[
-                  { value: 'left', label: 'Left' },
+                  { value: 'left',   label: 'Left' },
                   { value: 'center', label: 'Center' },
-                  { value: 'right', label: 'Right' },
+                  { value: 'right',  label: 'Right' },
                 ]}
               />
             </Row>
@@ -324,8 +369,136 @@ export default function PropertiesPanel() {
           </Row>
         )}
 
-        {/* Border Radius */}
-        {element.type !== 'text' && element.type !== 'guestname' && (
+        {/* Countdown-specific controls */}
+        {element.type === 'countdown' && (
+          <>
+            <Row>
+              <Label>Target Date &amp; Time</Label>
+              <input
+                type="datetime-local"
+                value={element.content?.slice(0, 16) ?? ''}
+                onChange={(e) => set({ content: e.target.value })}
+                className="w-full bg-white/10 text-white text-sm rounded-md px-2 py-1.5 border border-white/10 focus:outline-none focus:border-accent [color-scheme:dark]"
+              />
+            </Row>
+
+            <Row>
+              <Label>Number Font Size</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.numberFontSize || '48', 10)}
+                  onChange={(v) => setStyle({ numberFontSize: `${v}px` })}
+                  min={12}
+                  max={200}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Label Font Size</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.labelFontSize || '12', 10)}
+                  onChange={(v) => setStyle({ labelFontSize: `${v}px` })}
+                  min={8}
+                  max={48}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Font Family</Label>
+              <FontPicker
+                value={element.styles.fontFamily || 'sans-serif'}
+                onChange={(v) => setStyle({ fontFamily: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Font Weight</Label>
+              <SelectInput
+                value={element.styles.fontWeight || '700'}
+                onChange={(v) => setStyle({ fontWeight: v })}
+                options={[
+                  { value: '300', label: 'Light' },
+                  { value: '400', label: 'Regular' },
+                  { value: '600', label: 'Semi-bold' },
+                  { value: '700', label: 'Bold' },
+                  { value: '900', label: 'Black' },
+                ]}
+              />
+            </Row>
+
+            <Row>
+              <Label>Number Color</Label>
+              <ColorInput
+                value={element.styles.numberColor || '#1a1a1a'}
+                onChange={(v) => setStyle({ numberColor: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Label Color</Label>
+              <ColorInput
+                value={element.styles.labelColor || '#6b7280'}
+                onChange={(v) => setStyle({ labelColor: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Box Background</Label>
+              <ColorInput
+                value={element.styles.boxBackgroundColor || '#f3f0ff'}
+                onChange={(v) => setStyle({ boxBackgroundColor: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Box Border Radius</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.boxBorderRadius || '8', 10)}
+                  onChange={(v) => setStyle({ boxBorderRadius: `${v}px` })}
+                  min={0}
+                  max={100}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Box Gap</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.gap || '12', 10)}
+                  onChange={(v) => setStyle({ gap: `${v}px` })}
+                  min={0}
+                  max={80}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Show Labels</Label>
+              <button
+                onClick={() => setStyle({ showLabels: !(element.styles.showLabels !== false) })}
+                className={`w-full py-1.5 text-xs rounded-md transition-colors ${
+                  element.styles.showLabels !== false
+                    ? 'bg-accent/30 text-purple-200 border border-accent/40'
+                    : 'bg-white/10 text-gray-400 border border-white/10'
+                }`}
+              >
+                {element.styles.showLabels !== false ? 'Visible' : 'Hidden'}
+              </button>
+            </Row>
+          </>
+        )}
+
+        {/* Border Radius — all except text, guestname, countdown */}
+        {element.type !== 'text' && element.type !== 'guestname' && element.type !== 'countdown' && (
           <Row>
             <Label>Border Radius</Label>
             <div className="flex items-center gap-2">
@@ -340,7 +513,7 @@ export default function PropertiesPanel() {
           </Row>
         )}
 
-        {/* Opacity */}
+        {/* Opacity — all elements */}
         <Row>
           <Label>Opacity</Label>
           <input
@@ -357,7 +530,7 @@ export default function PropertiesPanel() {
           </span>
         </Row>
 
-        {/* Image src display */}
+        {/* Image URL */}
         {element.type === 'image' && (
           <Row>
             <Label>Image URL</Label>
@@ -373,19 +546,47 @@ export default function PropertiesPanel() {
       </div>
 
       {/* Actions */}
-      <div className="p-3 border-t border-white/10 flex gap-2">
-        <button
-          onClick={() => duplicateElement(element.id)}
-          className="flex-1 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors"
-        >
-          Duplicate
-        </button>
-        <button
-          onClick={() => deleteElement(element.id)}
-          className="flex-1 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded-md transition-colors"
-        >
-          Delete
-        </button>
+      <div className="p-3 border-t border-white/10 flex flex-col gap-2">
+
+        {/* Group / Ungroup row */}
+        {(canGroup || canUngroup) && (
+          <div className="flex gap-2">
+            {canGroup && (
+              <button
+                onClick={groupSelected}
+                title="Group selected elements — they will move together"
+                className="flex-1 py-1.5 text-xs bg-accent/20 hover:bg-accent/30 text-purple-200 rounded-md transition-colors border border-accent/30"
+              >
+                Group ({selectedIds.length})
+              </button>
+            )}
+            {canUngroup && (
+              <button
+                onClick={() => ungroupElement(element.id)}
+                title="Ungroup — elements will move independently again"
+                className="flex-1 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-gray-300 rounded-md transition-colors"
+              >
+                Ungroup
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Duplicate / Delete row */}
+        <div className="flex gap-2">
+          <button
+            onClick={() => duplicateElement(element.id)}
+            className="flex-1 py-1.5 text-xs bg-white/10 hover:bg-white/20 text-white rounded-md transition-colors"
+          >
+            Duplicate
+          </button>
+          <button
+            onClick={() => deleteElement(element.id)}
+            className="flex-1 py-1.5 text-xs bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded-md transition-colors"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </aside>
   );

@@ -54,6 +54,19 @@ export const DEFAULT_STYLES: Record<string, Record<string, any>> = {
     textAlign: 'center',
     lineHeight: '1.3',
   },
+  countdown: {
+    numberFontSize: '48px',
+    labelFontSize: '12px',
+    fontFamily: 'Georgia, serif',
+    fontWeight: '700',
+    numberColor: '#1a1a1a',
+    labelColor: '#6b7280',
+    boxBackgroundColor: '#f3f0ff',
+    boxBorderRadius: '8px',
+    gap: '12px',
+    showLabels: true,
+    opacity: 1,
+  },
 };
 
 export const ELEMENT_DEFAULTS: Record<string, { width: number; height: number; content?: string }> = {
@@ -62,6 +75,7 @@ export const ELEMENT_DEFAULTS: Record<string, { width: number; height: number; c
   shape: { width: 200, height: 200 },
   divider: { width: 400, height: 4 },
   guestname: { width: 360, height: 70, content: 'Guest Name' },
+  countdown: { width: 480, height: 120, content: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16) },
 };
 
 export const MIN_SIZE = { width: 40, height: 20 };

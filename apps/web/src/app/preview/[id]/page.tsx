@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, type Project } from '@/lib/api';
+import { api, type GlimpseEvent } from '@/lib/api';
 import PreviewLayout from '@/modules/preview/components/PreviewLayout';
 
 interface Props {
@@ -9,12 +9,12 @@ interface Props {
 }
 
 export default function PreviewPage({ params }: Props) {
-  const [project, setProject] = useState<Project | null>(null);
+  const [event, setEvent] = useState<GlimpseEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getProject(params.id)
-      .then(setProject)
+    api.getEvent(params.id)
+      .then(setEvent)
       .catch((e) => setError(e.message));
   }, [params.id]);
 
@@ -26,7 +26,7 @@ export default function PreviewPage({ params }: Props) {
     );
   }
 
-  if (!project) {
+  if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-400 animate-pulse">Loading preview...</p>
@@ -34,5 +34,5 @@ export default function PreviewPage({ params }: Props) {
     );
   }
 
-  return <PreviewLayout project={project} />;
+  return <PreviewLayout event={event} />;
 }

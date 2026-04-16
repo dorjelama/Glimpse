@@ -5,5 +5,5 @@ interface Props {
 }
 
 export default function EditorPage({ params }: Props) {
-  return <EditorLayout projectId={params.id} />;
+  return <EditorLayout eventId={params.id} />;
 }

@@ -12,7 +12,7 @@ datasource db {
 
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
-enum ProjectStatus {
+enum EventStatus {
   draft
   published
 }
@@ -24,6 +24,7 @@ enum ElementType {
   button
   divider
   guestname
+  countdown
 }
 
 // ─── Models ─────────────────────────────────────────────────────────────────
@@ -35,38 +36,38 @@ model User {
   name         String
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  projects     Project[]
+  events       Event[]
 
   @@map("users")
 }
 
-model Project {
-  id            String        @id
-  title         String        @default("Untitled Invitation")
-  status        ProjectStatus @default(draft)
-  slug          String?       @unique
+model Event {
+  id            String      @id
+  title         String      @default("Untitled Invitation")
+  status        EventStatus @default(draft)
+  slug          String?     @unique
 
   // Shared canvas dimensions across all pages
-  canvasWidth    Int           @default(1080)
-  canvasHeight   Int           @default(1920)
-  pageTransition String        @default("none")
+  canvasWidth    Int         @default(1080)
+  canvasHeight   Int         @default(1920)
+  pageTransition String      @default("none")
 
-  owner         User?         @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  owner         User?       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId       String?
 
   pages         Page[]
   guests        Guest[]
 
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
-  @@map("projects")
+  @@map("events")
 }
 
 model Page {
   id        String   @id @default(uuid())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
 
   name      String   @default("Page 1")
   order     Int      @default(0)
@@ -80,21 +81,21 @@ model Page {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([projectId])
-  @@index([projectId, order])
+  @@index([eventId])
+  @@index([eventId, order])
   @@map("pages")
 }
 
 model Guest {
   id        String   @id @default(uuid())
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  projectId String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
   name      String
   email     String?
   token     String   @unique @default(uuid())
   createdAt DateTime @default(now())
 
-  @@index([projectId])
+  @@index([eventId])
   @@index([token])
   @@map("guests")
 }

@@ -1,8 +1,8 @@
-export type ProjectStatus = 'draft' | 'published';
+export type EventStatus = 'draft' | 'published';
 
-export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider';
+export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider' | 'guestname' | 'countdown';
 
-/** Shared canvas dimensions for all pages in a project. */
+/** Shared canvas dimensions for all pages in an event. */
 export interface CanvasSettings {
   width: number;
   height: number;
@@ -31,10 +31,10 @@ export interface Page {
   elements: BaseElement[];
 }
 
-export interface Project {
+export interface GlimpseEvent {
   id: string;
   title: string;
-  status: ProjectStatus;
+  status: EventStatus;
   slug?: string;
   canvas: CanvasSettings;
   pages: Page[];

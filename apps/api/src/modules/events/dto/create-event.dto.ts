@@ -1,7 +1,7 @@
 import { IsString, IsOptional, IsObject } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class CreateProjectDto {
+export class CreateEventDto {
   @ApiPropertyOptional({
     example: 'Summer Wedding 2025',
     description: 'Human-readable title for the invitation. Defaults to "Untitled Invitation".',
