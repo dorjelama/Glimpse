@@ -3,6 +3,7 @@
 import { useRef, useCallback } from 'react';
 import { useEditorStore } from '../../store/editorStore';
 import type { CanvasElement } from '@/lib/api';
+import { cssStyles } from '../../utils/cssStyles';
 
 interface Props {
   element: CanvasElement;
@@ -60,7 +61,7 @@ export default function TextElement({ element, isSelected, isPreview }: Props) {
         overflow: 'hidden',
         wordBreak: 'break-word',
         cursor: isPreview ? 'default' : 'move',
-        ...element.styles,
+        ...cssStyles(element.styles),
       }}
     >
       {element.content || 'Your text here'}

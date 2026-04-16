@@ -1,4 +1,5 @@
 import type { CanvasElement } from '@/lib/api';
+import { cssStyles } from '../../utils/cssStyles';
 
 interface Props {
   element: CanvasElement;
@@ -16,7 +17,7 @@ export default function ButtonElement({ element, isPreview }: Props) {
         justifyContent: 'center',
         cursor: isPreview ? 'pointer' : 'move',
         userSelect: 'none',
-        ...element.styles,
+        ...cssStyles(element.styles),
       }}
     >
       {element.content || 'Click Here'}

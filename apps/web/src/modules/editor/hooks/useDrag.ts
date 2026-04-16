@@ -21,18 +21,11 @@ function yAnchors(r: Rect) {
   return [r.y, r.y + r.height / 2, r.y + r.height];
 }
 
-/**
- * Given the dragged element's tentative position and all reference rects
- * (other elements + canvas), return:
- *  - snapped x / y (adjusted if within threshold)
- *  - snap lines to display
- */
 function computeSnap(
   dragged: Rect,
   refs: Rect[],
   canvas: { width: number; height: number },
 ): { snappedX: number; snappedY: number; lines: SnapLine[] } {
-  // Reference x/y values: canvas edges + center + every other element's anchors
   const refXs: number[] = [0, canvas.width / 2, canvas.width];
   const refYs: number[] = [0, canvas.height / 2, canvas.height];
   for (const r of refs) {
@@ -40,8 +33,8 @@ function computeSnap(
     refYs.push(...yAnchors(r));
   }
 
-  const dragXs = xAnchors(dragged); // [left, center, right]
-  const dragYs = yAnchors(dragged); // [top,  center, bottom]
+  const dragXs = xAnchors(dragged);
+  const dragYs = yAnchors(dragged);
 
   let bestXDelta = Infinity;
   let bestXLine: number | null = null;
@@ -84,6 +77,7 @@ function computeSnap(
 
 export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
   const updateElement = useEditorStore((s) => s.updateElement);
+  const batchMove     = useEditorStore((s) => s.batchMove);
   const selectElement = useEditorStore((s) => s.selectElement);
   const setSnapLines  = useEditorStore((s) => s.setSnapLines);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
@@ -96,6 +90,8 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
     startMouseY: 0,
     startElX: 0,
     startElY: 0,
+    /** Start positions of other group members captured at drag start. */
+    groupMemberStarts: [] as { id: string; x: number; y: number; width: number; height: number }[],
   });
 
   const onMouseDown = useCallback(
@@ -114,6 +110,22 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
       d.startElX = element.x;
       d.startElY = element.y;
 
+      // Capture group member start positions so we can move the whole group together
+      const groupId = element.styles?._groupId as string | undefined;
+      if (groupId && project) {
+        const page = project.pages.find((p) => p.id === currentPageId);
+        d.groupMemberStarts = (page?.elements ?? [])
+          .filter(
+            (e) =>
+              (e.styles?._groupId as string | undefined) === groupId &&
+              e.id !== element.id &&
+              !e.styles?._locked,
+          )
+          .map((e) => ({ id: e.id, x: e.x, y: e.y, width: e.width, height: e.height }));
+      } else {
+        d.groupMemberStarts = [];
+      }
+
       const onMove = (me: MouseEvent) => {
         if (!d.active || !project) return;
 
@@ -123,7 +135,6 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
         const rawX = Math.max(0, Math.min(d.startElX + dx, project.canvas.width  - element.width));
         const rawY = Math.max(0, Math.min(d.startElY + dy, project.canvas.height - element.height));
 
-        // Other elements on the current page (excluding self)
         const page = project.pages.find((p) => p.id === currentPageId);
         const others = (page?.elements ?? []).filter((e) => e.id !== element.id);
 
@@ -134,14 +145,31 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
         );
 
         setSnapLines(lines);
-        updateElement(element.id, {
-          x: Math.round(snappedX),
-          y: Math.round(snappedY),
-        });
+
+        if (d.groupMemberStarts.length > 0) {
+          // Move all group members by the same actual delta as the lead element
+          const actualDx = snappedX - d.startElX;
+          const actualDy = snappedY - d.startElY;
+          const memberUpdates = d.groupMemberStarts.map((m) => ({
+            id: m.id,
+            x: Math.round(Math.max(0, Math.min(m.x + actualDx, project.canvas.width  - m.width))),
+            y: Math.round(Math.max(0, Math.min(m.y + actualDy, project.canvas.height - m.height))),
+          }));
+          batchMove([
+            { id: element.id, x: Math.round(snappedX), y: Math.round(snappedY) },
+            ...memberUpdates,
+          ]);
+        } else {
+          updateElement(element.id, {
+            x: Math.round(snappedX),
+            y: Math.round(snappedY),
+          });
+        }
       };
 
       const onUp = () => {
         d.active = false;
+        d.groupMemberStarts = [];
         setSnapLines([]);
         window.removeEventListener('mousemove', onMove);
         window.removeEventListener('mouseup', onUp);
@@ -150,7 +178,7 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [element, scale, project, currentPageId, updateElement, selectElement, setSnapLines, isPreviewMode],
+    [element, scale, project, currentPageId, updateElement, batchMove, selectElement, setSnapLines, isPreviewMode],
   );
 
   return { onMouseDown };

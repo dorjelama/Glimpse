@@ -2,6 +2,7 @@
 
 import Image from 'next/image';
 import type { CanvasElement } from '@/lib/api';
+import { cssStyles } from '../../utils/cssStyles';
 
 interface Props {
   element: CanvasElement;
@@ -45,7 +46,7 @@ export default function ImageElement({ element }: Props) {
         width: '100%',
         height: '100%',
         display: 'block',
-        ...element.styles,
+        ...cssStyles(element.styles),
       }}
     />
   );

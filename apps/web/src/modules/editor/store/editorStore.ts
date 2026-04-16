@@ -12,10 +12,21 @@ export interface SnapLine {
   pos: number;      // canvas-space coordinate
 }
 
+/** Strip `_`-prefixed metadata keys from a styles object (used when duplicating). */
+function stripMeta(styles: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const key in styles) {
+    if (!key.startsWith('_')) result[key] = styles[key];
+  }
+  return result;
+}
+
 interface EditorState {
   project: Project | null;
   currentPageId: string | null;
   selectedId: string | null;
+  /** All currently selected element IDs — may be >1 when Ctrl+clicking or a group is selected. */
+  selectedIds: string[];
   isPreviewMode: boolean;
   isSaving: boolean;
   saveError: string | null;
@@ -25,6 +36,7 @@ interface EditorState {
   loadProject: (id: string) => Promise<void>;
   setProject: (project: Project) => void;
   selectElement: (id: string | null) => void;
+  addToSelection: (id: string) => void;
 
   // Page actions
   setCurrentPage: (id: string) => void;
@@ -38,11 +50,22 @@ interface EditorState {
   updateElement: (id: string, changes: Partial<CanvasElement>) => void;
   deleteElement: (id: string) => void;
   duplicateElement: (id: string) => void;
+  /** Batch-update positions for multiple elements in one store write (used for group drag). */
+  batchMove: (updates: { id: string; x: number; y: number }[]) => void;
 
   bringForward: (id: string) => void;
   sendBackward: (id: string) => void;
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
+
+  // Layers / Lock / Group
+  toggleLock: (id: string) => void;
+  toggleHidden: (id: string) => void;
+  setElementName: (id: string, name: string) => void;
+  /** Group all elements currently in selectedIds together. */
+  groupSelected: () => void;
+  /** Ungroup the group that the given element belongs to. */
+  ungroupElement: (id: string) => void;
 
   // Canvas / title
   updateCanvas: (changes: Partial<{ width: number; height: number; backgroundColor: string; backgroundImage?: string }>) => void;
@@ -65,6 +88,7 @@ export const useEditorStore = create<EditorState>()(
     project: null,
     currentPageId: null,
     selectedId: null,
+    selectedIds: [],
     isPreviewMode: false,
     isSaving: false,
     saveError: null,
@@ -88,7 +112,31 @@ export const useEditorStore = create<EditorState>()(
     },
 
     selectElement: (id) => {
-      set((s) => { s.selectedId = id; });
+      set((s) => {
+        s.selectedId = id;
+        if (!id) {
+          s.selectedIds = [];
+          return;
+        }
+        // If this element belongs to a group, select the whole group
+        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const el = pg?.elements.find((e) => e.id === id);
+        const gid = el?.styles?._groupId as string | undefined;
+        if (gid) {
+          s.selectedIds = (pg?.elements ?? [])
+            .filter((e) => (e.styles?._groupId as string | undefined) === gid)
+            .map((e) => e.id);
+        } else {
+          s.selectedIds = [id];
+        }
+      });
+    },
+
+    addToSelection: (id) => {
+      set((s) => {
+        if (!s.selectedIds.includes(id)) s.selectedIds.push(id);
+        s.selectedId = id;
+      });
     },
 
     // ── Page actions ──────────────────────────────────────────────────────────
@@ -97,6 +145,7 @@ export const useEditorStore = create<EditorState>()(
       set((s) => {
         s.currentPageId = id;
         s.selectedId = null;
+        s.selectedIds = [];
       });
     },
 
@@ -113,6 +162,7 @@ export const useEditorStore = create<EditorState>()(
         s.project.pages.push(newPage);
         s.currentPageId = newPage.id;
         s.selectedId = null;
+        s.selectedIds = [];
       });
       get().scheduleSave();
     },
@@ -120,17 +170,16 @@ export const useEditorStore = create<EditorState>()(
     deletePage: (id) => {
       set((s) => {
         if (!s.project) return;
-        if (s.project.pages.length <= 1) return; // must keep at least 1
+        if (s.project.pages.length <= 1) return;
         const idx = s.project.pages.findIndex((p) => p.id === id);
         if (idx === -1) return;
         s.project.pages.splice(idx, 1);
-        // Re-index order values
         s.project.pages.forEach((p, i) => { p.order = i; });
-        // Switch to adjacent page
         if (s.currentPageId === id) {
           const nextIdx = Math.min(idx, s.project.pages.length - 1);
           s.currentPageId = s.project.pages[nextIdx]?.id ?? null;
           s.selectedId = null;
+          s.selectedIds = [];
         }
       });
       get().scheduleSave();
@@ -155,7 +204,6 @@ export const useEditorStore = create<EditorState>()(
         const temp = s.project.pages[idx];
         s.project.pages[idx] = s.project.pages[swapIdx];
         s.project.pages[swapIdx] = temp;
-        // Re-index order values
         s.project.pages.forEach((p, i) => { p.order = i; });
       });
       get().scheduleSave();
@@ -195,6 +243,7 @@ export const useEditorStore = create<EditorState>()(
         if (!pg) return;
         pg.elements.push(newEl);
         s.selectedId = newEl.id;
+        s.selectedIds = [newEl.id];
       });
       get().scheduleSave();
     },
@@ -219,8 +268,23 @@ export const useEditorStore = create<EditorState>()(
       set((s) => {
         const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
+        const el = pg.elements.find((e) => e.id === id);
+        const gid = el?.styles?._groupId as string | undefined;
         pg.elements = pg.elements.filter((e) => e.id !== id);
+        // Disband group when only one member would remain
+        if (gid) {
+          const remaining = pg.elements.filter(
+            (e) => (e.styles?._groupId as string | undefined) === gid,
+          );
+          if (remaining.length <= 1) {
+            for (const e of remaining) {
+              const { _groupId, ...rest } = e.styles as any;
+              e.styles = rest;
+            }
+          }
+        }
         if (s.selectedId === id) s.selectedId = null;
+        s.selectedIds = s.selectedIds.filter((sid) => sid !== id);
       });
       get().scheduleSave();
     },
@@ -239,13 +303,27 @@ export const useEditorStore = create<EditorState>()(
         x: el.x + 20,
         y: el.y + 20,
         zIndex: maxZ + 1,
-        styles: { ...el.styles },
+        // Strip metadata: duplicate is standalone, unlocked, visible
+        styles: stripMeta(el.styles),
       };
       set((s) => {
         const pg = s.project!.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         pg.elements.push(copy);
         s.selectedId = copy.id;
+        s.selectedIds = [copy.id];
+      });
+      get().scheduleSave();
+    },
+
+    batchMove: (updates) => {
+      set((s) => {
+        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        if (!pg) return;
+        for (const { id, x, y } of updates) {
+          const el = pg.elements.find((e) => e.id === id);
+          if (el) { el.x = x; el.y = y; }
+        }
       });
       get().scheduleSave();
     },
@@ -296,13 +374,84 @@ export const useEditorStore = create<EditorState>()(
       get().scheduleSave();
     },
 
+    // ── Layers / Lock / Group ─────────────────────────────────────────────────
+
+    toggleLock: (id) => {
+      set((s) => {
+        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const el = pg?.elements.find((e) => e.id === id);
+        if (el) el.styles = { ...el.styles, _locked: !el.styles._locked };
+      });
+      get().scheduleSave();
+    },
+
+    toggleHidden: (id) => {
+      set((s) => {
+        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const el = pg?.elements.find((e) => e.id === id);
+        if (el) el.styles = { ...el.styles, _hidden: !el.styles._hidden };
+      });
+      get().scheduleSave();
+    },
+
+    setElementName: (id, name) => {
+      set((s) => {
+        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const el = pg?.elements.find((e) => e.id === id);
+        if (el) {
+          if (name) {
+            el.styles = { ...el.styles, _name: name };
+          } else {
+            const { _name, ...rest } = el.styles as any;
+            el.styles = rest;
+          }
+        }
+      });
+      get().scheduleSave();
+    },
+
+    groupSelected: () => {
+      const { selectedIds } = get();
+      if (selectedIds.length < 2) return;
+      const groupId = `grp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      set((s) => {
+        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        if (!pg) return;
+        for (const id of s.selectedIds) {
+          const el = pg.elements.find((e) => e.id === id);
+          if (el) el.styles = { ...el.styles, _groupId: groupId };
+        }
+      });
+      get().scheduleSave();
+    },
+
+    ungroupElement: (id) => {
+      set((s) => {
+        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        if (!pg) return;
+        const el = pg.elements.find((e) => e.id === id);
+        const gid = el?.styles?._groupId as string | undefined;
+        if (!gid) return;
+        for (const e of pg.elements) {
+          if ((e.styles?._groupId as string | undefined) === gid) {
+            const { _groupId, ...rest } = e.styles as any;
+            e.styles = rest;
+          }
+        }
+        // Collapse multi-selection back to the clicked element
+        s.selectedIds = s.selectedIds.filter((sid) => {
+          const member = pg.elements.find((e) => e.id === sid);
+          return !!member;
+        });
+      });
+      get().scheduleSave();
+    },
+
     updateCanvas: (changes) => {
       set((s) => {
         if (!s.project) return;
-        // Dimensions are project-level (shared across pages)
         if (changes.width !== undefined) s.project.canvas.width = changes.width;
         if (changes.height !== undefined) s.project.canvas.height = changes.height;
-        // Background is per-page
         const pg = s.project.pages.find((p) => p.id === s.currentPageId);
         if (pg) {
           if (changes.backgroundColor !== undefined) pg.backgroundColor = changes.backgroundColor;
@@ -352,7 +501,7 @@ export const useEditorStore = create<EditorState>()(
     setPreviewMode: (val) => {
       set((s) => {
         s.isPreviewMode = val;
-        if (val) s.selectedId = null;
+        if (val) { s.selectedId = null; s.selectedIds = []; }
       });
     },
 
