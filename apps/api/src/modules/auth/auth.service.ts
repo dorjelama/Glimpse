@@ -1,8 +1,9 @@
-import { Injectable, ConflictException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ConflictException, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto/login.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 type SafeUser = { id: string; email: string; name: string; createdAt: Date };
 
@@ -39,6 +40,33 @@ export class AuthService {
 
     const token = this.signToken(user);
     return { token, user: this.toSafe(user) };
+  }
+
+  async updateMe(userId: string, dto: UpdateUserDto): Promise<SafeUser> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException();
+
+    const data: { name?: string; passwordHash?: string } = {};
+
+    if (dto.name !== undefined) {
+      data.name = dto.name;
+    }
+
+    if (dto.newPassword) {
+      if (!dto.currentPassword) {
+        throw new BadRequestException('currentPassword is required to set a new password');
+      }
+      const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
+      if (!valid) throw new UnauthorizedException('Current password is incorrect');
+      data.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+    }
+
+    const updated = await this.prisma.user.update({ where: { id: userId }, data });
+    return this.toSafe(updated);
+  }
+
+  async deleteMe(userId: string): Promise<void> {
+    await this.prisma.user.delete({ where: { id: userId } });
   }
 
   private signToken(user: { id: string; email: string; name: string }): string {

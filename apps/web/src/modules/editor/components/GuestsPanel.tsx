@@ -5,7 +5,7 @@ import { useEditorStore } from '../store/editorStore';
 import { api, type Guest } from '@/lib/api';
 
 export default function GuestsPanel() {
-  const project = useEditorStore((s) => s.project);
+  const event = useEditorStore((s) => s.event);
 
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -15,22 +15,22 @@ export default function GuestsPanel() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const loadGuests = useCallback(async () => {
-    if (!project) return;
+    if (!event) return;
     try {
-      const list = await api.listGuests(project.id);
+      const list = await api.listGuests(event.id);
       setGuests(list);
     } finally {
       setLoading(false);
     }
-  }, [project]);
+  }, [event]);
 
   useEffect(() => { loadGuests(); }, [loadGuests]);
 
   const handleAdd = async () => {
-    if (!project || !nameInput.trim()) return;
+    if (!event || !nameInput.trim()) return;
     setAdding(true);
     try {
-      const guest = await api.addGuest(project.id, {
+      const guest = await api.addGuest(event.id, {
         name: nameInput.trim(),
         email: emailInput.trim() || undefined,
       });
@@ -43,14 +43,14 @@ export default function GuestsPanel() {
   };
 
   const handleDelete = async (guest: Guest) => {
-    if (!project) return;
-    await api.deleteGuest(project.id, guest.id);
+    if (!event) return;
+    await api.deleteGuest(event.id, guest.id);
     setGuests((prev) => prev.filter((g) => g.id !== guest.id));
   };
 
   const getLink = (guest: Guest) => {
-    if (!project?.slug) return null;
-    return `${window.location.origin}/view/${project.slug}?g=${guest.token}`;
+    if (!event?.slug) return null;
+    return `${window.location.origin}/view/${event.slug}?g=${guest.token}`;
   };
 
   const copyLink = (guest: Guest) => {
@@ -62,7 +62,7 @@ export default function GuestsPanel() {
     });
   };
 
-  const isPublished = project?.status === 'published' && !!project?.slug;
+  const isPublished = event?.status === 'published' && !!event?.slug;
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">

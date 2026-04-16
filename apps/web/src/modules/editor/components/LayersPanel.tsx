@@ -68,7 +68,7 @@ function LockOpenIcon() {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function LayersPanel() {
-  const project        = useEditorStore((s) => s.project);
+  const event          = useEditorStore((s) => s.event);
   const currentPageId  = useEditorStore((s) => s.currentPageId);
   const selectedIds    = useEditorStore((s) => s.selectedIds);
   const selectElement  = useEditorStore((s) => s.selectElement);
@@ -80,8 +80,8 @@ export default function LayersPanel() {
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
 
-  if (!project) return null;
-  const currentPage = project.pages.find((p) => p.id === currentPageId) ?? project.pages[0];
+  if (!event) return null;
+  const currentPage = event.pages.find((p) => p.id === currentPageId) ?? event.pages[0];
   if (!currentPage) return null;
 
   // Highest z-index first (= "top" of the visual stack)

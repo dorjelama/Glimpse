@@ -11,7 +11,7 @@ interface UseResizeOptions {
 
 export function useResize({ element, scale }: UseResizeOptions) {
   const updateElement = useEditorStore((s) => s.updateElement);
-  const project = useEditorStore((s) => s.project);
+  const event = useEditorStore((s) => s.event);
 
   const onHandleMouseDown = useCallback(
     (handle: ResizeHandle) => (e: React.MouseEvent) => {
@@ -26,7 +26,7 @@ export function useResize({ element, scale }: UseResizeOptions) {
       const startY = element.y;
 
       const onMove = (me: MouseEvent) => {
-        if (!project) return;
+        if (!event) return;
         const dx = (me.clientX - startMX) / scale;
         const dy = (me.clientY - startMY) / scale;
 
@@ -37,7 +37,7 @@ export function useResize({ element, scale }: UseResizeOptions) {
 
         // Horizontal
         if (handle.includes('e')) {
-          w = Math.max(MIN_SIZE.width, Math.min(startW + dx, project.canvas.width - startX));
+          w = Math.max(MIN_SIZE.width, Math.min(startW + dx, event.canvas.width - startX));
         }
         if (handle.includes('w')) {
           const newW = Math.max(MIN_SIZE.width, startW - dx);
@@ -47,7 +47,7 @@ export function useResize({ element, scale }: UseResizeOptions) {
 
         // Vertical
         if (handle.includes('s')) {
-          h = Math.max(MIN_SIZE.height, Math.min(startH + dy, project.canvas.height - startY));
+          h = Math.max(MIN_SIZE.height, Math.min(startH + dy, event.canvas.height - startY));
         }
         if (handle.includes('n')) {
           const newH = Math.max(MIN_SIZE.height, startH - dy);
@@ -71,7 +71,7 @@ export function useResize({ element, scale }: UseResizeOptions) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [element, scale, project, updateElement],
+    [element, scale, event, updateElement],
   );
 
   return { onHandleMouseDown };

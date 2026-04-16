@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, Delete, UseGuards, Request, HttpCode } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/login.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('Auth')
@@ -67,5 +68,28 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Missing or invalid Bearer token.' })
   me(@Request() req: any) {
     return req.user;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me')
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Update current user name or password' })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({ status: 200, description: 'User updated. Returns updated user record.' })
+  @ApiResponse({ status: 400, description: 'currentPassword required when changing password.' })
+  @ApiResponse({ status: 401, description: 'Missing token or incorrect current password.' })
+  updateMe(@Request() req: any, @Body() dto: UpdateUserDto) {
+    return this.authService.updateMe(req.user.userId, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me')
+  @HttpCode(204)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Delete current user account and all their events' })
+  @ApiResponse({ status: 204, description: 'Account deleted.' })
+  @ApiResponse({ status: 401, description: 'Missing or invalid Bearer token.' })
+  deleteMe(@Request() req: any) {
+    return this.authService.deleteMe(req.user.userId);
   }
 }

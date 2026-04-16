@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
 import { PublishController } from './publish.controller';
 import { PublishService } from './publish.service';
-import { ProjectsModule } from '../projects/projects.module';
+import { EventsModule } from '../events/events.module';
 
 @Module({
-  imports: [ProjectsModule],
+  imports: [EventsModule],
   controllers: [PublishController],
   providers: [PublishService],
 })

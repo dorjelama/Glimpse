@@ -1,53 +1,55 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { api, type Project } from '@/lib/api';
-import PreviewLayout from '@/modules/preview/components/PreviewLayout';
+import { Suspense } from 'react';
+import type { Metadata } from 'next';
+import PublicViewClient from './PublicViewClient';
 
 interface Props {
   params: { slug: string };
 }
 
-export default function PublicViewPage({ params }: Props) {
-  const searchParams = useSearchParams();
-  const guestToken = searchParams.get('g');
-
-  const [project, setProject] = useState<Project | null>(null);
-  const [guestName, setGuestName] = useState<string | undefined>(undefined);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    api.getPublished(params.slug)
-      .then(setProject)
-      .catch((e) => setError(e.message));
-  }, [params.slug]);
-
-  useEffect(() => {
-    if (!guestToken) return;
-    api.resolveGuest(guestToken)
-      .then((g) => setGuestName(g.name))
-      .catch(() => {}); // silently ignore invalid tokens
-  }, [guestToken]);
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <p className="text-2xl font-bold text-gray-800 mb-2">Invitation not found</p>
-          <p className="text-gray-500 text-sm">This invitation may have been unpublished or the link is incorrect.</p>
-        </div>
-      </div>
-    );
+async function fetchProject(slug: string) {
+  const base = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
+  try {
+    const res = await fetch(`${base}/publish/view/${slug}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
   }
+}
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const project = await fetchProject(params.slug);
   if (!project) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <p className="text-gray-400 animate-pulse">Loading...</p>
-      </div>
-    );
+    return { title: 'Invitation — Glimpse' };
   }
+  const title = `${project.title} — You're invited!`;
+  const description = `Open your invitation to ${project.title}`;
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+    },
+  };
+}
 
-  return <PreviewLayout project={project} isPublicView guestName={guestName} />;
+export default function PublicViewPage({ params }: Props) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <p className="text-gray-400 animate-pulse">Loading...</p>
+        </div>
+      }
+    >
+      <PublicViewClient slug={params.slug} />
+    </Suspense>
+  );
 }
