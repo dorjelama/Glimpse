@@ -73,8 +73,10 @@ model Page {
   order     Int      @default(0)
 
   // Per-page background
-  bgColor   String   @default("#ffffff")
-  bgImage   String?
+  bgColor          String   @default("#ffffff")
+  bgImage          String?
+  bgImageRotation  Int      @default(0)
+  bgImageScale     Float    @default(1.0)
 
   elements  Element[]
 

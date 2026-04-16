@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "pages" ADD COLUMN     "bgImageScale" DOUBLE PRECISION NOT NULL DEFAULT 1.0;

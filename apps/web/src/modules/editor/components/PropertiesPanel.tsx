@@ -173,13 +173,55 @@ export default function PropertiesPanel() {
                   className="w-full bg-white/10 text-white text-sm rounded-md px-2 py-1.5 border border-white/10 focus:outline-none focus:border-accent"
                 />
               </Row>
+              {currentPage.backgroundImage && (
+                <>
+                  <Row>
+                    <Label>Background Image Rotation</Label>
+                    <div className="grid grid-cols-4 gap-1">
+                      {[0, 90, 180, 270].map((deg) => {
+                        const active = (currentPage.backgroundImageRotation ?? 0) === deg;
+                        return (
+                          <button
+                            key={deg}
+                            onClick={() => updateCanvas({ backgroundImageRotation: deg })}
+                            className={`py-1 text-xs rounded-md transition-colors ${
+                              active
+                                ? 'bg-accent text-white'
+                                : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                            }`}
+                          >
+                            {deg}°
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </Row>
+                  <Row>
+                    <Label>Background Image Scale</Label>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="3"
+                      step="0.05"
+                      value={currentPage.backgroundImageScale ?? 1}
+                      onChange={(e) =>
+                        updateCanvas({ backgroundImageScale: parseFloat(e.target.value) })
+                      }
+                      className="w-full accent-accent"
+                    />
+                    <span className="text-xs text-gray-400 text-right">
+                      {Math.round((currentPage.backgroundImageScale ?? 1) * 100)}%
+                    </span>
+                  </Row>
+                </>
+              )}
             </>
           )}
           {event.pages.length > 1 && (
             <Row>
               <Label>Page Transition</Label>
               <SelectInput
-                value={project.pageTransition ?? 'none'}
+                value={event.pageTransition ?? 'none'}
                 onChange={(v) => updateTransition(v)}
                 options={[
                   { value: 'none',  label: 'None (instant)' },

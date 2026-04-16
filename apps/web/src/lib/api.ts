@@ -116,6 +116,8 @@ export interface Page {
   order: number;
   backgroundColor: string;
   backgroundImage?: string;
+  backgroundImageRotation?: number;
+  backgroundImageScale?: number;
   elements: CanvasElement[];
 }
 

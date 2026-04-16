@@ -39,6 +39,8 @@ function toPage(p: PrismaPage): Page {
     order: p.order,
     backgroundColor: p.bgColor,
     backgroundImage: p.bgImage ?? undefined,
+    backgroundImageRotation: p.bgImageRotation ?? 0,
+    backgroundImageScale: p.bgImageScale ?? 1,
     elements: p.elements.map(toElement),
   };
 }
@@ -83,6 +85,8 @@ const INCLUDE_PAGES_LIGHT = {
       order: true,
       bgColor: true,
       bgImage: true,
+      bgImageRotation: true,
+      bgImageScale: true,
     },
   },
 } satisfies Prisma.EventInclude;
@@ -124,6 +128,7 @@ export class EventsService {
           order: 0,
           bgColor: canvas.backgroundColor,
           bgImage: (dto.canvas as any)?.backgroundImage ?? null,
+          bgImageRotation: 0,
         },
       });
 
@@ -155,6 +160,8 @@ export class EventsService {
         order: pg.order,
         backgroundColor: pg.bgColor,
         backgroundImage: pg.bgImage ?? undefined,
+        backgroundImageRotation: (pg as any).bgImageRotation ?? 0,
+        backgroundImageScale: (pg as any).bgImageScale ?? 1,
         elements: [],
       })),
       pageTransition: e.pageTransition,
@@ -212,6 +219,8 @@ export class EventsService {
               order: pg.order ?? 0,
               bgColor: pg.bgColor ?? pg.backgroundColor ?? '#ffffff',
               bgImage: pg.bgImage ?? pg.backgroundImage ?? null,
+              bgImageRotation: pg.bgImageRotation ?? pg.backgroundImageRotation ?? 0,
+              bgImageScale: pg.bgImageScale ?? pg.backgroundImageScale ?? 1,
             },
           });
 
@@ -256,7 +265,7 @@ export class EventsService {
     const existing = await this.prisma.event.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Event ${id} not found`);
 
-    const slug = existing.slug ?? this.generateSlug(existing.title);
+    const slug = existing.slug ?? this.generateSlug();
     const updated = await this.prisma.event.update({
       where: { id },
       data: { status: 'published', slug },
@@ -277,13 +286,7 @@ export class EventsService {
     return toEvent(updated);
   }
 
-  private generateSlug(title: string): string {
-    const base = title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .slice(0, 40);
-    return `${base}-${uuidv4().slice(0, 6)}`;
+  private generateSlug(): string {
+    return uuidv4().replace(/-/g, '').slice(0, 16);
   }
 }
