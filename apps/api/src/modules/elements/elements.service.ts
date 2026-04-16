@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
-import { BaseElement } from '../projects/entities/project.entity';
+import { BaseElement } from '../events/entities/event.entity';
 import { CreateElementDto } from './dto/create-element.dto';
 import { UpdateElementDto } from './dto/update-element.dto';
 
@@ -32,8 +32,8 @@ function toElement(e: PrismaElement): BaseElement {
 export class ElementsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async addElement(projectId: string, dto: CreateElementDto): Promise<BaseElement> {
-    // Resolve the first page of this project (or a specific pageId from the DTO)
+  async addElement(eventId: string, dto: CreateElementDto): Promise<BaseElement> {
+    // Resolve the first page of this event (or a specific pageId from the DTO)
     const pageId: string | undefined = (dto as any).pageId;
     let resolvedPageId: string;
 
@@ -41,11 +41,11 @@ export class ElementsService {
       resolvedPageId = pageId;
     } else {
       const firstPage = await this.prisma.page.findFirst({
-        where: { projectId },
+        where: { eventId },
         orderBy: { order: 'asc' },
         select: { id: true },
       });
-      if (!firstPage) throw new NotFoundException(`Project ${projectId} not found`);
+      if (!firstPage) throw new NotFoundException(`Event ${eventId} not found`);
       resolvedPageId = firstPage.id;
     }
 
@@ -76,13 +76,13 @@ export class ElementsService {
   }
 
   async updateElement(
-    projectId: string,
+    eventId: string,
     elementId: string,
     dto: UpdateElementDto,
   ): Promise<BaseElement> {
-    // Verify element belongs to this project (via page)
+    // Verify element belongs to this event (via page)
     const existing = await this.prisma.element.findFirst({
-      where: { id: elementId, page: { projectId } },
+      where: { id: elementId, page: { eventId } },
     });
     if (!existing) throw new NotFoundException(`Element ${elementId} not found`);
 
@@ -107,21 +107,21 @@ export class ElementsService {
     return toElement(updated);
   }
 
-  async removeElement(projectId: string, elementId: string): Promise<void> {
+  async removeElement(eventId: string, elementId: string): Promise<void> {
     const existing = await this.prisma.element.findFirst({
-      where: { id: elementId, page: { projectId } },
+      where: { id: elementId, page: { eventId } },
     });
     if (!existing) throw new NotFoundException(`Element ${elementId} not found`);
     await this.prisma.element.delete({ where: { id: elementId } });
   }
 
   async reorderElement(
-    projectId: string,
+    eventId: string,
     elementId: string,
     direction: 'up' | 'down' | 'top' | 'bottom',
   ): Promise<BaseElement[]> {
     const el = await this.prisma.element.findFirst({
-      where: { id: elementId, page: { projectId } },
+      where: { id: elementId, page: { eventId } },
     });
     if (!el) throw new NotFoundException(`Element ${elementId} not found`);
 

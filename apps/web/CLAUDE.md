@@ -3,24 +3,31 @@
 ## What this app does
 The Glimpse frontend — a Next.js 14 app with two primary surfaces:
 1. **Editor** — drag-and-drop canvas to build and style invitation cards
-2. **Viewer** — read-only public page rendered from a published project slug
+2. **Viewer** — read-only public page rendered from a published event slug
 
 ## Tech stack
 - **Framework**: Next.js 14 (App Router, `'use client'` where needed)
-- **State**: Zustand + immer (editor store only)
+- **State**: Zustand + immer (editor store); Zustand persist (auth store)
 - **Styling**: Tailwind CSS
 - **API client**: `src/lib/api.ts` — thin fetch wrapper around `NEXT_PUBLIC_API_URL`
+- **Auth store**: `src/lib/authStore.ts` — Zustand persist, dual-writes token to localStorage + cookie
 
 ## Directory layout
 ```
 src/
 ├── app/                          Next.js App Router pages
-│   ├── page.tsx                  Home — "Create New Invitation" button
+│   ├── page.tsx                  Dashboard — lists user's events
+│   ├── auth/                     Login + register pages (public)
 │   ├── editor/[id]/              Full drag-and-drop editor
-│   ├── preview/[id]/             In-editor preview (same project, no editing)
-│   └── view/[slug]/              Public viewer — shareable URL
+│   ├── preview/[id]/             In-editor preview (no editing)
+│   ├── settings/                 User profile & account settings
+│   └── view/[slug]/              Public viewer — shareable URL (no auth)
+├── components/
+│   └── UserMenu.tsx              Avatar dropdown: settings + logout
 ├── lib/
-│   └── api.ts                    API client + shared TypeScript types
+│   ├── api.ts                    API client + shared TypeScript types
+│   └── authStore.ts              Zustand auth store with JWT persistence
+├── middleware.ts                 Edge middleware: protect all routes except /auth/* and /view/*
 └── modules/
     ├── editor/                   Editor module (see editor/CLAUDE.md)
     ├── preview/                  Preview module (see preview/CLAUDE.md)
@@ -28,37 +35,45 @@ src/
 ```
 
 ## Routes
-| Route | Description |
-|-------|-------------|
-| `/` | Dashboard — lists all saved projects, create/delete, links to editor |
-| `/editor/[id]` | Full editor for project `id` |
-| `/preview/[id]` | Read-only preview of project `id` (editor's preview toggle lands here) |
-| `/view/[slug]` | Public invitation viewer — no auth, fetches by slug |
+| Route | Auth required | Description |
+|-------|---------------|-------------|
+| `/` | Yes | Dashboard — lists user's events, create/delete |
+| `/auth/login` | No | Login form |
+| `/auth/register` | No | Register form |
+| `/editor/[id]` | Yes | Full editor for event `id` |
+| `/preview/[id]` | Yes | Read-only preview of event `id` |
+| `/settings` | Yes | User profile: update name, change password, delete account |
+| `/view/[slug]` | No | Public invitation viewer — no auth, fetches by slug |
 
 ## Shared types (`src/lib/api.ts`)
 All frontend types mirror the backend entities:
 
 | Type | Fields |
 |------|--------|
-| `Project` | `id`, `title`, `status`, `slug?`, `canvas`, `elements[]`, `createdAt`, `updatedAt` |
+| `GlimpseEvent` | `id`, `title`, `status`, `slug?`, `canvas`, `pages[]`, `createdAt`, `updatedAt` |
 | `CanvasElement` | `id`, `type`, `x`, `y`, `width`, `height`, `zIndex`, `styles`, `content?`, `src?`, `alt?` |
-| `CanvasSettings` | `width`, `height`, `backgroundColor`, `backgroundImage?` |
-| `ElementType` | `'text' \| 'image' \| 'shape' \| 'button' \| 'divider'` |
+| `CanvasSettings` | `width`, `height` |
+| `Page` | `id`, `name`, `backgroundColor`, `backgroundImage?`, `elements[]` |
+| `ElementType` | `'text' \| 'image' \| 'shape' \| 'button' \| 'divider' \| 'guestname' \| 'countdown'` |
 
 ## API client (`src/lib/api.ts`)
 All calls go to `NEXT_PUBLIC_API_URL` (default `http://localhost:3001/api`).
+Token injected via `Authorization: Bearer <token>` from `authStore`. 401 responses trigger logout + redirect to `/auth/login`.
 
 | Method | Endpoint |
 |--------|----------|
-| `createProject` | POST `/projects` |
-| `listProjects` | GET `/projects` |
-| `getProject` | GET `/projects/:id` |
-| `updateProject` | PATCH `/projects/:id` |
-| `deleteProject` | DELETE `/projects/:id` |
-| `publishProject` | POST `/publish/:id` |
-| `unpublishProject` | DELETE `/publish/:id` |
+| `createEvent` | POST `/events` |
+| `listEvents` | GET `/events` |
+| `getEvent` | GET `/events/:id` |
+| `updateEvent` | PATCH `/events/:id` |
+| `deleteEvent` | DELETE `/events/:id` |
+| `publishEvent` | POST `/publish/:id` |
+| `unpublishEvent` | DELETE `/publish/:id` |
 | `getPublished` | GET `/publish/view/:slug` |
-| `uploadImage` | POST `/projects/:id/upload` (multipart) |
+| `uploadImage` | POST `/events/:id/upload` (multipart) |
+
+## Auth store (`src/lib/authStore.ts`)
+Zustand store with `persist` (localStorage key `glimpse-auth`). On login/register, also writes cookie `glimpse-token` for Next.js Edge middleware.
 
 ## Environment
 ```

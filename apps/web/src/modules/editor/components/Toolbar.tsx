@@ -4,10 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useEditorStore } from '../store/editorStore';
 import PublishModal from '../../publish/components/PublishModal';
+import UserMenu from '@/components/UserMenu';
 
 export default function Toolbar() {
   const router = useRouter();
-  const project = useEditorStore((s) => s.project);
+  const event = useEditorStore((s) => s.event);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
   const setPreviewMode = useEditorStore((s) => s.setPreviewMode);
   const updateTitle = useEditorStore((s) => s.updateTitle);
@@ -19,10 +20,10 @@ export default function Toolbar() {
   const [titleDraft, setTitleDraft] = useState('');
   const [showPublish, setShowPublish] = useState(false);
 
-  if (!project) return null;
+  if (!event) return null;
 
   const handleTitleClick = () => {
-    setTitleDraft(project.title);
+    setTitleDraft(event.title);
     setEditingTitle(true);
   };
 
@@ -66,7 +67,7 @@ export default function Toolbar() {
             className="text-sm font-medium text-gray-200 hover:text-white hover:bg-white/10 px-2 py-1 rounded-md transition-colors truncate max-w-[200px]"
             title="Click to rename"
           >
-            {project.title}
+            {event.title}
           </button>
         )}
 
@@ -116,6 +117,9 @@ export default function Toolbar() {
         >
           Publish
         </button>
+
+        <div className="w-px h-6 bg-white/10" />
+        <UserMenu />
       </header>
 
       {showPublish && (

@@ -8,19 +8,19 @@ import Canvas from './Canvas';
 import PropertiesPanel from './PropertiesPanel';
 
 interface Props {
-  projectId: string;
+  eventId: string;
 }
 
-export default function EditorLayout({ projectId }: Props) {
-  const loadProject = useEditorStore((s) => s.loadProject);
-  const project = useEditorStore((s) => s.project);
+export default function EditorLayout({ eventId }: Props) {
+  const loadEvent = useEditorStore((s) => s.loadEvent);
+  const event = useEditorStore((s) => s.event);
   const selectedId = useEditorStore((s) => s.selectedId);
   const deleteElement = useEditorStore((s) => s.deleteElement);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
 
   useEffect(() => {
-    loadProject(projectId);
-  }, [projectId, loadProject]);
+    loadEvent(eventId);
+  }, [eventId, loadEvent]);
 
   // Keyboard shortcuts
   const handleKeyDown = useCallback(
@@ -48,10 +48,10 @@ export default function EditorLayout({ projectId }: Props) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  if (!project) {
+  if (!event) {
     return (
       <div className="min-h-screen bg-panel flex items-center justify-center">
-        <div className="text-gray-400 text-sm animate-pulse">Loading project...</div>
+        <div className="text-gray-400 text-sm animate-pulse">Loading event...</div>
       </div>
     );
   }

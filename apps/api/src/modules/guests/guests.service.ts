@@ -5,7 +5,7 @@ import { CreateGuestDto } from './dto/create-guest.dto';
 
 export interface Guest {
   id: string;
-  projectId: string;
+  eventId: string;
   name: string;
   email?: string;
   token: string;
@@ -15,7 +15,7 @@ export interface Guest {
 function toGuest(g: any): Guest {
   return {
     id: g.id,
-    projectId: g.projectId,
+    eventId: g.eventId,
     name: g.name,
     email: g.email ?? undefined,
     token: g.token,
@@ -27,22 +27,22 @@ function toGuest(g: any): Guest {
 export class GuestsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(projectId: string): Promise<Guest[]> {
+  async list(eventId: string): Promise<Guest[]> {
     const guests = await this.prisma.guest.findMany({
-      where: { projectId },
+      where: { eventId },
       orderBy: { createdAt: 'asc' },
     });
     return guests.map(toGuest);
   }
 
-  async create(projectId: string, dto: CreateGuestDto): Promise<Guest> {
-    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
-    if (!project) throw new NotFoundException(`Project ${projectId} not found`);
+  async create(eventId: string, dto: CreateGuestDto): Promise<Guest> {
+    const event = await this.prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) throw new NotFoundException(`Event ${eventId} not found`);
 
     const guest = await this.prisma.guest.create({
       data: {
         id: uuidv4(),
-        projectId,
+        eventId,
         name: dto.name,
         email: dto.email ?? null,
         token: uuidv4(),
@@ -51,17 +51,17 @@ export class GuestsService {
     return toGuest(guest);
   }
 
-  async remove(projectId: string, guestId: string): Promise<void> {
+  async remove(eventId: string, guestId: string): Promise<void> {
     const guest = await this.prisma.guest.findFirst({
-      where: { id: guestId, projectId },
+      where: { id: guestId, eventId },
     });
     if (!guest) throw new NotFoundException(`Guest ${guestId} not found`);
     await this.prisma.guest.delete({ where: { id: guestId } });
   }
 
-  async resolveByToken(token: string): Promise<{ name: string; projectId: string }> {
+  async resolveByToken(token: string): Promise<{ name: string; eventId: string }> {
     const guest = await this.prisma.guest.findUnique({ where: { token } });
     if (!guest) throw new NotFoundException('Guest not found');
-    return { name: guest.name, projectId: guest.projectId };
+    return { name: guest.name, eventId: guest.eventId };
   }
 }

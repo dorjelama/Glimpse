@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function PublishModal({ onClose }: Props) {
-  const { project, publish, unpublish, publishing, error } = usePublish();
+  const { event, publish, unpublish, publishing, error } = usePublish();
   const [published, setPublished] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -19,7 +19,7 @@ export default function PublishModal({ onClose }: Props) {
   const handlePublish = async () => {
     const result = await publish();
     if (result) {
-      setPublicUrl(`${origin}/view/${result.project.slug}`);
+      setPublicUrl(`${origin}/view/${result.event.slug}`);
       setPublished(true);
     }
   };
@@ -32,8 +32,8 @@ export default function PublishModal({ onClose }: Props) {
     }
   };
 
-  const isAlreadyPublished = project?.status === 'published';
-  const existingUrl = project?.slug ? `${origin}/view/${project.slug}` : null;
+  const isAlreadyPublished = event?.status === 'published';
+  const existingUrl = event?.slug ? `${origin}/view/${event.slug}` : null;
 
   return (
     <div
@@ -107,13 +107,13 @@ export default function PublishModal({ onClose }: Props) {
               <div className="bg-white/5 rounded-xl p-4 flex flex-col gap-2">
                 <div className="flex items-center gap-2 text-sm text-gray-300">
                   <span>📄</span>
-                  <span className="font-medium truncate">{project?.title}</span>
+                  <span className="font-medium truncate">{event?.title}</span>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-gray-500">
                   <span>🎨</span>
-                  <span>{project?.pages.reduce((n, p) => n + p.elements.length, 0)} element{project?.pages.reduce((n, p) => n + p.elements.length, 0) !== 1 ? 's' : ''}</span>
+                  <span>{event?.pages.reduce((n, p) => n + p.elements.length, 0)} element{event?.pages.reduce((n, p) => n + p.elements.length, 0) !== 1 ? 's' : ''}</span>
                   <span className="mx-1">·</span>
-                  <span>{project?.canvas.width}×{project?.canvas.height}px</span>
+                  <span>{event?.canvas.width}×{event?.canvas.height}px</span>
                 </div>
               </div>
 

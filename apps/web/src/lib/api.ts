@@ -1,10 +1,27 @@
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // Lazy import to avoid circular dependency — authStore imports nothing from api.ts
+  const { useAuthStore } = await import('./authStore');
+  const token = useAuthStore.getState().token;
+
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options?.headers,
+    },
     ...options,
   });
+
+  if (res.status === 401) {
+    useAuthStore.getState().logout();
+    if (typeof window !== 'undefined') {
+      window.location.href = '/auth/login';
+    }
+    throw new Error('Unauthorized');
+  }
+
   if (!res.ok) {
     const msg = await res.text().catch(() => res.statusText);
     throw new Error(msg);
@@ -14,49 +31,52 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  // Projects
-  createProject: (body: { title?: string; canvas?: Record<string, any> }) =>
-    request<Project>('/projects', { method: 'POST', body: JSON.stringify(body) }),
+  // Events
+  createEvent: (body: { title?: string; canvas?: Record<string, any> }) =>
+    request<GlimpseEvent>('/events', { method: 'POST', body: JSON.stringify(body) }),
 
-  listProjects: () => request<Project[]>('/projects'),
+  listEvents: () => request<GlimpseEvent[]>('/events'),
 
-  getProject: (id: string) => request<Project>(`/projects/${id}`),
+  getEvent: (id: string) => request<GlimpseEvent>(`/events/${id}`),
 
-  updateProject: (id: string, body: { title?: string; canvas?: { width?: number; height?: number }; pages?: Page[]; pageTransition?: string }) =>
-    request<Project>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  updateEvent: (id: string, body: { title?: string; canvas?: { width?: number; height?: number }; pages?: Page[]; pageTransition?: string }) =>
+    request<GlimpseEvent>(`/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
 
-  deleteProject: (id: string) =>
-    request<void>(`/projects/${id}`, { method: 'DELETE' }),
+  deleteEvent: (id: string) =>
+    request<void>(`/events/${id}`, { method: 'DELETE' }),
 
   // Publish
-  publishProject: (id: string) =>
-    request<{ project: Project; publicUrl: string }>(`/publish/${id}`, { method: 'POST' }),
+  publishEvent: (id: string) =>
+    request<{ event: GlimpseEvent; publicUrl: string }>(`/publish/${id}`, { method: 'POST' }),
 
-  unpublishProject: (id: string) =>
-    request<Project>(`/publish/${id}`, { method: 'DELETE' }),
+  unpublishEvent: (id: string) =>
+    request<GlimpseEvent>(`/publish/${id}`, { method: 'DELETE' }),
 
   getPublished: (slug: string) =>
-    request<Project>(`/publish/view/${slug}`),
+    request<GlimpseEvent>(`/publish/view/${slug}`),
 
   // Guests
-  listGuests: (projectId: string) =>
-    request<Guest[]>(`/projects/${projectId}/guests`),
+  listGuests: (eventId: string) =>
+    request<Guest[]>(`/events/${eventId}/guests`),
 
-  addGuest: (projectId: string, body: { name: string; email?: string }) =>
-    request<Guest>(`/projects/${projectId}/guests`, { method: 'POST', body: JSON.stringify(body) }),
+  addGuest: (eventId: string, body: { name: string; email?: string }) =>
+    request<Guest>(`/events/${eventId}/guests`, { method: 'POST', body: JSON.stringify(body) }),
 
-  deleteGuest: (projectId: string, guestId: string) =>
-    request<void>(`/projects/${projectId}/guests/${guestId}`, { method: 'DELETE' }),
+  deleteGuest: (eventId: string, guestId: string) =>
+    request<void>(`/events/${eventId}/guests/${guestId}`, { method: 'DELETE' }),
 
   resolveGuest: (token: string) =>
-    request<{ name: string; projectId: string }>(`/guests/token/${token}`),
+    request<{ name: string; eventId: string }>(`/guests/token/${token}`),
 
   // Image upload (multipart — handled separately)
-  uploadImage: async (projectId: string, file: File): Promise<{ url: string }> => {
+  uploadImage: async (eventId: string, file: File): Promise<{ url: string }> => {
+    const { useAuthStore } = await import('./authStore');
+    const token = useAuthStore.getState().token;
     const form = new FormData();
     form.append('file', file);
-    const res = await fetch(`${BASE}/projects/${projectId}/upload`, {
+    const res = await fetch(`${BASE}/events/${eventId}/upload`, {
       method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       body: form,
     });
     if (!res.ok) throw new Error('Upload failed');
@@ -66,13 +86,15 @@ export const api = {
 
 // Shared types (mirrors backend entities)
 
-/** Shared canvas dimensions for all pages in a project. */
+export type EventStatus = 'draft' | 'published';
+
+export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider' | 'guestname' | 'countdown';
+
+/** Shared canvas dimensions for all pages in an event. */
 export interface CanvasSettings {
   width: number;
   height: number;
 }
-
-export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider' | 'guestname' | 'countdown';
 
 export interface CanvasElement {
   id: string;
@@ -99,17 +121,17 @@ export interface Page {
 
 export interface Guest {
   id: string;
-  projectId: string;
+  eventId: string;
   name: string;
   email?: string;
   token: string;
   createdAt: string;
 }
 
-export interface Project {
+export interface GlimpseEvent {
   id: string;
   title: string;
-  status: 'draft' | 'published';
+  status: EventStatus;
   slug?: string;
   canvas: CanvasSettings;
   pages: Page[];

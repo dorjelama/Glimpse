@@ -1,14 +1,17 @@
-import { Controller, Post, Get, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Param, Delete, UseGuards, Req, ForbiddenException } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PublishService } from './publish.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { EventsService } from '../events/events.service';
 
-const PROJECT_EXAMPLE = {
-  id: 'inv_a1b2c3d4e5f6',
+const EVENT_EXAMPLE = {
+  id: 'evt_a1b2c3d4e5f6',
   title: 'Summer Wedding 2025',
   status: 'published',
   slug: 'summer-wedding-2025-a3f9c2',
@@ -21,47 +24,60 @@ const PROJECT_EXAMPLE = {
 @ApiTags('Publish')
 @Controller('publish')
 export class PublishController {
-  constructor(private readonly publishService: PublishService) {}
+  constructor(
+    private readonly publishService: PublishService,
+    private readonly eventsService: EventsService,
+  ) {}
 
   @Post(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
   @ApiOperation({
-    summary: 'Publish a project and generate a shareable public URL',
+    summary: 'Publish an event and generate a shareable public URL',
     description:
-      'Saves current state, sets status to "published", and generates a stable slug if the project does not already have one. ' +
-      'Returns the updated project and the relative public URL.',
+      'Saves current state, sets status to "published", and generates a stable slug if the event does not already have one. ' +
+      'Returns the updated event and the relative public URL.',
   })
-  @ApiParam({ name: 'id', example: 'inv_a1b2c3d4e5f6', description: 'Project ID to publish' })
+  @ApiParam({ name: 'id', example: 'evt_a1b2c3d4e5f6', description: 'Event ID to publish' })
   @ApiResponse({
     status: 201,
-    description: 'Project published. Share the public URL with recipients.',
+    description: 'Event published. Share the public URL with recipients.',
     schema: {
       example: {
-        project: PROJECT_EXAMPLE,
+        event: EVENT_EXAMPLE,
         publicUrl: '/view/summer-wedding-2025-a3f9c2',
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'Project not found.' })
-  publishProject(@Param('id') id: string) {
-    return this.publishService.publishProject(id);
+  @ApiResponse({ status: 404, description: 'Event not found.' })
+  @ApiResponse({ status: 403, description: 'Access denied.' })
+  async publishEvent(@Param('id') id: string, @Req() req: any) {
+    const event = await this.eventsService.findOne(id);
+    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    return this.publishService.publishEvent(id);
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
   @ApiOperation({
-    summary: 'Unpublish a project (revert to draft)',
+    summary: 'Unpublish an event (revert to draft)',
     description:
       'Sets status back to "draft". The public slug is preserved so the same URL can be reused on republish. ' +
-      'The public viewer returns 404 while the project is in draft status.',
+      'The public viewer returns 404 while the event is in draft status.',
   })
-  @ApiParam({ name: 'id', example: 'inv_a1b2c3d4e5f6', description: 'Project ID to unpublish' })
+  @ApiParam({ name: 'id', example: 'evt_a1b2c3d4e5f6', description: 'Event ID to unpublish' })
   @ApiResponse({
     status: 200,
-    description: 'Project unpublished.',
-    schema: { example: { ...PROJECT_EXAMPLE, status: 'draft' } },
+    description: 'Event unpublished.',
+    schema: { example: { ...EVENT_EXAMPLE, status: 'draft' } },
   })
-  @ApiResponse({ status: 404, description: 'Project not found.' })
-  unpublishProject(@Param('id') id: string) {
-    return this.publishService.unpublishProject(id);
+  @ApiResponse({ status: 404, description: 'Event not found.' })
+  @ApiResponse({ status: 403, description: 'Access denied.' })
+  async unpublishEvent(@Param('id') id: string, @Req() req: any) {
+    const event = await this.eventsService.findOne(id);
+    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    return this.publishService.unpublishEvent(id);
   }
 
   @Get('view/:slug')
@@ -69,7 +85,7 @@ export class PublishController {
     summary: 'Fetch a published invitation by public slug (no auth required)',
     description:
       'Used by the public viewer page (/view/[slug] in the Next.js app). ' +
-      'Returns 404 if the project does not exist or is not in "published" status.',
+      'Returns 404 if the event does not exist or is not in "published" status.',
   })
   @ApiParam({
     name: 'slug',
@@ -78,8 +94,8 @@ export class PublishController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Published project found. The full project (with elements) is returned for rendering.',
-    schema: { example: PROJECT_EXAMPLE },
+    description: 'Published event found.',
+    schema: { example: EVENT_EXAMPLE },
   })
   @ApiResponse({ status: 404, description: 'Invitation not found or not published.' })
   getBySlug(@Param('slug') slug: string) {

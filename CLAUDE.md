@@ -15,25 +15,30 @@ Glimpse is a SaaS invitation builder. Users create invitation cards on a drag-an
 - **Migrations**: `apps/api/prisma/migrations/` — run `npx prisma migrate dev` from `apps/api/`
 
 ## Key design decisions
-- Canvas settings stored as flat columns on Project (not JSON) — easier to query/index
-- Elements stored as a separate `elements` table with FK → Project (cascade delete)
-- When frontend sends a full `elements` array via `PATCH /projects/:id`, a Prisma transaction deletes-then-recreates all elements atomically
+- Canvas settings stored as flat columns on Event (not JSON) — easier to query/index
+- Elements stored as a separate `elements` table with FK → Event (cascade delete)
+- When frontend sends a full `elements` array via `PATCH /events/:id`, a Prisma transaction deletes-then-recreates all elements atomically
 - `PrismaModule` is `@Global()` — `PrismaService` is available in all modules without re-importing
-- Auth is JWT; routes are currently open (no auth guard on projects/elements endpoints) — add `@UseGuards(JwtAuthGuard)` to protect per-user data
+- Auth is JWT with `JwtAuthGuard`; all event/element/publish (write) routes are guarded. `GET /publish/view/:slug` and `GET /guests/token/:token` remain public.
+- Account deletion cascades: `onDelete: Cascade` on `Event.owner` — deleting a user removes all their events
+- Frontend token: dual-written to Zustand persist (localStorage) and cookie `glimpse-token` (for Edge middleware)
+- TypeScript type is `GlimpseEvent` (not `Event`) to avoid conflict with the DOM `Event` interface
+- Event IDs use prefix `evt_` (e.g. `evt_a1b2c3d4e5f6`)
 
 ## Data flow
 ```
-User action → Zustand store (immer) → 800ms debounce → PATCH /api/projects/:id → Prisma transaction → PostgreSQL
+User action → Zustand store (immer) → 800ms debounce → PATCH /api/events/:id → Prisma transaction → PostgreSQL
 ```
 
 ## Module map
 | Path | Purpose |
 |------|---------|
 | `apps/api/src/prisma` | PrismaService + PrismaModule (@Global) |
-| `apps/api/src/modules/projects` | CRUD for invitation projects |
-| `apps/api/src/modules/elements` | Element add/update/delete/reorder (direct Prisma) |
+| `apps/api/src/modules/events` | CRUD for invitation events (guarded, owner-scoped) |
+| `apps/api/src/modules/elements` | Element add/update/delete/reorder (guarded) |
 | `apps/api/src/modules/publish` | Publishing: slug generation, public read |
-| `apps/api/src/modules/auth` | JWT auth (register/login) |
+| `apps/api/src/modules/guests` | Guest list management (guarded); token resolve is public |
+| `apps/api/src/modules/auth` | JWT auth (register/login/me update/me delete) |
 | `apps/web/src/modules/editor` | Full canvas editor |
 | `apps/web/src/modules/preview` | Read-only preview |
 | `apps/web/src/modules/publish` | Publish modal + flow |

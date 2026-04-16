@@ -195,7 +195,7 @@ function ElementWrapper({
 }
 
 export default function Canvas() {
-  const project       = useEditorStore((s) => s.project);
+  const event         = useEditorStore((s) => s.event);
   const currentPageId = useEditorStore((s) => s.currentPageId);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
   const snapLines     = useEditorStore((s) => s.snapLines);
@@ -209,14 +209,14 @@ export default function Canvas() {
     handleCanvasClick,
   } = useCanvas();
 
-  if (!project) return null;
+  if (!event) return null;
 
-  const currentPage = project.pages.find((p) => p.id === currentPageId) ?? project.pages[0];
+  const currentPage = event.pages.find((p) => p.id === currentPageId) ?? event.pages[0];
   if (!currentPage) return null;
 
   const canvasStyle: React.CSSProperties = {
-    width: project.canvas.width,
-    height: project.canvas.height,
+    width: event.canvas.width,
+    height: event.canvas.height,
     backgroundColor: currentPage.backgroundColor,
     backgroundImage: currentPage.backgroundImage
       ? `url(${currentPage.backgroundImage})`

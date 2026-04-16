@@ -7,7 +7,10 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://192.168.1.68:3000',
+    ],
     credentials: true,
   });
 
@@ -54,7 +57,7 @@ async function bootstrap() {
   // ──────────────────────────────────────────────────────────────────────────
 
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
   console.log(`Glimpse API running on http://localhost:${port}/api`);
   console.log(`Swagger UI      → http://localhost:${port}/api/docs`);
 }
