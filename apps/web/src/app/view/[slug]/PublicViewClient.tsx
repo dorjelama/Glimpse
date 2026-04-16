@@ -17,6 +17,20 @@ export default function PublicViewClient({ slug }: Props) {
   const [guestName, setGuestName] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
+  // Suppress errors injected by crypto wallet browsers (MetaMask Mobile, Trust
+  // Wallet, etc.) that pollute the page with window.ethereum noise unrelated to
+  // this app. preventDefault stops the Next.js error overlay from showing them.
+  useEffect(() => {
+    const suppress = (e: ErrorEvent) => {
+      const msg = e.message?.toLowerCase() ?? '';
+      if (msg.includes('ethereum') || msg.includes('selectedaddress')) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('error', suppress);
+    return () => window.removeEventListener('error', suppress);
+  }, []);
+
   useEffect(() => {
     api.getPublished(slug)
       .then(setProject)

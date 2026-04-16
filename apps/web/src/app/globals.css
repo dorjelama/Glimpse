@@ -48,3 +48,18 @@ body {
   outline: none;
   caret-color: var(--accent);
 }
+
+/*
+ * Cross-browser full-screen height for mobile viewers.
+ *   1. 100vh          — universal fallback (ignores browser chrome on iOS)
+ *   2. -webkit-fill-available — iOS Safari: fills the space excluding the
+ *                               address bar (works back to Safari 9)
+ *   3. 100dvh         — modern: shrinks dynamically as chrome hides/shows
+ *                               (iOS 16+, Chrome 108+)
+ * Using a class instead of Tailwind h-[100dvh] so we can cascade all three.
+ */
+.h-dvh {
+  height: 100vh;
+  height: -webkit-fill-available;
+  height: 100dvh;
+}

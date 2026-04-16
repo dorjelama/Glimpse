@@ -143,8 +143,9 @@ export default function PreviewCanvas({ project, guestName }: Props) {
   const [showBoth, setShowBoth] = useState(false);
   const [nextIndex, setNextIndex] = useState<number | null>(null);
 
-  // Touch swipe tracking
+  // Touch swipe tracking (both axes — we only navigate on horizontal-dominant swipes)
   const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
 
   // Swipe hint — shown on mount for multi-page, auto-fades after 3 glow cycles
   const [swipeHint, setSwipeHint] = useState<'visible' | 'fading' | 'gone'>('visible');
@@ -320,13 +321,19 @@ export default function PreviewCanvas({ project, guestName }: Props) {
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
   }, []);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
+    if (touchStartX.current === null || touchStartY.current === null) return;
     const dx = e.changedTouches[0].clientX - touchStartX.current;
+    const dy = e.changedTouches[0].clientY - touchStartY.current;
     touchStartX.current = null;
-    if (Math.abs(dx) > 40) navigate(dx < 0 ? 1 : -1);
+    touchStartY.current = null;
+    // Only treat as a swipe if horizontal movement is dominant and exceeds threshold
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 40) {
+      navigate(dx < 0 ? 1 : -1);
+    }
   }, [navigate]);
 
   // ── Render ───────────────────────────────────────────────────────────────────
@@ -335,18 +342,27 @@ export default function PreviewCanvas({ project, guestName }: Props) {
   const scaledH = canvasHeight * scale;
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-auto bg-canvas">
+    // -webkit-overflow-scrolling: touch enables momentum (inertial) scrolling on
+    // older iOS Safari. Modern iOS ignores it but it doesn't hurt.
+    <div ref={containerRef} className="flex-1 overflow-auto bg-canvas" style={{ WebkitOverflowScrolling: 'touch' } as React.CSSProperties}>
       <div className="flex flex-col items-center py-8">
 
         {/* Canvas + overlay arrows */}
         <div
-          style={{ position: 'relative', width: scaledW, height: scaledH }}
+          style={{
+            position: 'relative',
+            width: scaledW,
+            height: scaledH,
+            // pan-y: browser handles vertical scroll natively; our JS handles horizontal swipes.
+            // This prevents Chrome Android from fighting the touch handler.
+            touchAction: pages.length > 1 ? 'pan-y' : 'auto',
+          }}
           onTouchStart={handleTouchStart}
           onTouchEnd={handleTouchEnd}
         >
           {/* Pages — clipped within canvas bounds; click left/right half to navigate on desktop */}
           <div
-            style={{ position: 'absolute', inset: 0, overflow: 'hidden', cursor: pages.length > 1 ? 'pointer' : 'default' }}
+            style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, overflow: 'hidden', cursor: pages.length > 1 ? 'pointer' : 'default' }}
             onClick={(e) => {
               if (pages.length <= 1) return;
               const { left, width } = e.currentTarget.getBoundingClientRect();

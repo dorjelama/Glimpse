@@ -16,7 +16,7 @@ export default function PreviewLayout({ project, isPublicView = false, guestName
   return (
     // 100dvh shrinks when the mobile browser chrome slides away,
     // preventing the layout from jumping or overflowing the screen.
-    <div className="h-[100dvh] flex flex-col bg-canvas overflow-hidden">
+    <div className="h-dvh flex flex-col bg-canvas overflow-hidden">
       {/* Mini top bar — hidden in public view to give guests a full-screen canvas */}
       {!isPublicView && (
         <header className="h-10 bg-white border-b border-gray-200 flex items-center px-3 sm:px-4 gap-3 flex-shrink-0 min-w-0">
