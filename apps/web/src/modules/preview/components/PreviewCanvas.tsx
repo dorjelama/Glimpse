@@ -15,6 +15,42 @@ interface Props {
   guestName?: string;
 }
 
+// ─── Font loading ─────────────────────────────────────────────────────────────
+// The editor loads fonts on demand, but the public viewer starts cold.
+// We scan every element across every page, collect unique font families,
+// and inject one Google Fonts <link> with all weights so styles match exactly.
+
+const previewLoadedFonts = new Set<string>();
+
+function loadFontsForProject(project: Project): void {
+  const names: string[] = [];
+
+  for (const page of project.pages) {
+    for (const el of page.elements) {
+      const ff: string | undefined = el.styles?.fontFamily;
+      if (!ff) continue;
+      // CSS value is e.g. "'Playfair Display', serif" — extract the first token
+      const name = ff.split(',')[0].replace(/['"]/g, '').trim();
+      if (name && !previewLoadedFonts.has(name)) {
+        previewLoadedFonts.add(name);
+        names.push(name);
+      }
+    }
+  }
+
+  if (names.length === 0) return;
+
+  // One request, all weights (100-900) + italic 400 so every style variant loads
+  const families = names
+    .map((n) => `family=${n.replace(/ /g, '+')}:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400`)
+    .join('&');
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+  document.head.appendChild(link);
+}
+
 function renderElement(el: CanvasElement, guestName?: string) {
   switch (el.type) {
     case 'text':      return <TextElement element={el} isSelected={false} isPreview={true} />;
@@ -115,6 +151,10 @@ export default function PreviewCanvas({ project, guestName }: Props) {
 
   const canvasWidth  = project.canvas.width;
   const canvasHeight = project.canvas.height;
+
+  // ── Load fonts ───────────────────────────────────────────────────────────────
+
+  useEffect(() => { loadFontsForProject(project); }, [project]);
 
   // ── Scale to fit ────────────────────────────────────────────────────────────
   // On mobile: fit by width, allow vertical scroll.
