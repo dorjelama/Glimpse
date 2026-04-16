@@ -7,21 +7,21 @@ export function useCanvas() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
 
-  const project = useEditorStore((s) => s.project);
+  const event = useEditorStore((s) => s.event);
   const selectElement = useEditorStore((s) => s.selectElement);
   const addElement = useEditorStore((s) => s.addElement);
 
   // Fit canvas to container on mount / resize
   const fitToContainer = useCallback(() => {
-    if (!containerRef.current || !project) return;
+    if (!containerRef.current || !event) return;
     const container = containerRef.current;
     const padding = 80;
     const maxW = container.clientWidth - padding;
     const maxH = container.clientHeight - padding;
-    const scaleW = maxW / project.canvas.width;
-    const scaleH = maxH / project.canvas.height;
+    const scaleW = maxW / event.canvas.width;
+    const scaleH = maxH / event.canvas.height;
     setScale(Math.min(scaleW, scaleH, 1));
-  }, [project]);
+  }, [event]);
 
   useEffect(() => {
     fitToContainer();
@@ -35,14 +35,14 @@ export function useCanvas() {
     (e: React.DragEvent<HTMLDivElement>) => {
       e.preventDefault();
       const type = e.dataTransfer.getData('elementType') as ElementType;
-      if (!type || !canvasRef.current || !project) return;
+      if (!type || !canvasRef.current || !event) return;
 
       const rect = canvasRef.current.getBoundingClientRect();
       const x = Math.round((e.clientX - rect.left) / scale);
       const y = Math.round((e.clientY - rect.top) / scale);
       addElement(type, x, y);
     },
-    [scale, project, addElement],
+    [scale, event, addElement],
   );
 
   const handleCanvasDragOver = (e: React.DragEvent) => {

@@ -21,7 +21,7 @@ type Tab = 'pages' | 'elements' | 'layers' | 'guests';
 export default function ElementsPanel() {
   const addElement    = useEditorStore((s) => s.addElement);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
-  const project       = useEditorStore((s) => s.project);
+  const event         = useEditorStore((s) => s.event);
   const currentPageId = useEditorStore((s) => s.currentPageId);
   const [activeTab, setActiveTab] = useState<Tab>('elements');
 
@@ -32,8 +32,8 @@ export default function ElementsPanel() {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
-  const pageCount      = project?.pages.length ?? 0;
-  const currentPageIdx = project?.pages.findIndex((p) => p.id === currentPageId) ?? -1;
+  const pageCount      = event?.pages.length ?? 0;
+  const currentPageIdx = event?.pages.findIndex((p) => p.id === currentPageId) ?? -1;
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'pages',    label: pageCount > 0 ? `Pages (${currentPageIdx + 1}/${pageCount})` : 'Pages' },

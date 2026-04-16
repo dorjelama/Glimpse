@@ -3,7 +3,7 @@ import { ElementsController } from './elements.controller';
 import { ElementsService } from './elements.service';
 
 // PrismaModule is @Global() — no import needed here.
-// ElementsService now injects PrismaService directly; ProjectsModule no longer required.
+// ElementsService and ElementsController both inject PrismaService directly.
 @Module({
   controllers: [ElementsController],
   providers: [ElementsService],

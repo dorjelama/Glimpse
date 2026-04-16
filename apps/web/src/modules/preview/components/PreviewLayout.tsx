@@ -1,16 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import type { Project } from '@/lib/api';
+import type { GlimpseEvent } from '@/lib/api';
 import PreviewCanvas from './PreviewCanvas';
 
 interface Props {
-  project: Project;
+  event: GlimpseEvent;
   isPublicView?: boolean;
   guestName?: string;
 }
 
-export default function PreviewLayout({ project, isPublicView = false, guestName }: Props) {
+export default function PreviewLayout({ event, isPublicView = false, guestName }: Props) {
   const router = useRouter();
 
   return (
@@ -21,13 +21,13 @@ export default function PreviewLayout({ project, isPublicView = false, guestName
       {!isPublicView && (
         <header className="h-10 bg-white border-b border-gray-200 flex items-center px-3 sm:px-4 gap-3 flex-shrink-0 min-w-0">
           <button
-            onClick={() => router.push(`/editor/${project.id}`)}
+            onClick={() => router.push(`/editor/${event.id}`)}
             className="text-xs text-purple-700 hover:text-purple-900 font-medium whitespace-nowrap flex-shrink-0"
           >
             ← Back to Editor
           </button>
-          <span className="text-sm font-medium text-gray-700 truncate min-w-0">{project.title}</span>
-          {project.status === 'published' && (
+          <span className="text-sm font-medium text-gray-700 truncate min-w-0">{event.title}</span>
+          {event.status === 'published' && (
             <span className="ml-auto text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium whitespace-nowrap flex-shrink-0">
               Published
             </span>
@@ -35,7 +35,7 @@ export default function PreviewLayout({ project, isPublicView = false, guestName
         </header>
       )}
 
-      <PreviewCanvas project={project} guestName={guestName} />
+      <PreviewCanvas event={event} guestName={guestName} />
     </div>
   );
 }

@@ -95,7 +95,7 @@ function LockIcon({ locked }: { locked: boolean }) {
 export default function PropertiesPanel() {
   const selectedId      = useEditorStore((s) => s.selectedId);
   const selectedIds     = useEditorStore((s) => s.selectedIds);
-  const project         = useEditorStore((s) => s.project);
+  const event           = useEditorStore((s) => s.event);
   const currentPageId   = useEditorStore((s) => s.currentPageId);
   const updateElement   = useEditorStore((s) => s.updateElement);
   const updateCanvas    = useEditorStore((s) => s.updateCanvas);
@@ -112,9 +112,9 @@ export default function PropertiesPanel() {
   const isPreviewMode   = useEditorStore((s) => s.isPreviewMode);
 
   if (isPreviewMode) return null;
-  if (!project) return null;
+  if (!event) return null;
 
-  const currentPage = project.pages.find((p) => p.id === currentPageId) ?? project.pages[0];
+  const currentPage = event.pages.find((p) => p.id === currentPageId) ?? event.pages[0];
   const element = selectedId ? currentPage?.elements.find((e) => e.id === selectedId) : null;
 
   const set = (changes: Record<string, any>) =>
@@ -139,7 +139,7 @@ export default function PropertiesPanel() {
           <Row>
             <Label>Width (px)</Label>
             <NumberInput
-              value={project.canvas.width}
+              value={event.canvas.width}
               onChange={(v) => updateCanvas({ width: v })}
               min={100}
               max={4000}
@@ -148,7 +148,7 @@ export default function PropertiesPanel() {
           <Row>
             <Label>Height (px)</Label>
             <NumberInput
-              value={project.canvas.height}
+              value={event.canvas.height}
               onChange={(v) => updateCanvas({ height: v })}
               min={100}
               max={8000}
@@ -175,7 +175,7 @@ export default function PropertiesPanel() {
               </Row>
             </>
           )}
-          {project.pages.length > 1 && (
+          {event.pages.length > 1 && (
             <Row>
               <Label>Page Transition</Label>
               <SelectInput

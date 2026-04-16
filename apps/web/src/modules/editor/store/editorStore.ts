@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import type { CanvasElement, Page, Project } from '@/lib/api';
+import type { CanvasElement, Page, GlimpseEvent } from '@/lib/api';
 import { api } from '@/lib/api';
 import { DEFAULT_STYLES, ELEMENT_DEFAULTS, ElementType } from '../types';
 import { useStatusStore } from '@/lib/statusStore';
@@ -22,7 +22,7 @@ function stripMeta(styles: Record<string, any>): Record<string, any> {
 }
 
 interface EditorState {
-  project: Project | null;
+  event: GlimpseEvent | null;
   currentPageId: string | null;
   selectedId: string | null;
   /** All currently selected element IDs — may be >1 when Ctrl+clicking or a group is selected. */
@@ -33,8 +33,8 @@ interface EditorState {
   snapLines: SnapLine[];
 
   // Actions
-  loadProject: (id: string) => Promise<void>;
-  setProject: (project: Project) => void;
+  loadEvent: (id: string) => Promise<void>;
+  setEvent: (event: GlimpseEvent) => void;
   selectElement: (id: string | null) => void;
   addToSelection: (id: string) => void;
 
@@ -85,7 +85,7 @@ interface EditorState {
 
 export const useEditorStore = create<EditorState>()(
   immer((set, get) => ({
-    project: null,
+    event: null,
     currentPageId: null,
     selectedId: null,
     selectedIds: [],
@@ -94,19 +94,19 @@ export const useEditorStore = create<EditorState>()(
     saveError: null,
     snapLines: [],
 
-    loadProject: async (id) => {
-      const project = await api.getProject(id);
+    loadEvent: async (id) => {
+      const event = await api.getEvent(id);
       set((s) => {
-        s.project = project;
-        s.currentPageId = project.pages[0]?.id ?? null;
+        s.event = event;
+        s.currentPageId = event.pages[0]?.id ?? null;
       });
     },
 
-    setProject: (project) => {
+    setEvent: (event) => {
       set((s) => {
-        s.project = project;
-        if (!s.currentPageId || !project.pages.find((p) => p.id === s.currentPageId)) {
-          s.currentPageId = project.pages[0]?.id ?? null;
+        s.event = event;
+        if (!s.currentPageId || !event.pages.find((p) => p.id === s.currentPageId)) {
+          s.currentPageId = event.pages[0]?.id ?? null;
         }
       });
     },
@@ -119,7 +119,7 @@ export const useEditorStore = create<EditorState>()(
           return;
         }
         // If this element belongs to a group, select the whole group
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         const gid = el?.styles?._groupId as string | undefined;
         if (gid) {
@@ -151,15 +151,15 @@ export const useEditorStore = create<EditorState>()(
 
     addPage: () => {
       set((s) => {
-        if (!s.project) return;
+        if (!s.event) return;
         const newPage: Page = {
           id: `page_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-          name: `Page ${s.project.pages.length + 1}`,
-          order: s.project.pages.length,
+          name: `Page ${s.event.pages.length + 1}`,
+          order: s.event.pages.length,
           backgroundColor: '#ffffff',
           elements: [],
         };
-        s.project.pages.push(newPage);
+        s.event.pages.push(newPage);
         s.currentPageId = newPage.id;
         s.selectedId = null;
         s.selectedIds = [];
@@ -169,15 +169,15 @@ export const useEditorStore = create<EditorState>()(
 
     deletePage: (id) => {
       set((s) => {
-        if (!s.project) return;
-        if (s.project.pages.length <= 1) return;
-        const idx = s.project.pages.findIndex((p) => p.id === id);
+        if (!s.event) return;
+        if (s.event.pages.length <= 1) return;
+        const idx = s.event.pages.findIndex((p) => p.id === id);
         if (idx === -1) return;
-        s.project.pages.splice(idx, 1);
-        s.project.pages.forEach((p, i) => { p.order = i; });
+        s.event.pages.splice(idx, 1);
+        s.event.pages.forEach((p, i) => { p.order = i; });
         if (s.currentPageId === id) {
-          const nextIdx = Math.min(idx, s.project.pages.length - 1);
-          s.currentPageId = s.project.pages[nextIdx]?.id ?? null;
+          const nextIdx = Math.min(idx, s.event.pages.length - 1);
+          s.currentPageId = s.event.pages[nextIdx]?.id ?? null;
           s.selectedId = null;
           s.selectedIds = [];
         }
@@ -187,8 +187,8 @@ export const useEditorStore = create<EditorState>()(
 
     renamePage: (id, name) => {
       set((s) => {
-        if (!s.project) return;
-        const page = s.project.pages.find((p) => p.id === id);
+        if (!s.event) return;
+        const page = s.event.pages.find((p) => p.id === id);
         if (page) page.name = name;
       });
       get().scheduleSave();
@@ -196,15 +196,15 @@ export const useEditorStore = create<EditorState>()(
 
     reorderPage: (id, direction) => {
       set((s) => {
-        if (!s.project) return;
-        const idx = s.project.pages.findIndex((p) => p.id === id);
+        if (!s.event) return;
+        const idx = s.event.pages.findIndex((p) => p.id === id);
         if (idx === -1) return;
         const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-        if (swapIdx < 0 || swapIdx >= s.project.pages.length) return;
-        const temp = s.project.pages[idx];
-        s.project.pages[idx] = s.project.pages[swapIdx];
-        s.project.pages[swapIdx] = temp;
-        s.project.pages.forEach((p, i) => { p.order = i; });
+        if (swapIdx < 0 || swapIdx >= s.event.pages.length) return;
+        const temp = s.event.pages[idx];
+        s.event.pages[idx] = s.event.pages[swapIdx];
+        s.event.pages[swapIdx] = temp;
+        s.event.pages.forEach((p, i) => { p.order = i; });
       });
       get().scheduleSave();
     },
@@ -212,19 +212,19 @@ export const useEditorStore = create<EditorState>()(
     // ── Element actions ───────────────────────────────────────────────────────
 
     addElement: (type, canvasX, canvasY) => {
-      const { project, currentPageId } = get();
-      if (!project) return;
+      const { event, currentPageId } = get();
+      if (!event) return;
 
       const defaults = ELEMENT_DEFAULTS[type];
       const styles = { ...DEFAULT_STYLES[type] };
 
-      const page = project.pages.find((p) => p.id === currentPageId);
+      const page = event.pages.find((p) => p.id === currentPageId);
       const maxZ = page && page.elements.length
         ? Math.max(...page.elements.map((e) => e.zIndex))
         : 0;
 
-      const x = canvasX ?? Math.round((project.canvas.width - defaults.width) / 2);
-      const y = canvasY ?? Math.round((project.canvas.height - defaults.height) / 2);
+      const x = canvasX ?? Math.round((event.canvas.width - defaults.width) / 2);
+      const y = canvasY ?? Math.round((event.canvas.height - defaults.height) / 2);
 
       const newEl: CanvasElement = {
         id: `el_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
@@ -239,7 +239,7 @@ export const useEditorStore = create<EditorState>()(
       };
 
       set((s) => {
-        const pg = s.project!.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event!.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         pg.elements.push(newEl);
         s.selectedId = newEl.id;
@@ -250,7 +250,7 @@ export const useEditorStore = create<EditorState>()(
 
     updateElement: (id, changes) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         const idx = pg.elements.findIndex((e) => e.id === id);
         if (idx === -1) return;
@@ -266,7 +266,7 @@ export const useEditorStore = create<EditorState>()(
 
     deleteElement: (id) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         const el = pg.elements.find((e) => e.id === id);
         const gid = el?.styles?._groupId as string | undefined;
@@ -290,9 +290,9 @@ export const useEditorStore = create<EditorState>()(
     },
 
     duplicateElement: (id) => {
-      const { project, currentPageId } = get();
-      if (!project) return;
-      const page = project.pages.find((p) => p.id === currentPageId);
+      const { event, currentPageId } = get();
+      if (!event) return;
+      const page = event.pages.find((p) => p.id === currentPageId);
       if (!page) return;
       const el = page.elements.find((e) => e.id === id);
       if (!el) return;
@@ -307,7 +307,7 @@ export const useEditorStore = create<EditorState>()(
         styles: stripMeta(el.styles),
       };
       set((s) => {
-        const pg = s.project!.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event!.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         pg.elements.push(copy);
         s.selectedId = copy.id;
@@ -318,7 +318,7 @@ export const useEditorStore = create<EditorState>()(
 
     batchMove: (updates) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         for (const { id, x, y } of updates) {
           const el = pg.elements.find((e) => e.id === id);
@@ -330,7 +330,7 @@ export const useEditorStore = create<EditorState>()(
 
     bringForward: (id) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         if (el) el.zIndex += 1;
       });
@@ -339,7 +339,7 @@ export const useEditorStore = create<EditorState>()(
 
     sendBackward: (id) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         if (el) el.zIndex = Math.max(1, el.zIndex - 1);
       });
@@ -347,13 +347,13 @@ export const useEditorStore = create<EditorState>()(
     },
 
     bringToFront: (id) => {
-      const { project, currentPageId } = get();
-      if (!project) return;
-      const page = project.pages.find((p) => p.id === currentPageId);
+      const { event, currentPageId } = get();
+      if (!event) return;
+      const page = event.pages.find((p) => p.id === currentPageId);
       if (!page || !page.elements.length) return;
       const maxZ = Math.max(...page.elements.map((e) => e.zIndex));
       set((s) => {
-        const pg = s.project!.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event!.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         if (el) el.zIndex = maxZ + 1;
       });
@@ -361,13 +361,13 @@ export const useEditorStore = create<EditorState>()(
     },
 
     sendToBack: (id) => {
-      const { project, currentPageId } = get();
-      if (!project) return;
-      const page = project.pages.find((p) => p.id === currentPageId);
+      const { event, currentPageId } = get();
+      if (!event) return;
+      const page = event.pages.find((p) => p.id === currentPageId);
       if (!page || !page.elements.length) return;
       const minZ = Math.min(...page.elements.map((e) => e.zIndex));
       set((s) => {
-        const pg = s.project!.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event!.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         if (el) el.zIndex = Math.max(1, minZ - 1);
       });
@@ -378,7 +378,7 @@ export const useEditorStore = create<EditorState>()(
 
     toggleLock: (id) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         if (el) el.styles = { ...el.styles, _locked: !el.styles._locked };
       });
@@ -387,7 +387,7 @@ export const useEditorStore = create<EditorState>()(
 
     toggleHidden: (id) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         if (el) el.styles = { ...el.styles, _hidden: !el.styles._hidden };
       });
@@ -396,7 +396,7 @@ export const useEditorStore = create<EditorState>()(
 
     setElementName: (id, name) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         const el = pg?.elements.find((e) => e.id === id);
         if (el) {
           if (name) {
@@ -415,7 +415,7 @@ export const useEditorStore = create<EditorState>()(
       if (selectedIds.length < 2) return;
       const groupId = `grp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         for (const id of s.selectedIds) {
           const el = pg.elements.find((e) => e.id === id);
@@ -427,7 +427,7 @@ export const useEditorStore = create<EditorState>()(
 
     ungroupElement: (id) => {
       set((s) => {
-        const pg = s.project?.pages.find((p) => p.id === s.currentPageId);
+        const pg = s.event?.pages.find((p) => p.id === s.currentPageId);
         if (!pg) return;
         const el = pg.elements.find((e) => e.id === id);
         const gid = el?.styles?._groupId as string | undefined;
@@ -449,10 +449,10 @@ export const useEditorStore = create<EditorState>()(
 
     updateCanvas: (changes) => {
       set((s) => {
-        if (!s.project) return;
-        if (changes.width !== undefined) s.project.canvas.width = changes.width;
-        if (changes.height !== undefined) s.project.canvas.height = changes.height;
-        const pg = s.project.pages.find((p) => p.id === s.currentPageId);
+        if (!s.event) return;
+        if (changes.width !== undefined) s.event.canvas.width = changes.width;
+        if (changes.height !== undefined) s.event.canvas.height = changes.height;
+        const pg = s.event.pages.find((p) => p.id === s.currentPageId);
         if (pg) {
           if (changes.backgroundColor !== undefined) pg.backgroundColor = changes.backgroundColor;
           if ('backgroundImage' in changes) pg.backgroundImage = changes.backgroundImage;
@@ -462,27 +462,27 @@ export const useEditorStore = create<EditorState>()(
     },
 
     updateTitle: (title) => {
-      set((s) => { if (s.project) s.project.title = title; });
+      set((s) => { if (s.event) s.event.title = title; });
       get().scheduleSave();
     },
 
     updateTransition: (type) => {
-      set((s) => { if (s.project) s.project.pageTransition = type; });
+      set((s) => { if (s.event) s.event.pageTransition = type; });
       get().scheduleSave();
     },
 
     saveNow: async () => {
-      const project = get().project;
-      if (!project) return;
+      const event = get().event;
+      if (!event) return;
       set((s) => { s.isSaving = true; s.saveError = null; });
       const status = useStatusStore.getState();
       status.loading('Saving…');
       try {
-        await api.updateProject(project.id, {
-          title: project.title,
-          canvas: project.canvas,
-          pages: project.pages,
-          pageTransition: project.pageTransition,
+        await api.updateEvent(event.id, {
+          title: event.title,
+          canvas: event.canvas,
+          pages: event.pages,
+          pageTransition: event.pageTransition,
         });
         status.success('All changes saved');
       } catch (e: any) {

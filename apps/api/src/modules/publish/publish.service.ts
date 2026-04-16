@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { ProjectsService } from '../projects/projects.service';
-import { Project } from '../projects/entities/project.entity';
+import { EventsService } from '../events/events.service';
+import { GlimpseEvent } from '../events/entities/event.entity';
 
 @Injectable()
 export class PublishService {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(private readonly eventsService: EventsService) {}
 
-  async publishProject(id: string): Promise<{ project: Project; publicUrl: string }> {
-    const project = await this.projectsService.publish(id);
-    const publicUrl = `/view/${project.slug}`;
-    return { project, publicUrl };
+  async publishEvent(id: string): Promise<{ event: GlimpseEvent; publicUrl: string }> {
+    const event = await this.eventsService.publish(id);
+    const publicUrl = `/view/${event.slug}`;
+    return { event, publicUrl };
   }
 
-  async unpublishProject(id: string): Promise<Project> {
-    return this.projectsService.unpublish(id);
+  async unpublishEvent(id: string): Promise<GlimpseEvent> {
+    return this.eventsService.unpublish(id);
   }
 
-  async getPublishedBySlug(slug: string): Promise<Project> {
-    return this.projectsService.findBySlug(slug);
+  async getPublishedBySlug(slug: string): Promise<GlimpseEvent> {
+    return this.eventsService.findBySlug(slug);
   }
 }

@@ -2,15 +2,15 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
-import { Project, CanvasSettings, BaseElement, Page } from './entities/project.entity';
-import { CreateProjectDto } from './dto/create-project.dto';
-import { UpdateProjectDto } from './dto/update-project.dto';
+import { GlimpseEvent, CanvasSettings, BaseElement, Page } from './entities/event.entity';
+import { CreateEventDto } from './dto/create-event.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
 
 // ─── Prisma payload types ────────────────────────────────────────────────────
 
 type PrismaElement = Prisma.ElementGetPayload<Record<string, never>>;
 type PrismaPage = Prisma.PageGetPayload<{ include: { elements: true } }>;
-type PrismaProject = Prisma.ProjectGetPayload<{
+type PrismaEvent = Prisma.EventGetPayload<{
   include: { pages: { include: { elements: true } } };
 }>;
 
@@ -43,25 +43,25 @@ function toPage(p: PrismaPage): Page {
   };
 }
 
-function toProject(p: PrismaProject): Project {
-  const pages = [...p.pages]
+function toEvent(e: PrismaEvent): GlimpseEvent {
+  const pages = [...e.pages]
     .sort((a, b) => a.order - b.order)
     .map(toPage);
 
   return {
-    id: p.id,
-    title: p.title,
-    status: p.status as 'draft' | 'published',
-    slug: p.slug ?? undefined,
+    id: e.id,
+    title: e.title,
+    status: e.status as 'draft' | 'published',
+    slug: e.slug ?? undefined,
     canvas: {
-      width: p.canvasWidth,
-      height: p.canvasHeight,
+      width: e.canvasWidth,
+      height: e.canvasHeight,
     },
     pages,
-    pageTransition: p.pageTransition,
-    ownerId: p.ownerId ?? undefined,
-    createdAt: p.createdAt,
-    updatedAt: p.updatedAt,
+    pageTransition: e.pageTransition,
+    ownerId: e.ownerId ?? undefined,
+    createdAt: e.createdAt,
+    updatedAt: e.updatedAt,
   };
 }
 
@@ -70,7 +70,7 @@ const INCLUDE_PAGES = {
   pages: {
     include: { elements: true },
   },
-} satisfies Prisma.ProjectInclude;
+} satisfies Prisma.EventInclude;
 
 // Lightweight include for list view (only first page bg, no elements)
 const INCLUDE_PAGES_LIGHT = {
@@ -85,7 +85,7 @@ const INCLUDE_PAGES_LIGHT = {
       bgImage: true,
     },
   },
-} satisfies Prisma.ProjectInclude;
+} satisfies Prisma.EventInclude;
 
 const DEFAULT_CANVAS: CanvasSettings & { backgroundColor: string } = {
   width: 1080,
@@ -96,17 +96,17 @@ const DEFAULT_CANVAS: CanvasSettings & { backgroundColor: string } = {
 // ─── Service ─────────────────────────────────────────────────────────────────
 
 @Injectable()
-export class ProjectsService {
+export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateProjectDto, ownerId?: string): Promise<Project> {
+  async create(dto: CreateEventDto, ownerId?: string): Promise<GlimpseEvent> {
     const canvas = { ...DEFAULT_CANVAS, ...(dto.canvas ?? {}) };
-    const projectId = `inv_${uuidv4().replace(/-/g, '').slice(0, 12)}`;
+    const eventId = `evt_${uuidv4().replace(/-/g, '').slice(0, 12)}`;
 
-    const project = await this.prisma.$transaction(async (tx) => {
-      const p = await tx.project.create({
+    const event = await this.prisma.$transaction(async (tx) => {
+      const e = await tx.event.create({
         data: {
-          id: projectId,
+          id: eventId,
           title: dto.title || 'Untitled Invitation',
           status: 'draft',
           canvasWidth: canvas.width,
@@ -119,7 +119,7 @@ export class ProjectsService {
       await tx.page.create({
         data: {
           id: `page_${uuidv4().replace(/-/g, '').slice(0, 12)}`,
-          projectId: p.id,
+          eventId: e.id,
           name: 'Page 1',
           order: 0,
           bgColor: canvas.backgroundColor,
@@ -127,30 +127,29 @@ export class ProjectsService {
         },
       });
 
-      return tx.project.findUnique({
-        where: { id: p.id },
+      return tx.event.findUnique({
+        where: { id: e.id },
         include: INCLUDE_PAGES,
       });
     });
 
-    return toProject(project!);
+    return toEvent(event!);
   }
 
-  async findAll(ownerId?: string): Promise<Project[]> {
-    const rows = await this.prisma.project.findMany({
+  async findAll(ownerId?: string): Promise<GlimpseEvent[]> {
+    const rows = await this.prisma.event.findMany({
       where: ownerId ? { ownerId } : undefined,
       include: INCLUDE_PAGES_LIGHT,
       orderBy: { updatedAt: 'desc' },
     });
 
-    // Map rows with light page data (no elements) — we cast to full type
-    return rows.map((p) => ({
-      id: p.id,
-      title: p.title,
-      status: p.status as 'draft' | 'published',
-      slug: p.slug ?? undefined,
-      canvas: { width: p.canvasWidth, height: p.canvasHeight },
-      pages: (p.pages as any[]).map((pg: any) => ({
+    return rows.map((e) => ({
+      id: e.id,
+      title: e.title,
+      status: e.status as 'draft' | 'published',
+      slug: e.slug ?? undefined,
+      canvas: { width: e.canvasWidth, height: e.canvasHeight },
+      pages: (e.pages as any[]).map((pg: any) => ({
         id: pg.id,
         name: pg.name,
         order: pg.order,
@@ -158,57 +157,57 @@ export class ProjectsService {
         backgroundImage: pg.bgImage ?? undefined,
         elements: [],
       })),
-      pageTransition: p.pageTransition,
-      ownerId: p.ownerId ?? undefined,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
+      pageTransition: e.pageTransition,
+      ownerId: e.ownerId ?? undefined,
+      createdAt: e.createdAt,
+      updatedAt: e.updatedAt,
     }));
   }
 
-  async findOne(id: string): Promise<Project> {
-    const project = await this.prisma.project.findUnique({
+  async findOne(id: string): Promise<GlimpseEvent> {
+    const event = await this.prisma.event.findUnique({
       where: { id },
       include: INCLUDE_PAGES,
     });
-    if (!project) throw new NotFoundException(`Project ${id} not found`);
-    return toProject(project);
+    if (!event) throw new NotFoundException(`Event ${id} not found`);
+    return toEvent(event);
   }
 
-  async findBySlug(slug: string): Promise<Project> {
-    const project = await this.prisma.project.findFirst({
+  async findBySlug(slug: string): Promise<GlimpseEvent> {
+    const event = await this.prisma.event.findFirst({
       where: { slug, status: 'published' },
       include: INCLUDE_PAGES,
     });
-    if (!project) throw new NotFoundException(`Published invitation not found`);
-    return toProject(project);
+    if (!event) throw new NotFoundException(`Published invitation not found`);
+    return toEvent(event);
   }
 
-  async update(id: string, dto: UpdateProjectDto): Promise<Project> {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException(`Project ${id} not found`);
+  async update(id: string, dto: UpdateEventDto): Promise<GlimpseEvent> {
+    const existing = await this.prisma.event.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Event ${id} not found`);
 
     const updated = await this.prisma.$transaction(async (tx) => {
-      // Update project-level fields (title, canvas dimensions)
-      const projectData: Prisma.ProjectUpdateInput = {};
-      if (dto.title !== undefined) projectData.title = dto.title;
-      if (dto.canvas?.width !== undefined) projectData.canvasWidth = dto.canvas.width;
-      if (dto.canvas?.height !== undefined) projectData.canvasHeight = dto.canvas.height;
-      if (dto.pageTransition !== undefined) projectData.pageTransition = dto.pageTransition;
+      // Update event-level fields (title, canvas dimensions)
+      const eventData: Prisma.EventUpdateInput = {};
+      if (dto.title !== undefined) eventData.title = dto.title;
+      if (dto.canvas?.width !== undefined) eventData.canvasWidth = dto.canvas.width;
+      if (dto.canvas?.height !== undefined) eventData.canvasHeight = dto.canvas.height;
+      if (dto.pageTransition !== undefined) eventData.pageTransition = dto.pageTransition;
 
-      if (Object.keys(projectData).length > 0) {
-        await tx.project.update({ where: { id }, data: projectData });
+      if (Object.keys(eventData).length > 0) {
+        await tx.event.update({ where: { id }, data: eventData });
       }
 
       // When pages array is provided: delete all pages (cascade kills elements),
       // then recreate each page + its elements.
       if (dto.pages !== undefined) {
-        await tx.page.deleteMany({ where: { projectId: id } });
+        await tx.page.deleteMany({ where: { eventId: id } });
 
         for (const pg of dto.pages) {
           const page = await tx.page.create({
             data: {
               id: pg.id ?? uuidv4(),
-              projectId: id,
+              eventId: id,
               name: pg.name ?? 'Page',
               order: pg.order ?? 0,
               bgColor: pg.bgColor ?? pg.backgroundColor ?? '#ffffff',
@@ -238,45 +237,44 @@ export class ProjectsService {
         }
       }
 
-      return tx.project.findUnique({
+      return tx.event.findUnique({
         where: { id },
         include: INCLUDE_PAGES,
       });
     });
 
-    return toProject(updated!);
+    return toEvent(updated!);
   }
 
   async remove(id: string): Promise<void> {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException(`Project ${id} not found`);
-    // Pages and elements cascade-delete via FK onDelete: Cascade
-    await this.prisma.project.delete({ where: { id } });
+    const existing = await this.prisma.event.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Event ${id} not found`);
+    await this.prisma.event.delete({ where: { id } });
   }
 
-  async publish(id: string): Promise<Project> {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException(`Project ${id} not found`);
+  async publish(id: string): Promise<GlimpseEvent> {
+    const existing = await this.prisma.event.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Event ${id} not found`);
 
     const slug = existing.slug ?? this.generateSlug(existing.title);
-    const updated = await this.prisma.project.update({
+    const updated = await this.prisma.event.update({
       where: { id },
       data: { status: 'published', slug },
       include: INCLUDE_PAGES,
     });
-    return toProject(updated);
+    return toEvent(updated);
   }
 
-  async unpublish(id: string): Promise<Project> {
-    const existing = await this.prisma.project.findUnique({ where: { id } });
-    if (!existing) throw new NotFoundException(`Project ${id} not found`);
+  async unpublish(id: string): Promise<GlimpseEvent> {
+    const existing = await this.prisma.event.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Event ${id} not found`);
 
-    const updated = await this.prisma.project.update({
+    const updated = await this.prisma.event.update({
       where: { id },
       data: { status: 'draft' },
       include: INCLUDE_PAGES,
     });
-    return toProject(updated);
+    return toEvent(updated);
   }
 
   private generateSlug(title: string): string {

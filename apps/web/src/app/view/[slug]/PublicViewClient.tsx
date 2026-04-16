@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { api, type Project } from '@/lib/api';
+import { api, type GlimpseEvent } from '@/lib/api';
 import PreviewLayout from '@/modules/preview/components/PreviewLayout';
 
 interface Props {
@@ -13,7 +13,7 @@ export default function PublicViewClient({ slug }: Props) {
   const searchParams = useSearchParams();
   const guestToken = searchParams.get('g');
 
-  const [project, setProject] = useState<Project | null>(null);
+  const [event, setEvent] = useState<GlimpseEvent | null>(null);
   const [guestName, setGuestName] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +33,7 @@ export default function PublicViewClient({ slug }: Props) {
 
   useEffect(() => {
     api.getPublished(slug)
-      .then(setProject)
+      .then(setEvent)
       .catch((e) => setError(e.message));
   }, [slug]);
 
@@ -57,7 +57,7 @@ export default function PublicViewClient({ slug }: Props) {
     );
   }
 
-  if (!project) {
+  if (!event) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <p className="text-gray-400 animate-pulse">Loading...</p>
@@ -65,5 +65,5 @@ export default function PublicViewClient({ slug }: Props) {
     );
   }
 
-  return <PreviewLayout project={project} isPublicView guestName={guestName} />;
+  return <PreviewLayout event={event} isPublicView guestName={guestName} />;
 }

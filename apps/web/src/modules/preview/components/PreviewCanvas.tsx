@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect, useCallback } from 'react';
-import type { Project, CanvasElement, Page } from '@/lib/api';
+import type { GlimpseEvent, CanvasElement, Page } from '@/lib/api';
 import TextElement from '../../editor/components/elements/TextElement';
 import ImageElement from '../../editor/components/elements/ImageElement';
 import ShapeElement from '../../editor/components/elements/ShapeElement';
@@ -11,7 +11,7 @@ import GuestNameElement from '../../editor/components/elements/GuestNameElement'
 import CountdownElement from '../../editor/components/elements/CountdownElement';
 
 interface Props {
-  project: Project;
+  event: GlimpseEvent;
   guestName?: string;
 }
 
@@ -22,10 +22,10 @@ interface Props {
 
 const previewLoadedFonts = new Set<string>();
 
-function loadFontsForProject(project: Project): void {
+function loadFontsForEvent(event: GlimpseEvent): void {
   const names: string[] = [];
 
-  for (const page of project.pages) {
+  for (const page of event.pages) {
     for (const el of page.elements) {
       const ff: string | undefined = el.styles?.fontFamily;
       if (!ff) continue;
@@ -130,7 +130,7 @@ const FLIP_MS  = 200; // per half (total 400ms)
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function PreviewCanvas({ project, guestName }: Props) {
+export default function PreviewCanvas({ event, guestName }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
 
@@ -150,12 +150,12 @@ export default function PreviewCanvas({ project, guestName }: Props) {
   // Swipe hint — shown on mount for multi-page, auto-fades after 3 glow cycles
   const [swipeHint, setSwipeHint] = useState<'visible' | 'fading' | 'gone'>('visible');
 
-  const canvasWidth  = project.canvas.width;
-  const canvasHeight = project.canvas.height;
+  const canvasWidth  = event.canvas.width;
+  const canvasHeight = event.canvas.height;
 
   // ── Load fonts ───────────────────────────────────────────────────────────────
 
-  useEffect(() => { loadFontsForProject(project); }, [project]);
+  useEffect(() => { loadFontsForEvent(event); }, [event]);
 
   // ── Scale to fit ────────────────────────────────────────────────────────────
   // On mobile: fit by width, allow vertical scroll.
@@ -186,8 +186,8 @@ export default function PreviewCanvas({ project, guestName }: Props) {
     return () => observer.disconnect();
   }, [fitToContainer]);
 
-  const pages = [...project.pages].sort((a, b) => a.order - b.order);
-  const transition = project.pageTransition ?? 'none';
+  const pages = [...event.pages].sort((a, b) => a.order - b.order);
+  const transition = event.pageTransition ?? 'none';
 
   // ── Navigate ────────────────────────────────────────────────────────────────
 

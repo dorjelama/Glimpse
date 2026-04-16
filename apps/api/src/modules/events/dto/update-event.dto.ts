@@ -1,10 +1,10 @@
 import { IsString, IsOptional, IsObject, IsArray } from 'class-validator';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
-export class UpdateProjectDto {
+export class UpdateEventDto {
   @ApiPropertyOptional({
     example: 'Summer Wedding 2025 — Final',
-    description: 'New title for the project.',
+    description: 'New title for the event.',
   })
   @IsString()
   @IsOptional()

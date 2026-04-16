@@ -81,7 +81,7 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
   const selectElement = useEditorStore((s) => s.selectElement);
   const setSnapLines  = useEditorStore((s) => s.setSnapLines);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
-  const project       = useEditorStore((s) => s.project);
+  const event         = useEditorStore((s) => s.event);
   const currentPageId = useEditorStore((s) => s.currentPageId);
 
   const dragRef = useRef({
@@ -112,8 +112,8 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
 
       // Capture group member start positions so we can move the whole group together
       const groupId = element.styles?._groupId as string | undefined;
-      if (groupId && project) {
-        const page = project.pages.find((p) => p.id === currentPageId);
+      if (groupId && event) {
+        const page = event.pages.find((p) => p.id === currentPageId);
         d.groupMemberStarts = (page?.elements ?? [])
           .filter(
             (e) =>
@@ -127,21 +127,21 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
       }
 
       const onMove = (me: MouseEvent) => {
-        if (!d.active || !project) return;
+        if (!d.active || !event) return;
 
         const dx = (me.clientX - d.startMouseX) / scale;
         const dy = (me.clientY - d.startMouseY) / scale;
 
-        const rawX = Math.max(0, Math.min(d.startElX + dx, project.canvas.width  - element.width));
-        const rawY = Math.max(0, Math.min(d.startElY + dy, project.canvas.height - element.height));
+        const rawX = Math.max(0, Math.min(d.startElX + dx, event.canvas.width  - element.width));
+        const rawY = Math.max(0, Math.min(d.startElY + dy, event.canvas.height - element.height));
 
-        const page = project.pages.find((p) => p.id === currentPageId);
+        const page = event.pages.find((p) => p.id === currentPageId);
         const others = (page?.elements ?? []).filter((e) => e.id !== element.id);
 
         const { snappedX, snappedY, lines } = computeSnap(
           { x: rawX, y: rawY, width: element.width, height: element.height },
           others,
-          project.canvas,
+          event.canvas,
         );
 
         setSnapLines(lines);
@@ -152,8 +152,8 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
           const actualDy = snappedY - d.startElY;
           const memberUpdates = d.groupMemberStarts.map((m) => ({
             id: m.id,
-            x: Math.round(Math.max(0, Math.min(m.x + actualDx, project.canvas.width  - m.width))),
-            y: Math.round(Math.max(0, Math.min(m.y + actualDy, project.canvas.height - m.height))),
+            x: Math.round(Math.max(0, Math.min(m.x + actualDx, event.canvas.width  - m.width))),
+            y: Math.round(Math.max(0, Math.min(m.y + actualDy, event.canvas.height - m.height))),
           }));
           batchMove([
             { id: element.id, x: Math.round(snappedX), y: Math.round(snappedY) },
@@ -178,7 +178,7 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup', onUp);
     },
-    [element, scale, project, currentPageId, updateElement, batchMove, selectElement, setSnapLines, isPreviewMode],
+    [element, scale, event, currentPageId, updateElement, batchMove, selectElement, setSnapLines, isPreviewMode],
   );
 
   return { onMouseDown };
