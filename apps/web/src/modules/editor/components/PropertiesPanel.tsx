@@ -324,8 +324,136 @@ export default function PropertiesPanel() {
           </Row>
         )}
 
+        {/* Countdown-specific controls */}
+        {element.type === 'countdown' && (
+          <>
+            <Row>
+              <Label>Target Date &amp; Time</Label>
+              <input
+                type="datetime-local"
+                value={element.content?.slice(0, 16) ?? ''}
+                onChange={(e) => set({ content: e.target.value })}
+                className="w-full bg-white/10 text-white text-sm rounded-md px-2 py-1.5 border border-white/10 focus:outline-none focus:border-accent [color-scheme:dark]"
+              />
+            </Row>
+
+            <Row>
+              <Label>Number Font Size</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.numberFontSize || '48', 10)}
+                  onChange={(v) => setStyle({ numberFontSize: `${v}px` })}
+                  min={12}
+                  max={200}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Label Font Size</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.labelFontSize || '12', 10)}
+                  onChange={(v) => setStyle({ labelFontSize: `${v}px` })}
+                  min={8}
+                  max={48}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Font Family</Label>
+              <FontPicker
+                value={element.styles.fontFamily || 'sans-serif'}
+                onChange={(v) => setStyle({ fontFamily: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Font Weight</Label>
+              <SelectInput
+                value={element.styles.fontWeight || '700'}
+                onChange={(v) => setStyle({ fontWeight: v })}
+                options={[
+                  { value: '300', label: 'Light' },
+                  { value: '400', label: 'Regular' },
+                  { value: '600', label: 'Semi-bold' },
+                  { value: '700', label: 'Bold' },
+                  { value: '900', label: 'Black' },
+                ]}
+              />
+            </Row>
+
+            <Row>
+              <Label>Number Color</Label>
+              <ColorInput
+                value={element.styles.numberColor || '#1a1a1a'}
+                onChange={(v) => setStyle({ numberColor: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Label Color</Label>
+              <ColorInput
+                value={element.styles.labelColor || '#6b7280'}
+                onChange={(v) => setStyle({ labelColor: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Box Background</Label>
+              <ColorInput
+                value={element.styles.boxBackgroundColor || '#f3f0ff'}
+                onChange={(v) => setStyle({ boxBackgroundColor: v })}
+              />
+            </Row>
+
+            <Row>
+              <Label>Box Border Radius</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.boxBorderRadius || '8', 10)}
+                  onChange={(v) => setStyle({ boxBorderRadius: `${v}px` })}
+                  min={0}
+                  max={100}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Box Gap</Label>
+              <div className="flex items-center gap-2">
+                <NumberInput
+                  value={parseInt(element.styles.gap || '12', 10)}
+                  onChange={(v) => setStyle({ gap: `${v}px` })}
+                  min={0}
+                  max={80}
+                />
+                <span className="text-xs text-gray-400">px</span>
+              </div>
+            </Row>
+
+            <Row>
+              <Label>Show Labels</Label>
+              <button
+                onClick={() => setStyle({ showLabels: !(element.styles.showLabels !== false) })}
+                className={`w-full py-1.5 text-xs rounded-md transition-colors ${
+                  element.styles.showLabels !== false
+                    ? 'bg-accent/30 text-purple-200 border border-accent/40'
+                    : 'bg-white/10 text-gray-400 border border-white/10'
+                }`}
+              >
+                {element.styles.showLabels !== false ? 'Visible' : 'Hidden'}
+              </button>
+            </Row>
+          </>
+        )}
+
         {/* Border Radius */}
-        {element.type !== 'text' && element.type !== 'guestname' && (
+        {element.type !== 'text' && element.type !== 'guestname' && element.type !== 'countdown' && (
           <Row>
             <Label>Border Radius</Label>
             <div className="flex items-center gap-2">

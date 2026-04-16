@@ -10,11 +10,13 @@ EditorLayout          ← loads project, keyboard shortcuts, wires layout
   ElementsPanel       ← element type buttons (drag or click to add)
   Canvas              ← main interactive surface
     ElementWrapper[]  ← per-element: drag, resize handles, click-to-select
-      TextElement     ← contentEditable inline editing
-      ImageElement    ← img or upload placeholder
-      ShapeElement    ← styled div
-      ButtonElement   ← styled div
-      DividerElement  ← styled div
+      TextElement       ← contentEditable inline editing
+      ImageElement      ← img or upload placeholder
+      ShapeElement      ← styled div
+      ButtonElement     ← styled div
+      DividerElement    ← styled div
+      GuestNameElement  ← personalised guest name placeholder
+      CountdownElement  ← live countdown to a target date (ticks every second)
   PropertiesPanel     ← position/size/style controls for selected element, canvas settings
 ```
 
@@ -62,3 +64,22 @@ User action → store mutation (immer) → scheduleSave() → 800ms debounce →
 **How a font is stored:** `element.styles.fontFamily` holds the full CSS value with fallback, e.g. `"'Playfair Display', serif"`. `TextElement` and `ButtonElement` already spread `...element.styles`, so the face applies automatically.
 
 **Adding a new font:** append an entry to `FONTS` in `constants/fonts.ts` with `family` (CSS value + fallback), `label`, `googleName` (exact Google Fonts name), and `category`.
+
+## Countdown element
+`CountdownElement` renders a live days/hours/minutes/seconds timer. The target date is stored as an ISO-8601 string in `element.content` (e.g. `"2026-12-31T23:59"`). All visual options are in `element.styles`:
+
+| Style key | Default | Description |
+|-----------|---------|-------------|
+| `numberFontSize` | `'48px'` | Font size for the digit figures |
+| `labelFontSize` | `'12px'` | Font size for "Days / Hours / Minutes / Seconds" labels |
+| `fontFamily` | `'Georgia, serif'` | Font for all text |
+| `fontWeight` | `'700'` | Weight for digit figures |
+| `numberColor` | `'#1a1a1a'` | Color of the digits |
+| `labelColor` | `'#6b7280'` | Color of the labels |
+| `boxBackgroundColor` | `'#f3f0ff'` | Background fill of each digit box |
+| `boxBorderRadius` | `'8px'` | Corner radius of each box |
+| `gap` | `'12px'` | Gap between the four boxes |
+| `showLabels` | `true` | Toggle label row visibility |
+| `opacity` | `1` | Overall element opacity |
+
+All of these are editable in `PropertiesPanel` when a countdown element is selected.

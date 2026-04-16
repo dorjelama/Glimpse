@@ -1,6 +1,6 @@
 export type ProjectStatus = 'draft' | 'published';
 
-export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider';
+export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider' | 'guestname' | 'countdown';
 
 /** Shared canvas dimensions for all pages in a project. */
 export interface CanvasSettings {

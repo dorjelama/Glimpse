@@ -13,6 +13,7 @@ import ShapeElement from './elements/ShapeElement';
 import ButtonElement from './elements/ButtonElement';
 import DividerElement from './elements/DividerElement';
 import GuestNameElement from './elements/GuestNameElement';
+import CountdownElement from './elements/CountdownElement';
 
 const HANDLES: ResizeHandle[] = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
 
@@ -83,6 +84,8 @@ function ElementWrapper({
         return <DividerElement element={element} />;
       case 'guestname':
         return <GuestNameElement element={element} isPreview={isPreviewMode} />;
+      case 'countdown':
+        return <CountdownElement element={element} />;
       default:
         return null;
     }

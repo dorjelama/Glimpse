@@ -72,7 +72,7 @@ export interface CanvasSettings {
   height: number;
 }
 
-export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider' | 'guestname';
+export type ElementType = 'text' | 'image' | 'shape' | 'button' | 'divider' | 'guestname' | 'countdown';
 
 export interface CanvasElement {
   id: string;

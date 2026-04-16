@@ -12,6 +12,7 @@ const ELEMENT_TYPES: { type: ElementType; label: string; icon: string; desc: str
   { type: 'shape',     label: 'Shape',      icon: '▭',  desc: 'Rectangle, backdrop, accent' },
   { type: 'divider',   label: 'Divider',    icon: '—',  desc: 'Horizontal rule / separator' },
   { type: 'guestname', label: 'Guest Name', icon: '👤', desc: 'Personalised name per guest' },
+  { type: 'countdown', label: 'Countdown', icon: '⏱', desc: 'Live countdown to a target date' },
 ];
 
 type Tab = 'pages' | 'elements' | 'guests';

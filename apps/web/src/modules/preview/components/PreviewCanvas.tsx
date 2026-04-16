@@ -8,6 +8,7 @@ import ShapeElement from '../../editor/components/elements/ShapeElement';
 import ButtonElement from '../../editor/components/elements/ButtonElement';
 import DividerElement from '../../editor/components/elements/DividerElement';
 import GuestNameElement from '../../editor/components/elements/GuestNameElement';
+import CountdownElement from '../../editor/components/elements/CountdownElement';
 
 interface Props {
   project: Project;
@@ -21,8 +22,9 @@ function renderElement(el: CanvasElement, guestName?: string) {
     case 'shape':     return <ShapeElement element={el} />;
     case 'button':    return <ButtonElement element={el} isPreview />;
     case 'divider':   return <DividerElement element={el} />;
-    case 'guestname': return <GuestNameElement element={el} guestName={guestName} isPreview />;
-    default:          return null;
+    case 'guestname':  return <GuestNameElement element={el} guestName={guestName} isPreview />;
+    case 'countdown':  return <CountdownElement element={el} />;
+    default:           return null;
   }
 }
 
