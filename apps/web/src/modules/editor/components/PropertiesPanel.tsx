@@ -213,6 +213,57 @@ export default function PropertiesPanel() {
                       {Math.round((currentPage.backgroundImageScale ?? 1) * 100)}%
                     </span>
                   </Row>
+                  <Row>
+                    <Label>Background Image Crop Position</Label>
+                    {/* 3×3 focal point picker */}
+                    <div
+                      className="relative w-full bg-white/10 rounded-md border border-white/10 overflow-hidden"
+                      style={{ aspectRatio: '1 / 1', cursor: 'crosshair' }}
+                      onClick={(e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const x = Math.round(((e.clientX - rect.left) / rect.width) * 100) / 100;
+                        const y = Math.round(((e.clientY - rect.top)  / rect.height) * 100) / 100;
+                        updateCanvas({
+                          backgroundImageOffsetX: Math.max(0, Math.min(1, x)),
+                          backgroundImageOffsetY: Math.max(0, Math.min(1, y)),
+                        });
+                      }}
+                    >
+                      {/* Grid lines */}
+                      <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.07) 1px, transparent 1px)', backgroundSize: '33.33% 33.33%' }} />
+                      {/* Focal point dot */}
+                      <div
+                        className="absolute w-3 h-3 rounded-full border-2 border-white bg-accent pointer-events-none"
+                        style={{
+                          left: `${(currentPage.backgroundImageOffsetX ?? 0.5) * 100}%`,
+                          top:  `${(currentPage.backgroundImageOffsetY ?? 0.5) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          boxShadow: '0 0 0 2px rgba(0,0,0,0.4)',
+                        }}
+                      />
+                    </div>
+                    {/* Precise sliders */}
+                    <div className="grid grid-cols-2 gap-2 mt-1">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] text-gray-500">X {Math.round((currentPage.backgroundImageOffsetX ?? 0.5) * 100)}%</span>
+                        <input
+                          type="range" min="0" max="1" step="0.01"
+                          value={currentPage.backgroundImageOffsetX ?? 0.5}
+                          onChange={(e) => updateCanvas({ backgroundImageOffsetX: parseFloat(e.target.value) })}
+                          className="w-full accent-accent"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-[10px] text-gray-500">Y {Math.round((currentPage.backgroundImageOffsetY ?? 0.5) * 100)}%</span>
+                        <input
+                          type="range" min="0" max="1" step="0.01"
+                          value={currentPage.backgroundImageOffsetY ?? 0.5}
+                          onChange={(e) => updateCanvas({ backgroundImageOffsetY: parseFloat(e.target.value) })}
+                          className="w-full accent-accent"
+                        />
+                      </div>
+                    </div>
+                  </Row>
                 </>
               )}
             </>

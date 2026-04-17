@@ -214,8 +214,10 @@ export default function Canvas() {
   const currentPage = event.pages.find((p) => p.id === currentPageId) ?? event.pages[0];
   if (!currentPage) return null;
 
-  const bgRotation = currentPage.backgroundImageRotation ?? 0;
-  const userScale = currentPage.backgroundImageScale ?? 1;
+  const bgRotation  = currentPage.backgroundImageRotation ?? 0;
+  const userScale   = currentPage.backgroundImageScale ?? 1;
+  const bgOffsetX   = currentPage.backgroundImageOffsetX ?? 0.5;
+  const bgOffsetY   = currentPage.backgroundImageOffsetY ?? 0.5;
   const needsBgScale = bgRotation === 90 || bgRotation === 270;
   const rotationScale = needsBgScale
     ? Math.max(event.canvas.width, event.canvas.height) / Math.min(event.canvas.width, event.canvas.height)
@@ -264,6 +266,7 @@ export default function Canvas() {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
+              objectPosition: `${bgOffsetX * 100}% ${bgOffsetY * 100}%`,
               transform: `translate(-50%, -50%) rotate(${bgRotation}deg) scale(${bgScale})`,
               transformOrigin: 'center center',
               zIndex: 0,

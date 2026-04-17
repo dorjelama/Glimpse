@@ -41,6 +41,8 @@ function toPage(p: PrismaPage): Page {
     backgroundImage: p.bgImage ?? undefined,
     backgroundImageRotation: p.bgImageRotation ?? 0,
     backgroundImageScale: p.bgImageScale ?? 1,
+    backgroundImageOffsetX: p.bgImageOffsetX ?? 0.5,
+    backgroundImageOffsetY: p.bgImageOffsetY ?? 0.5,
     elements: p.elements.map(toElement),
   };
 }
@@ -87,6 +89,8 @@ const INCLUDE_PAGES_LIGHT = {
       bgImage: true,
       bgImageRotation: true,
       bgImageScale: true,
+      bgImageOffsetX: true,
+      bgImageOffsetY: true,
     },
   },
 } satisfies Prisma.EventInclude;
@@ -129,6 +133,8 @@ export class EventsService {
           bgColor: canvas.backgroundColor,
           bgImage: (dto.canvas as any)?.backgroundImage ?? null,
           bgImageRotation: 0,
+          bgImageOffsetX: 0.5,
+          bgImageOffsetY: 0.5,
         },
       });
 
@@ -162,6 +168,8 @@ export class EventsService {
         backgroundImage: pg.bgImage ?? undefined,
         backgroundImageRotation: (pg as any).bgImageRotation ?? 0,
         backgroundImageScale: (pg as any).bgImageScale ?? 1,
+        backgroundImageOffsetX: (pg as any).bgImageOffsetX ?? 0.5,
+        backgroundImageOffsetY: (pg as any).bgImageOffsetY ?? 0.5,
         elements: [],
       })),
       pageTransition: e.pageTransition,
@@ -221,6 +229,8 @@ export class EventsService {
               bgImage: pg.bgImage ?? pg.backgroundImage ?? null,
               bgImageRotation: pg.bgImageRotation ?? pg.backgroundImageRotation ?? 0,
               bgImageScale: pg.bgImageScale ?? pg.backgroundImageScale ?? 1,
+              bgImageOffsetX: pg.bgImageOffsetX ?? pg.backgroundImageOffsetX ?? 0.5,
+              bgImageOffsetY: pg.bgImageOffsetY ?? pg.backgroundImageOffsetY ?? 0.5,
             },
           });
 

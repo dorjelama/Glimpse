@@ -77,6 +77,8 @@ model Page {
   bgImage          String?
   bgImageRotation  Int      @default(0)
   bgImageScale     Float    @default(1.0)
+  bgImageOffsetX   Float    @default(0.5)
+  bgImageOffsetY   Float    @default(0.5)
 
   elements  Element[]
 

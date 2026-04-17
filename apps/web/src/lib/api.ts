@@ -118,6 +118,8 @@ export interface Page {
   backgroundImage?: string;
   backgroundImageRotation?: number;
   backgroundImageScale?: number;
+  backgroundImageOffsetX?: number;
+  backgroundImageOffsetY?: number;
   elements: CanvasElement[];
 }
 

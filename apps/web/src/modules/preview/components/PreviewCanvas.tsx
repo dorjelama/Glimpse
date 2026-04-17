@@ -79,7 +79,9 @@ function PageBlock({ page, canvasWidth, canvasHeight, scale, guestName }: {
   const scaledHeight = canvasHeight * scale;
 
   const bgRotation = page.backgroundImageRotation ?? 0;
-  const userScale = page.backgroundImageScale ?? 1;
+  const userScale  = page.backgroundImageScale ?? 1;
+  const bgOffsetX  = page.backgroundImageOffsetX ?? 0.5;
+  const bgOffsetY  = page.backgroundImageOffsetY ?? 0.5;
   const needsBgScale = bgRotation === 90 || bgRotation === 270;
   const rotationScale = needsBgScale
     ? Math.max(canvasWidth, canvasHeight) / Math.min(canvasWidth, canvasHeight)
@@ -118,6 +120,7 @@ function PageBlock({ page, canvasWidth, canvasHeight, scale, guestName }: {
               width: '100%',
               height: '100%',
               objectFit: 'cover',
+              objectPosition: `${bgOffsetX * 100}% ${bgOffsetY * 100}%`,
               transform: `translate(-50%, -50%) rotate(${bgRotation}deg) scale(${bgScale})`,
               transformOrigin: 'center center',
               zIndex: 0,
