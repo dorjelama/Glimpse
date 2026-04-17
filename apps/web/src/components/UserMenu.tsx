@@ -67,6 +67,20 @@ export default function UserMenu() {
             <p className="text-xs text-gray-500 truncate mt-0.5">{user.email}</p>
           </div>
           <div className="p-1">
+            {user.role === 'ADMIN' && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-purple-300 hover:bg-purple-500/10 hover:text-purple-200 transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                  <path d="M2 17l10 5 10-5" />
+                  <path d="M2 12l10 5 10-5" />
+                </svg>
+                Admin Panel
+              </Link>
+            )}
             <Link
               href="/settings"
               onClick={() => setOpen(false)}

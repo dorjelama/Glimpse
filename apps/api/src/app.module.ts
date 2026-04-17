@@ -5,6 +5,7 @@ import { ElementsModule } from './modules/elements/elements.module';
 import { PublishModule } from './modules/publish/publish.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GuestsModule } from './modules/guests/guests.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { GuestsModule } from './modules/guests/guests.module';
     PublishModule,
     AuthModule,
     GuestsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

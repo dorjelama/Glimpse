@@ -68,6 +68,15 @@ export const api = {
   resolveGuest: (token: string) =>
     request<{ name: string; eventId: string }>(`/guests/token/${token}`),
 
+  // Admin
+  getAdminStats: () => request<AdminStats>('/admin/stats'),
+  listAdminUsers: () => request<AdminUser[]>('/admin/users'),
+  deleteAdminUser: (id: string) => request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
+  setAdminUserRole: (id: string, role: 'USER' | 'ADMIN') =>
+    request<AdminUser>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  listAdminEvents: () => request<AdminEvent[]>('/admin/events'),
+  deleteAdminEvent: (id: string) => request<void>(`/admin/events/${id}`, { method: 'DELETE' }),
+
   // Image upload (multipart — handled separately)
   uploadImage: async (eventId: string, file: File): Promise<{ url: string }> => {
     const { useAuthStore } = await import('./authStore');
@@ -130,6 +139,33 @@ export interface Guest {
   email?: string;
   token: string;
   createdAt: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  createdAt: string;
+  _count: { events: number };
+}
+
+export interface AdminEvent {
+  id: string;
+  title: string;
+  status: string;
+  slug?: string;
+  createdAt: string;
+  updatedAt: string;
+  owner: { name: string; email: string } | null;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalEvents: number;
+  publishedEvents: number;
+  draftEvents: number;
+  recentUsers: { id: string; name: string; email: string; createdAt: string }[];
 }
 
 export interface GlimpseEvent {
