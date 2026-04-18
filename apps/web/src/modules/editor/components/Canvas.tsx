@@ -214,16 +214,22 @@ export default function Canvas() {
   const currentPage = event.pages.find((p) => p.id === currentPageId) ?? event.pages[0];
   if (!currentPage) return null;
 
+  const bgRotation  = currentPage.backgroundImageRotation ?? 0;
+  const userScale   = currentPage.backgroundImageScale ?? 1;
+  const bgOffsetX   = currentPage.backgroundImageOffsetX ?? 0.5;
+  const bgOffsetY   = currentPage.backgroundImageOffsetY ?? 0.5;
+  const needsBgScale = bgRotation === 90 || bgRotation === 270;
+  const rotationScale = needsBgScale
+    ? Math.max(event.canvas.width, event.canvas.height) / Math.min(event.canvas.width, event.canvas.height)
+    : 1;
+  const bgScale = rotationScale * userScale;
+
   const canvasStyle: React.CSSProperties = {
     width: event.canvas.width,
     height: event.canvas.height,
     backgroundColor: currentPage.backgroundColor,
-    backgroundImage: currentPage.backgroundImage
-      ? `url(${currentPage.backgroundImage})`
-      : undefined,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
     position: 'relative',
+    overflow: 'hidden',
     transform: `scale(${scale})`,
     transformOrigin: 'top center',
     flexShrink: 0,
@@ -248,6 +254,28 @@ export default function Canvas() {
         onDragOver={handleCanvasDragOver}
         onClick={handleCanvasClick}
       >
+        {/* Background image layer — rendered as <img> so CSS rotate works */}
+        {currentPage.backgroundImage && (
+          <img
+            src={currentPage.backgroundImage}
+            alt=""
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: `${bgOffsetX * 100}% ${bgOffsetY * 100}%`,
+              transform: `translate(-50%, -50%) rotate(${bgRotation}deg) scale(${bgScale})`,
+              transformOrigin: 'center center',
+              zIndex: 0,
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          />
+        )}
+
         {sortedElements.map((el) => (
           <ElementWrapper
             key={el.id}

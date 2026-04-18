@@ -28,6 +28,10 @@ export interface Page {
   order: number;
   backgroundColor: string;
   backgroundImage?: string;
+  backgroundImageRotation?: number;
+  backgroundImageScale?: number;
+  backgroundImageOffsetX?: number;
+  backgroundImageOffsetY?: number;
   elements: BaseElement[];
 }
 
@@ -40,6 +44,7 @@ export interface GlimpseEvent {
   pages: Page[];
   pageTransition: string;
   ownerId?: string;
+  galleryId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

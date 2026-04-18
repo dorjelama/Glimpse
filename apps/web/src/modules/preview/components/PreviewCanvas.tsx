@@ -78,6 +78,16 @@ function PageBlock({ page, canvasWidth, canvasHeight, scale, guestName }: {
   const scaledWidth  = canvasWidth  * scale;
   const scaledHeight = canvasHeight * scale;
 
+  const bgRotation = page.backgroundImageRotation ?? 0;
+  const userScale  = page.backgroundImageScale ?? 1;
+  const bgOffsetX  = page.backgroundImageOffsetX ?? 0.5;
+  const bgOffsetY  = page.backgroundImageOffsetY ?? 0.5;
+  const needsBgScale = bgRotation === 90 || bgRotation === 270;
+  const rotationScale = needsBgScale
+    ? Math.max(canvasWidth, canvasHeight) / Math.min(canvasWidth, canvasHeight)
+    : 1;
+  const bgScale = rotationScale * userScale;
+
   return (
     /*
      * Outer div occupies the scaled dimensions in normal document flow.
@@ -89,9 +99,7 @@ function PageBlock({ page, canvasWidth, canvasHeight, scale, guestName }: {
           width: canvasWidth,
           height: canvasHeight,
           backgroundColor: page.backgroundColor,
-          backgroundImage: page.backgroundImage ? `url(${page.backgroundImage})` : undefined,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          overflow: 'hidden',
           position: 'absolute',
           top: 0,
           left: 0,
@@ -100,6 +108,27 @@ function PageBlock({ page, canvasWidth, canvasHeight, scale, guestName }: {
           boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
         }}
       >
+        {/* Background image layer — positioned <img> so CSS rotate works */}
+        {page.backgroundImage && (
+          <img
+            src={page.backgroundImage}
+            alt=""
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: `${bgOffsetX * 100}% ${bgOffsetY * 100}%`,
+              transform: `translate(-50%, -50%) rotate(${bgRotation}deg) scale(${bgScale})`,
+              transformOrigin: 'center center',
+              zIndex: 0,
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          />
+        )}
         {sorted.map((el) => (
           <div
             key={el.id}

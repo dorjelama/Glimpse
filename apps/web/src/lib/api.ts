@@ -1,8 +1,8 @@
+import { useAuthStore } from './authStore';
+
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  // Lazy import to avoid circular dependency — authStore imports nothing from api.ts
-  const { useAuthStore } = await import('./authStore');
   const token = useAuthStore.getState().token;
 
   const res = await fetch(`${BASE}${path}`, {
@@ -31,7 +31,24 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  // Events
+  // Projects (parent "Event" in UI)
+  createProject: (body: { title: string; date?: string }) =>
+    request<GlimpseProject>('/projects', { method: 'POST', body: JSON.stringify(body) }),
+
+  listProjects: () => request<GlimpseProject[]>('/projects'),
+
+  getProject: (id: string) => request<GlimpseProject>(`/projects/${id}`),
+
+  updateProject: (id: string, body: { title?: string; date?: string }) =>
+    request<GlimpseProject>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteProject: (id: string) =>
+    request<void>(`/projects/${id}`, { method: 'DELETE' }),
+
+  createGallery: (projectId: string) =>
+    request<{ id: string; isOpen: boolean }>(`/projects/${projectId}/gallery`, { method: 'POST' }),
+
+  // Events (Cards)
   createEvent: (body: { title?: string; canvas?: Record<string, any> }) =>
     request<GlimpseEvent>('/events', { method: 'POST', body: JSON.stringify(body) }),
 
@@ -68,9 +85,85 @@ export const api = {
   resolveGuest: (token: string) =>
     request<{ name: string; eventId: string }>(`/guests/token/${token}`),
 
+  // Admin
+  getAdminStats: () => request<AdminStats>('/admin/stats'),
+  listAdminUsers: () => request<AdminUser[]>('/admin/users'),
+  deleteAdminUser: (id: string) => request<void>(`/admin/users/${id}`, { method: 'DELETE' }),
+  setAdminUserRole: (id: string, role: 'USER' | 'ADMIN') =>
+    request<AdminUser>(`/admin/users/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+  listAdminEvents: () => request<AdminEvent[]>('/admin/events'),
+  deleteAdminEvent: (id: string) => request<void>(`/admin/events/${id}`, { method: 'DELETE' }),
+
+  // Moments / Gallery
+  getGallery: (galleryId: string) =>
+    request<GalleryInfo>(`/gallery/${galleryId}`),
+
+  createSubmission: (galleryId: string, body: { guestName: string; message?: string }) =>
+    request<GallerySubmission>(`/gallery/${galleryId}/submissions`, { method: 'POST', body: JSON.stringify(body) }),
+
+  getSubmission: (token: string) =>
+    request<GallerySubmission>(`/gallery/submission/${token}`),
+
+  uploadMomentPhoto: async (token: string, file: File): Promise<GalleryPhoto> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${BASE}/gallery/submission/${token}/photos`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) throw new Error(await res.text().catch(() => 'Upload failed'));
+    return res.json();
+  },
+
+  deleteMomentPhoto: (token: string, photoId: string) =>
+    request<void>(`/gallery/submission/${token}/photos/${photoId}`, { method: 'DELETE' }),
+
+  setFeaturedPhoto: (token: string, photoId: string) =>
+    request<GallerySubmission>(`/gallery/submission/${token}/featured`, { method: 'PATCH', body: JSON.stringify({ photoId }) }),
+
+  finaliseSubmission: (token: string) =>
+    request<GallerySubmission>(`/gallery/submission/${token}/finalise`, { method: 'POST' }),
+
+  // Host moderation
+  listSubmissions: (galleryId: string) =>
+    request<GallerySubmission[]>(`/gallery/${galleryId}/manage`),
+
+  approveSubmission: (galleryId: string, submissionId: string, approved: boolean) =>
+    request<GallerySubmission>(`/gallery/${galleryId}/submissions/${submissionId}/approve`, {
+      method: 'PATCH',
+      body: JSON.stringify({ approved }),
+    }),
+
+  setGalleryOpen: (galleryId: string, isOpen: boolean) =>
+    request<{ id: string; isOpen: boolean }>(`/gallery/${galleryId}/open`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isOpen }),
+    }),
+
+  endGallery: (galleryId: string) =>
+    request<{ id: string; isOpen: boolean; endedAt: string }>(`/gallery/${galleryId}/end`, { method: 'POST' }),
+
+  exportGallery: async (galleryId: string): Promise<void> => {
+    const token = useAuthStore.getState().token;
+    const res = await fetch(`${BASE}/gallery/${galleryId}/export`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => 'Export failed');
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cd = res.headers.get('Content-Disposition');
+    a.download = cd?.match(/filename="([^"]+)"/)?.[1] ?? 'moments.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   // Image upload (multipart — handled separately)
   uploadImage: async (eventId: string, file: File): Promise<{ url: string }> => {
-    const { useAuthStore } = await import('./authStore');
     const token = useAuthStore.getState().token;
     const form = new FormData();
     form.append('file', file);
@@ -116,6 +209,10 @@ export interface Page {
   order: number;
   backgroundColor: string;
   backgroundImage?: string;
+  backgroundImageRotation?: number;
+  backgroundImageScale?: number;
+  backgroundImageOffsetX?: number;
+  backgroundImageOffsetY?: number;
   elements: CanvasElement[];
 }
 
@@ -128,6 +225,33 @@ export interface Guest {
   createdAt: string;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  createdAt: string;
+  _count: { events: number };
+}
+
+export interface AdminEvent {
+  id: string;
+  title: string;
+  status: string;
+  slug?: string;
+  createdAt: string;
+  updatedAt: string;
+  owner: { name: string; email: string } | null;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalEvents: number;
+  publishedEvents: number;
+  draftEvents: number;
+  recentUsers: { id: string; name: string; email: string; createdAt: string }[];
+}
+
 export interface GlimpseEvent {
   id: string;
   title: string;
@@ -136,6 +260,52 @@ export interface GlimpseEvent {
   canvas: CanvasSettings;
   pages: Page[];
   pageTransition: string;
+  galleryId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GalleryPhoto {
+  id: string;
+  submissionId: string;
+  url: string;
+  createdAt: string;
+}
+
+export interface GallerySubmission {
+  id: string;
+  galleryId: string;
+  guestName: string;
+  message?: string;
+  token: string;
+  photos: GalleryPhoto[];
+  featuredPhotoId?: string;
+  approved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GalleryInfo {
+  id: string;
+  projectId: string;
+  isOpen: boolean;
+  endedAt?: string;
+  project: { title: string };
+}
+
+export interface GlimpseProject {
+  id: string;
+  title: string;
+  date?: string;
+  events: Array<{
+    id: string;
+    title: string;
+    status: EventStatus;
+    slug?: string;
+    updatedAt: string;
+    pages: Array<{ id: string; bgColor: string; bgImage?: string }>;
+  }>;
+  gallery: { id: string; isOpen: boolean; endedAt?: string } | null;
   createdAt: string;
   updatedAt: string;
 }

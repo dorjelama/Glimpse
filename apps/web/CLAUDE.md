@@ -2,8 +2,8 @@
 
 ## What this app does
 The Glimpse frontend — a Next.js 14 app with two primary surfaces:
-1. **Editor** — drag-and-drop canvas to build and style invitation cards
-2. **Viewer** — read-only public page rendered from a published event slug
+1. **Editor** — drag-and-drop canvas to build and style cards
+2. **Viewer** — read-only public page rendered from a published card slug
 
 ## Tech stack
 - **Framework**: Next.js 14 (App Router, `'use client'` where needed)
@@ -37,13 +37,14 @@ src/
 ## Routes
 | Route | Auth required | Description |
 |-------|---------------|-------------|
-| `/` | Yes | Dashboard — lists user's events, create/delete |
+| `/` | Yes | Dashboard — lists user's Events (Projects), create/delete |
+| `/events/[id]` | Yes | Event Hub — shows Card + Moments tiles for a project |
 | `/auth/login` | No | Login form |
 | `/auth/register` | No | Register form |
-| `/editor/[id]` | Yes | Full editor for event `id` |
-| `/preview/[id]` | Yes | Read-only preview of event `id` |
+| `/editor/[id]` | Yes | Full card editor for event `id` |
+| `/preview/[id]` | Yes | Read-only preview of card `id` |
 | `/settings` | Yes | User profile: update name, change password, delete account |
-| `/view/[slug]` | No | Public invitation viewer — no auth, fetches by slug |
+| `/view/[slug]` | No | Public card viewer — no auth, fetches by slug |
 
 ## Shared types (`src/lib/api.ts`)
 All frontend types mirror the backend entities:
@@ -92,3 +93,13 @@ Each module has its own detailed CLAUDE.md:
 - [`modules/editor/CLAUDE.md`](src/modules/editor/CLAUDE.md) — canvas editor, store, drag/resize hooks
 - [`modules/preview/CLAUDE.md`](src/modules/preview/CLAUDE.md) — read-only renderer, public viewer
 - [`modules/publish/CLAUDE.md`](src/modules/publish/CLAUDE.md) — publish modal and hook
+
+## Future Features
+
+### Projection Mode (Moments)
+A full-screen, auto-scrolling view of the live Moments feed designed to be displayed on a venue screen or projector.
+- Full-screen layout, large photos, minimal chrome
+- Event name + optional branding overlay
+- Auto-scroll with configurable speed
+- QR code shown periodically so guests can scan and upload
+- Route: `/g/[galleryId]/display`

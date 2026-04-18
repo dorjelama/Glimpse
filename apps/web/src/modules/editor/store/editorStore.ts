@@ -68,7 +68,7 @@ interface EditorState {
   ungroupElement: (id: string) => void;
 
   // Canvas / title
-  updateCanvas: (changes: Partial<{ width: number; height: number; backgroundColor: string; backgroundImage?: string }>) => void;
+  updateCanvas: (changes: Partial<{ width: number; height: number; backgroundColor: string; backgroundImage?: string; backgroundImageRotation?: number; backgroundImageScale?: number; backgroundImageOffsetX?: number; backgroundImageOffsetY?: number }>) => void;
   updateTitle: (title: string) => void;
   updateTransition: (type: string) => void;
 
@@ -456,6 +456,10 @@ export const useEditorStore = create<EditorState>()(
         if (pg) {
           if (changes.backgroundColor !== undefined) pg.backgroundColor = changes.backgroundColor;
           if ('backgroundImage' in changes) pg.backgroundImage = changes.backgroundImage;
+          if (changes.backgroundImageRotation !== undefined) pg.backgroundImageRotation = changes.backgroundImageRotation;
+          if (changes.backgroundImageScale !== undefined) pg.backgroundImageScale = changes.backgroundImageScale;
+          if (changes.backgroundImageOffsetX !== undefined) pg.backgroundImageOffsetX = changes.backgroundImageOffsetX;
+          if (changes.backgroundImageOffsetY !== undefined) pg.backgroundImageOffsetY = changes.backgroundImageOffsetY;
         }
       });
       get().scheduleSave();

@@ -1,7 +1,7 @@
 # CLAUDE.md — editor module (frontend)
 
 ## What this module does
-The full drag-and-drop invitation editor. Manages a canvas with positioned elements, selection, drag, resize, inline text editing, image upload, layer ordering, and auto-save.
+The full drag-and-drop card editor. Manages a canvas with positioned elements, selection, drag, resize, inline text editing, image upload, layer ordering, and auto-save.
 
 ## Component tree
 ```

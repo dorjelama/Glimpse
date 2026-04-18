@@ -39,6 +39,10 @@ function toPage(p: PrismaPage): Page {
     order: p.order,
     backgroundColor: p.bgColor,
     backgroundImage: p.bgImage ?? undefined,
+    backgroundImageRotation: p.bgImageRotation ?? 0,
+    backgroundImageScale: p.bgImageScale ?? 1,
+    backgroundImageOffsetX: p.bgImageOffsetX ?? 0.5,
+    backgroundImageOffsetY: p.bgImageOffsetY ?? 0.5,
     elements: p.elements.map(toElement),
   };
 }
@@ -83,6 +87,10 @@ const INCLUDE_PAGES_LIGHT = {
       order: true,
       bgColor: true,
       bgImage: true,
+      bgImageRotation: true,
+      bgImageScale: true,
+      bgImageOffsetX: true,
+      bgImageOffsetY: true,
     },
   },
 } satisfies Prisma.EventInclude;
@@ -99,7 +107,7 @@ const DEFAULT_CANVAS: CanvasSettings & { backgroundColor: string } = {
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateEventDto, ownerId?: string): Promise<GlimpseEvent> {
+  async create(dto: CreateEventDto, ownerId?: string, projectId?: string): Promise<GlimpseEvent> {
     const canvas = { ...DEFAULT_CANVAS, ...(dto.canvas ?? {}) };
     const eventId = `evt_${uuidv4().replace(/-/g, '').slice(0, 12)}`;
 
@@ -107,11 +115,12 @@ export class EventsService {
       const e = await tx.event.create({
         data: {
           id: eventId,
-          title: dto.title || 'Untitled Invitation',
+          title: dto.title || 'Untitled Card',
           status: 'draft',
           canvasWidth: canvas.width,
           canvasHeight: canvas.height,
           ownerId: ownerId ?? null,
+          projectId: projectId ?? null,
         },
       });
 
@@ -124,6 +133,9 @@ export class EventsService {
           order: 0,
           bgColor: canvas.backgroundColor,
           bgImage: (dto.canvas as any)?.backgroundImage ?? null,
+          bgImageRotation: 0,
+          bgImageOffsetX: 0.5,
+          bgImageOffsetY: 0.5,
         },
       });
 
@@ -155,6 +167,10 @@ export class EventsService {
         order: pg.order,
         backgroundColor: pg.bgColor,
         backgroundImage: pg.bgImage ?? undefined,
+        backgroundImageRotation: (pg as any).bgImageRotation ?? 0,
+        backgroundImageScale: (pg as any).bgImageScale ?? 1,
+        backgroundImageOffsetX: (pg as any).bgImageOffsetX ?? 0.5,
+        backgroundImageOffsetY: (pg as any).bgImageOffsetY ?? 0.5,
         elements: [],
       })),
       pageTransition: e.pageTransition,
@@ -176,10 +192,15 @@ export class EventsService {
   async findBySlug(slug: string): Promise<GlimpseEvent> {
     const event = await this.prisma.event.findFirst({
       where: { slug, status: 'published' },
-      include: INCLUDE_PAGES,
+      include: {
+        ...INCLUDE_PAGES,
+        project: { include: { gallery: { select: { id: true } } } },
+      },
     });
     if (!event) throw new NotFoundException(`Published invitation not found`);
-    return toEvent(event);
+    const base = toEvent(event as any);
+    base.galleryId = (event as any).project?.gallery?.id ?? undefined;
+    return base;
   }
 
   async update(id: string, dto: UpdateEventDto): Promise<GlimpseEvent> {
@@ -212,6 +233,10 @@ export class EventsService {
               order: pg.order ?? 0,
               bgColor: pg.bgColor ?? pg.backgroundColor ?? '#ffffff',
               bgImage: pg.bgImage ?? pg.backgroundImage ?? null,
+              bgImageRotation: pg.bgImageRotation ?? pg.backgroundImageRotation ?? 0,
+              bgImageScale: pg.bgImageScale ?? pg.backgroundImageScale ?? 1,
+              bgImageOffsetX: pg.bgImageOffsetX ?? pg.backgroundImageOffsetX ?? 0.5,
+              bgImageOffsetY: pg.bgImageOffsetY ?? pg.backgroundImageOffsetY ?? 0.5,
             },
           });
 
@@ -256,7 +281,7 @@ export class EventsService {
     const existing = await this.prisma.event.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Event ${id} not found`);
 
-    const slug = existing.slug ?? this.generateSlug(existing.title);
+    const slug = existing.slug ?? this.generateSlug();
     const updated = await this.prisma.event.update({
       where: { id },
       data: { status: 'published', slug },
@@ -277,13 +302,7 @@ export class EventsService {
     return toEvent(updated);
   }
 
-  private generateSlug(title: string): string {
-    const base = title
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .trim()
-      .replace(/\s+/g, '-')
-      .slice(0, 40);
-    return `${base}-${uuidv4().slice(0, 6)}`;
+  private generateSlug(): string {
+    return uuidv4().replace(/-/g, '').slice(0, 16);
   }
 }
