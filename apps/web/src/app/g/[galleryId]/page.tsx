@@ -322,7 +322,7 @@ function Shell({ children, eventTitle }: { children: React.ReactNode; eventTitle
         <div className="mb-6 text-center">
           <span className="text-sm font-bold text-white tracking-tight">Glimpse</span>
           <span className="mx-2 text-gray-600">·</span>
-          <span className="text-sm text-amber-400">Moments</span>
+          <span className="text-sm text-amber-400">Glimpses</span>
         </div>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           {children}

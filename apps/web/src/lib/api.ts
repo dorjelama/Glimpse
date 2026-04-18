@@ -94,7 +94,7 @@ export const api = {
   listAdminEvents: () => request<AdminEvent[]>('/admin/events'),
   deleteAdminEvent: (id: string) => request<void>(`/admin/events/${id}`, { method: 'DELETE' }),
 
-  // Moments / Gallery
+  // Glimpses / Gallery
   getGallery: (galleryId: string) =>
     request<GalleryInfo>(`/gallery/${galleryId}`),
 
@@ -157,7 +157,7 @@ export const api = {
     const a = document.createElement('a');
     a.href = url;
     const cd = res.headers.get('Content-Disposition');
-    a.download = cd?.match(/filename="([^"]+)"/)?.[1] ?? 'moments.zip';
+    a.download = cd?.match(/filename="([^"]+)"/)?.[1] ?? 'glimpses.zip';
     a.click();
     URL.revokeObjectURL(url);
   },

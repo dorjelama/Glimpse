@@ -108,7 +108,7 @@ function SubmissionCard({
   );
 }
 
-export default function MomentsModerationPage({ params }: { params: { id: string } }) {
+export default function GlimpsesModerationPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [project, setProject] = useState<GlimpseProject | null>(null);
   const [submissions, setSubmissions] = useState<GallerySubmission[]>([]);
@@ -221,7 +221,7 @@ export default function MomentsModerationPage({ params }: { params: { id: string
               ← {project.title}
             </button>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">Moments</h1>
+              <h1 className="text-2xl font-bold text-white">Glimpses</h1>
               <StatusBadge status={status} />
             </div>
             <p className="text-sm text-gray-400 mt-1">
@@ -277,7 +277,7 @@ export default function MomentsModerationPage({ params }: { params: { id: string
         {status === 'ended' && (
           <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-white">Download your moments</p>
+              <p className="text-sm font-semibold text-white">Download your Glimpses</p>
               {exportExpired ? (
                 <p className="text-xs text-gray-500 mt-0.5">Export window has expired · photos will be removed shortly</p>
               ) : (

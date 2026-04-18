@@ -88,7 +88,7 @@ function ProjectCard({
           )}
           {hasGallery && (
             <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-400">
-              Moments
+              Glimpses
             </span>
           )}
         </div>
@@ -96,8 +96,8 @@ function ProjectCard({
         <p className="text-[11px] text-gray-500 mt-2">Edited {timeAgo(project.updatedAt)}</p>
       </div>
 
-      {/* Hover actions */}
-      <div className="absolute top-3 right-3 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+      {/* Actions — always visible on touch, hover-only on desktop */}
+      <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           onClick={handleDelete}
           disabled={deleting}
@@ -137,7 +137,7 @@ function WelcomeModal({ onGetStarted, onSkip }: { onGetStarted: () => void; onSk
           <p className="text-xs font-bold tracking-widest uppercase text-accent mb-3">Glimpse</p>
           <h2 className="text-white font-bold text-xl leading-snug">Create events your guests will remember.</h2>
           <p className="text-gray-400 text-sm mt-2 leading-relaxed">
-            Two tools, one event — design a beautiful card and capture live moments as they happen.
+            Two tools, one event — design a beautiful card and capture live Glimpses as they happen.
           </p>
         </div>
 
@@ -270,7 +270,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardShell>
-      <div className="px-8 py-8">
+      <div className="px-4 py-6 md:px-8 md:py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -330,7 +330,7 @@ export default function DashboardPage() {
             <div className="text-5xl mb-5 opacity-20 select-none">✦</div>
             <p className="text-white font-semibold text-lg mb-2">No events yet</p>
             <p className="text-gray-500 text-sm mb-8 max-w-xs leading-relaxed">
-              Each event gets a Card you design and a Moments feed your guests post to live.
+              Each event gets a Card you design and a Glimpses feed your guests post to live.
             </p>
             <button
               onClick={() => setShowModal(true)}

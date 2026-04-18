@@ -137,7 +137,7 @@ function PostCard({ sub, fresh }: { sub: FeedSubmission; fresh: boolean }) {
       {/* Footer stamp */}
       <div className="px-4 py-2 flex items-center gap-1.5" style={{ borderTop: '1px solid #f0e0c8' }}>
         <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: '#c8a878' }}>
-          Glimpse · Moments
+          Glimpse · Glimpses
         </span>
       </div>
     </article>
@@ -150,7 +150,7 @@ function EmptyFeed() {
   return (
     <div className="text-center py-20">
       <div className="text-5xl mb-4 opacity-40">📷</div>
-      <p className="font-semibold text-sm" style={{ color: '#8a6840' }}>No moments yet</p>
+      <p className="font-semibold text-sm" style={{ color: '#8a6840' }}>No Glimpses yet</p>
       <p className="text-xs mt-1" style={{ color: '#b09070' }}>
         Approved photos will appear here as guests upload them.
       </p>
@@ -222,7 +222,7 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
   if (loading) {
     return (
       <div style={pageStyle} className="flex items-center justify-center">
-        <p className="text-sm animate-pulse" style={{ color: '#b09070' }}>Loading moments…</p>
+        <p className="text-sm animate-pulse" style={{ color: '#b09070' }}>Loading Glimpses…</p>
       </div>
     );
   }
@@ -244,7 +244,7 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
             <p className="font-bold text-sm leading-tight truncate" style={{ color: '#f5d99a' }}>
               {data.gallery.project.title}
             </p>
-            <p className="text-[11px]" style={{ color: '#a08050' }}>Moments · Live feed</p>
+            <p className="text-[11px]" style={{ color: '#a08050' }}>Glimpses · Live feed</p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-1.5">
@@ -283,7 +283,7 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
             className="rounded-xl px-4 py-3 text-center text-[12px]"
             style={{ backgroundColor: '#f5ebe0', border: '1px solid #e8d9bd', color: '#8a6840' }}
           >
-            This event has ended · {new Date(data.gallery.endedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} · Thank you for sharing your moments
+            This event has ended · {new Date(data.gallery.endedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} · Thank you for sharing your Glimpses
           </div>
         </div>
       )}

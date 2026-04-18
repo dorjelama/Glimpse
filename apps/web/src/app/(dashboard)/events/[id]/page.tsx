@@ -102,7 +102,7 @@ function CardFeatureTile({ project }: { project: GlimpseProject }) {
   );
 }
 
-function MomentsFeatureTile({ project }: { project: GlimpseProject }) {
+function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
   const router = useRouter();
   const [setting, setSetting] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
@@ -132,7 +132,7 @@ function MomentsFeatureTile({ project }: { project: GlimpseProject }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${project.title}-moments-qr.svg`;
+    a.download = `${project.title}-glimpses-qr.svg`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -151,7 +151,7 @@ function MomentsFeatureTile({ project }: { project: GlimpseProject }) {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <p className="text-white font-semibold text-sm">Moments</p>
+                <p className="text-white font-semibold text-sm">Glimpses</p>
                 {pendingCount != null && (
                   <span
                     className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border transition-colors ${
@@ -189,7 +189,7 @@ function MomentsFeatureTile({ project }: { project: GlimpseProject }) {
               Download QR
             </button>
             <button
-              onClick={() => router.push(`/events/${project.id}/moments`)}
+              onClick={() => router.push(`/events/${project.id}/glimpses`)}
               className="flex-1 py-2 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-xl transition-colors text-center"
             >
               Moderate
@@ -224,7 +224,7 @@ function MomentsFeatureTile({ project }: { project: GlimpseProject }) {
         disabled={setting}
         className="self-start px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-50 text-amber-400 text-sm font-medium rounded-xl transition-colors border border-amber-500/30"
       >
-        {setting ? 'Setting up…' : '+ Set up Moments'}
+        {setting ? 'Setting up…' : '+ Set up Glimpses'}
       </button>
     </div>
   );
@@ -268,7 +268,7 @@ export default function EventHubPage({ params }: { params: { id: string } }) {
 
   return (
     <DashboardShell>
-      <div className="px-8 py-8 max-w-4xl">
+      <div className="px-4 py-6 md:px-8 md:py-8 max-w-4xl">
         {/* Header */}
         <div className="mb-8">
           {editingTitle ? (
@@ -299,7 +299,7 @@ export default function EventHubPage({ params }: { params: { id: string } }) {
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">Features</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CardFeatureTile project={project} />
-            <MomentsFeatureTile project={project} />
+            <GlimpsesFeatureTile project={project} />
           </div>
         </div>
       </div>

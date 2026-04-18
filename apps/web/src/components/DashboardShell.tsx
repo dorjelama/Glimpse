@@ -20,13 +20,20 @@ const NAV = [
   },
 ];
 
+const SETTINGS_ICON = (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+  </svg>
+);
+
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-violet-950 via-[#1a1230] to-indigo-950 overflow-hidden">
-      {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 flex flex-col border-r border-white/10 bg-black/20">
+      {/* Sidebar — desktop only */}
+      <aside className="hidden md:flex w-56 flex-shrink-0 flex-col border-r border-white/10 bg-black/20">
         {/* Logo */}
         <div className="px-5 py-5 border-b border-white/10">
           <span className="text-lg font-bold text-white tracking-tight">Glimpse</span>
@@ -76,9 +83,43 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto pb-16 md:pb-0">
+        {/* Mobile top bar */}
+        <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/20">
+          <span className="text-base font-bold text-white tracking-tight">Glimpse</span>
+          <UserMenu compact />
+        </div>
+
         {children}
       </main>
+
+      {/* Mobile bottom nav */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 flex border-t border-white/10 bg-[#1a1230]/95 backdrop-blur-md z-40">
+        {NAV.map(({ href, label, icon, matchExact }) => {
+          const active = matchExact ? pathname === href : pathname.startsWith(href);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${
+                active ? 'text-purple-300' : 'text-gray-500'
+              }`}
+            >
+              <span className={active ? 'text-purple-400' : 'text-gray-500'}>{icon}</span>
+              {label}
+            </Link>
+          );
+        })}
+        <Link
+          href="/settings"
+          className={`flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-medium transition-colors ${
+            pathname === '/settings' ? 'text-purple-300' : 'text-gray-500'
+          }`}
+        >
+          <span className={pathname === '/settings' ? 'text-purple-400' : 'text-gray-500'}>{SETTINGS_ICON}</span>
+          Settings
+        </Link>
+      </nav>
     </div>
   );
 }
