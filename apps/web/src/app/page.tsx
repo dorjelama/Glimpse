@@ -179,22 +179,23 @@ function WelcomeModal({ onGetStarted, onSkip }: { onGetStarted: () => void; onSk
   );
 }
 
-function NewEventModal({ onCreate, onClose }: { onCreate: (title: string) => Promise<void>; onClose: () => void }) {
+function NewEventModal({ onCreate, onClose }: { onCreate: (title: string, date?: string) => Promise<void>; onClose: () => void }) {
   const [title, setTitle] = useState('');
+  const [date, setDate] = useState('');
   const [creating, setCreating] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
     setCreating(true);
-    await onCreate(title.trim());
+    await onCreate(title.trim(), date || undefined);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-[#1e1830] border border-white/10 rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
         <h2 className="text-white font-semibold text-base mb-1">New Event</h2>
-        <p className="text-gray-400 text-sm mb-4">Give your event a name. You can change it later.</p>
+        <p className="text-gray-400 text-sm mb-4">Give your event a name and date. You can change these later.</p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           <input
             autoFocus
@@ -203,6 +204,12 @@ function NewEventModal({ onCreate, onClose }: { onCreate: (title: string) => Pro
             value={title}
             onChange={e => setTitle(e.target.value)}
             className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-accent placeholder:text-gray-600"
+          />
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-accent [color-scheme:dark]"
           />
           <div className="flex gap-2 justify-end">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
@@ -252,8 +259,8 @@ export default function DashboardPage() {
     setShowWelcome(false);
   };
 
-  const handleCreate = async (title: string) => {
-    const project = await api.createProject({ title });
+  const handleCreate = async (title: string, date?: string) => {
+    const project = await api.createProject({ title, ...(date && { date: new Date(date).toISOString() }) });
     router.push(`/events/${project.id}`);
   };
 
