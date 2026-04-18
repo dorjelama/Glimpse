@@ -1,4 +1,4 @@
-export type { CanvasElement, CanvasSettings, ElementType, Project } from '@/lib/api';
+export type { CanvasElement, CanvasSettings, ElementType, GlimpseProject } from '@/lib/api';
 
 export type ResizeHandle =
   | 'nw' | 'n' | 'ne'
