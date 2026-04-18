@@ -128,6 +128,57 @@ function SkeletonCard() {
   );
 }
 
+function WelcomeModal({ onGetStarted, onSkip }: { onGetStarted: () => void; onSkip: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+      <div className="bg-[#1e1830] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-7 flex flex-col gap-6">
+        {/* Header */}
+        <div>
+          <p className="text-xs font-bold tracking-widest uppercase text-accent mb-3">Glimpse</p>
+          <h2 className="text-white font-bold text-xl leading-snug">Create events your guests will remember.</h2>
+          <p className="text-gray-400 text-sm mt-2 leading-relaxed">
+            Two tools, one event — design a beautiful card and capture live moments as they happen.
+          </p>
+        </div>
+
+        {/* Feature tiles */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
+            <span className="text-2xl">✦</span>
+            <p className="text-white font-semibold text-sm">Cards</p>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Design an invitation on a drag-and-drop canvas. Publish to a shareable link.
+            </p>
+          </div>
+          <div className="bg-white/5 border border-amber-500/20 rounded-xl p-4 flex flex-col gap-2">
+            <span className="text-2xl">📸</span>
+            <p className="text-white font-semibold text-sm">Moments</p>
+            <p className="text-gray-400 text-xs leading-relaxed">
+              Guests scan a QR code and upload live photos. You curate what shows on the feed.
+            </p>
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onGetStarted}
+            className="w-full py-3 bg-accent hover:bg-accent-hover text-white font-semibold text-sm rounded-xl transition-colors"
+          >
+            Create your first event →
+          </button>
+          <button
+            onClick={onSkip}
+            className="w-full py-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            I'll explore on my own
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function NewEventModal({ onCreate, onClose }: { onCreate: (title: string) => Promise<void>; onClose: () => void }) {
   const [title, setTitle] = useState('');
   const [creating, setCreating] = useState(false);
@@ -176,12 +227,17 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<GlimpseProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const loadProjects = useCallback(async () => {
     try {
       const list = await api.listProjects();
-      setProjects([...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()));
+      const sorted = [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      setProjects(sorted);
+      if (sorted.length === 0 && !localStorage.getItem('glimpse-onboarded')) {
+        setShowWelcome(true);
+      }
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -190,6 +246,11 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => { loadProjects(); }, [loadProjects]);
+
+  const dismissWelcome = () => {
+    localStorage.setItem('glimpse-onboarded', '1');
+    setShowWelcome(false);
+  };
 
   const handleCreate = async (title: string) => {
     const project = await api.createProject({ title });
@@ -209,13 +270,22 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold text-white">Events</h1>
             <p className="text-sm text-gray-500 mt-0.5">All your events in one place</p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-accent/20"
-          >
-            <span className="text-base leading-none">+</span>
-            New Event
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowWelcome(true)}
+              title="What is Glimpse?"
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-sm font-bold transition-colors border border-white/10"
+            >
+              ?
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-accent/20"
+            >
+              <span className="text-base leading-none">+</span>
+              New Event
+            </button>
+          </div>
         </div>
 
         {error && (
@@ -249,19 +319,42 @@ export default function DashboardPage() {
 
         {/* Empty state */}
         {!loading && projects.length === 0 && !error && (
-          <div className="flex flex-col items-center justify-center py-32 text-center">
-            <div className="text-6xl mb-6 opacity-20 select-none">✦</div>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="text-5xl mb-5 opacity-20 select-none">✦</div>
             <p className="text-white font-semibold text-lg mb-2">No events yet</p>
-            <p className="text-gray-500 text-sm mb-8">Create your first event and start building.</p>
+            <p className="text-gray-500 text-sm mb-8 max-w-xs leading-relaxed">
+              Each event gets a Card you design and a Moments feed your guests post to live.
+            </p>
             <button
               onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-xl transition-colors"
+              className="px-6 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-xl transition-colors mb-10"
             >
               + New Event
             </button>
+
+            {/* Product preview tiles */}
+            <div className="grid grid-cols-2 gap-3 w-full max-w-sm text-left opacity-50">
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <p className="text-base mb-1">✦</p>
+                <p className="text-white text-xs font-semibold mb-1">Card</p>
+                <p className="text-gray-500 text-[11px] leading-relaxed">Design an invitation. Publish to a shareable link.</p>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                <p className="text-base mb-1">📸</p>
+                <p className="text-white text-xs font-semibold mb-1">Moments</p>
+                <p className="text-gray-500 text-[11px] leading-relaxed">Guests upload live photos. You curate the feed.</p>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {showWelcome && (
+        <WelcomeModal
+          onGetStarted={() => { dismissWelcome(); setShowModal(true); }}
+          onSkip={dismissWelcome}
+        />
+      )}
 
       {showModal && (
         <NewEventModal onCreate={handleCreate} onClose={() => setShowModal(false)} />

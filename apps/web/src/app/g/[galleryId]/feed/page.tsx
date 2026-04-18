@@ -43,6 +43,14 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function formatTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  const isToday = d.toDateString() === new Date().toDateString();
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  if (isToday) return time;
+  return `${d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${time}`;
+}
+
 function initials(name: string) {
   return name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
 }
@@ -81,9 +89,6 @@ function PostCard({ sub, fresh }: { sub: FeedSubmission; fresh: boolean }) {
         <div className="min-w-0">
           <p className="font-semibold text-sm leading-tight truncate" style={{ color: '#2d1a00' }}>
             {sub.guestName}
-          </p>
-          <p className="text-[11px] mt-0.5" style={{ color: '#a08060' }}>
-            {timeAgo(sub.updatedAt)}
           </p>
         </div>
         {fresh && (
@@ -161,6 +166,7 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const seenRef = useRef<Set<string>>(new Set());
   const firstLoad = useRef(true);
 
@@ -240,14 +246,32 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
             </p>
             <p className="text-[11px]" style={{ color: '#a08050' }}>Moments · Live feed</p>
           </div>
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <span
-              className="w-2 h-2 rounded-full animate-pulse"
-              style={{ backgroundColor: data.gallery.isOpen ? '#22c55e' : '#6b7280' }}
-            />
-            <span className="text-[11px] font-medium" style={{ color: data.gallery.isOpen ? '#86efac' : '#9ca3af' }}>
-              {data.gallery.isOpen ? 'Open' : 'Closed'}
-            </span>
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span
+                className="w-2 h-2 rounded-full animate-pulse"
+                style={{ backgroundColor: data.gallery.isOpen ? '#22c55e' : '#6b7280' }}
+              />
+              <span className="text-[11px] font-medium" style={{ color: data.gallery.isOpen ? '#86efac' : '#9ca3af' }}>
+                {data.gallery.isOpen ? 'Open' : 'Closed'}
+              </span>
+            </div>
+            <button
+              onClick={async () => { setRefreshing(true); await fetchFeed(); setRefreshing(false); }}
+              disabled={refreshing}
+              title="Refresh feed"
+              className="w-7 h-7 flex items-center justify-center rounded-lg transition-opacity disabled:opacity-40"
+              style={{ backgroundColor: '#3d2810', color: '#f5d99a' }}
+            >
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                className={refreshing ? 'animate-spin' : ''}
+              >
+                <polyline points="23 4 23 10 17 10" />
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+              </svg>
+            </button>
           </div>
         </div>
       </header>
@@ -279,13 +303,35 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
       )}
 
       {/* Feed */}
-      <main className="max-w-lg mx-auto px-4 py-6 flex flex-col gap-4">
+      <main className="max-w-lg mx-auto px-4 py-6">
         {submissions.length === 0 ? (
           <EmptyFeed />
         ) : (
-          submissions.map(sub => (
-            <PostCard key={sub.id} sub={sub} fresh={freshIds.has(sub.id)} />
-          ))
+          <div className="flex flex-col">
+            {submissions.map((sub, i) => (
+              <div key={sub.id} className="flex gap-3">
+                {/* Spine + dot */}
+                <div className="flex flex-col items-center flex-shrink-0 w-5">
+                  <div
+                    className="w-3 h-3 rounded-full border-2 flex-shrink-0 mt-[14px]"
+                    style={{ borderColor: freshIds.has(sub.id) ? '#f59e0b' : '#c8a878', backgroundColor: '#1e1206' }}
+                  />
+                  {i < submissions.length - 1 && (
+                    <div className="flex-1 w-px mt-1" style={{ backgroundColor: '#3d2810' }} />
+                  )}
+                </div>
+                {/* Timestamp + card */}
+                <div className="flex-1 pb-5">
+                  <p className="text-[11px] mb-1.5 mt-3" style={{ color: '#a08060' }}>
+                    {formatTime(sub.updatedAt)}
+                    <span className="mx-1.5 opacity-50">·</span>
+                    {timeAgo(sub.updatedAt)}
+                  </p>
+                  <PostCard sub={sub} fresh={freshIds.has(sub.id)} />
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {/* Footer */}

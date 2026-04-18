@@ -34,7 +34,7 @@ function ClosedScreen({ ended, eventTitle }: { ended: boolean; eventTitle: strin
 
 // ─── Thank-you screen ────────────────────────────────────────────────────────
 
-function DoneScreen({ eventTitle }: { eventTitle: string }) {
+function DoneScreen({ eventTitle, galleryId }: { eventTitle: string; galleryId: string }) {
   return (
     <Shell eventTitle={eventTitle}>
       <div className="flex flex-col items-center text-center gap-5 py-10">
@@ -49,6 +49,13 @@ function DoneScreen({ eventTitle }: { eventTitle: string }) {
             Pending host approval — it'll appear on the feed shortly.
           </p>
         </div>
+        <a
+          href={`/g/${galleryId}/feed`}
+          className="mt-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+          style={{ backgroundColor: '#fef3c7', color: '#92400e' }}
+        >
+          See the live feed →
+        </a>
       </div>
     </Shell>
   );
@@ -294,7 +301,7 @@ export default function GuestUploadPage({ params }: { params: { galleryId: strin
     );
   }
 
-  if (done) return <DoneScreen eventTitle={eventTitle} />;
+  if (done) return <DoneScreen eventTitle={eventTitle} galleryId={params.galleryId} />;
   if (!isOpen) return <ClosedScreen ended={ended} eventTitle={eventTitle} />;
 
   return (
