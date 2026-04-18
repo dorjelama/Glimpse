@@ -192,10 +192,15 @@ export class EventsService {
   async findBySlug(slug: string): Promise<GlimpseEvent> {
     const event = await this.prisma.event.findFirst({
       where: { slug, status: 'published' },
-      include: INCLUDE_PAGES,
+      include: {
+        ...INCLUDE_PAGES,
+        project: { include: { gallery: { select: { id: true } } } },
+      },
     });
     if (!event) throw new NotFoundException(`Published invitation not found`);
-    return toEvent(event);
+    const base = toEvent(event as any);
+    base.galleryId = (event as any).project?.gallery?.id ?? undefined;
+    return base;
   }
 
   async update(id: string, dto: UpdateEventDto): Promise<GlimpseEvent> {

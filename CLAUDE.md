@@ -67,3 +67,15 @@ cd ../.. && pnpm dev                           # run both apps
 ## CLAUDE.md rule
 Every module folder has its own CLAUDE.md. Always update it when adding features. Always update it when debugging as well.
 Keep interviewing until we've covered everything.
+
+## Business guardrails (always active)
+
+A business advisor agent is configured at `.claude/agents/business-advisor.md`. Invoke it for any product or feature discussion. Beyond that, apply these rules in every session without being asked:
+
+**Pricing tiers** — Free (card editor, 1 event, no Moments) / Pro (~$15/mo, Moments enabled, 30-day export) / Business (~$49/mo, multiple concurrent galleries, 60-day export). Never give Moments away for free. The card editor is the acquisition hook; Moments is the paid activation.
+
+**Storage cost flag** — Any feature that stores files (photos, exports, assets) must have an expiry or live behind a paid tier. Local disk is temporary; Cloudflare R2 is the planned production store. Always ask: what deletes this, and when?
+
+**Conversion lens** — Every new feature should be evaluated: does it acquire (Free), retain (Pro), or expand (Business)? If it doesn't fit the ladder, it's cost with no return.
+
+When a feature discussion comes up, briefly note its tier fit and any cost exposure before diving into implementation.

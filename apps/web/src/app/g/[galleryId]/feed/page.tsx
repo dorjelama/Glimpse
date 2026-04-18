@@ -264,6 +264,20 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
         </div>
       )}
 
+      {/* Share CTA — only when gallery is open */}
+      {data.gallery.isOpen && (
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <a
+            href={`/g/${params.galleryId}`}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ backgroundColor: '#1e1206', color: '#f5d99a', border: '1px solid #3d2810' }}
+          >
+            <span>📸</span>
+            Share your moment
+          </a>
+        </div>
+      )}
+
       {/* Feed */}
       <main className="max-w-lg mx-auto px-4 py-6 flex flex-col gap-4">
         {submissions.length === 0 ? (

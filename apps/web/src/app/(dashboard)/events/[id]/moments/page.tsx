@@ -116,6 +116,8 @@ export default function MomentsModerationPage({ params }: { params: { id: string
   const [togglingOpen, setTogglingOpen] = useState(false);
   const [ending, setEnding] = useState(false);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     api.getProject(params.id)
@@ -146,6 +148,19 @@ export default function MomentsModerationPage({ params }: { params: { id: string
       );
     } finally {
       setTogglingOpen(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!project?.gallery) return;
+    setDownloading(true);
+    setDownloadError(null);
+    try {
+      await api.exportGallery(project.gallery.id);
+    } catch (e: any) {
+      setDownloadError(e.message ?? 'Download failed');
+    } finally {
+      setDownloading(false);
     }
   };
 
@@ -187,6 +202,11 @@ export default function MomentsModerationPage({ params }: { params: { id: string
   const status = galleryStatus(gallery);
   const pending = submissions.filter(s => !s.approved);
   const approved = submissions.filter(s => s.approved);
+
+  const exportWindowDays = gallery.endedAt
+    ? Math.ceil((new Date(gallery.endedAt).getTime() + 30 * 86_400_000 - Date.now()) / 86_400_000)
+    : null;
+  const exportExpired = exportWindowDays !== null && exportWindowDays <= 0;
 
   return (
     <DashboardShell>
@@ -252,6 +272,32 @@ export default function MomentsModerationPage({ params }: { params: { id: string
             </div>
           )}
         </div>
+
+        {/* Export banner — shown when event has ended */}
+        {status === 'ended' && (
+          <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-white">Download your moments</p>
+              {exportExpired ? (
+                <p className="text-xs text-gray-500 mt-0.5">Export window has expired · photos will be removed shortly</p>
+              ) : (
+                <p className="text-xs text-gray-400 mt-0.5">
+                  ZIP of all approved photos · {exportWindowDays} day{exportWindowDays !== 1 ? 's' : ''} remaining
+                </p>
+              )}
+              {downloadError && <p className="text-xs text-red-400 mt-1">{downloadError}</p>}
+            </div>
+            {!exportExpired && (
+              <button
+                onClick={handleDownload}
+                disabled={downloading}
+                className="flex-shrink-0 px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30"
+              >
+                {downloading ? 'Preparing…' : 'Download ZIP'}
+              </button>
+            )}
+          </div>
+        )}
 
         {submissions.length === 0 ? (
           <div className="text-center py-20 text-gray-500 text-sm">

@@ -11,7 +11,11 @@ import {
   BadRequestException,
   UseGuards,
   Req,
+  Res,
 } from '@nestjs/common';
+import { existsSync } from 'fs';
+import archiver from 'archiver';
+import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
@@ -151,5 +155,33 @@ export class MomentsController {
   @ApiParam({ name: 'galleryId' })
   endGallery(@Param('galleryId') galleryId: string, @Req() req: any) {
     return this.momentsService.endGallery(galleryId, req.user.userId);
+  }
+
+  @Get(':galleryId/export')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Download ZIP of all approved photos — 30-day window after event ends (host only)' })
+  @ApiParam({ name: 'galleryId' })
+  async exportGallery(
+    @Param('galleryId') galleryId: string,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
+    const { filename, photoFiles } = await this.momentsService.prepareExport(galleryId, req.user.userId);
+
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+    archive.on('error', () => res.end());
+    archive.pipe(res);
+
+    for (const { filepath, archiveName } of photoFiles) {
+      if (existsSync(filepath)) {
+        archive.file(filepath, { name: archiveName });
+      }
+    }
+
+    await archive.finalize();
   }
 }

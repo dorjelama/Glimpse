@@ -3,9 +3,13 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  GoneException,
 } from '@nestjs/common';
+import { join, extname } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+
+const EXPORT_WINDOW_DAYS = 30;
 
 const MAX_PHOTOS = 3;
 
@@ -163,5 +167,51 @@ export class MomentsService {
       where: { id: galleryId },
       data: { isOpen: false, endedAt: new Date() },
     });
+  }
+
+  async prepareExport(galleryId: string, ownerId: string) {
+    await this.verifyGalleryOwnership(galleryId, ownerId);
+
+    const gallery = await this.prisma.gallery.findUnique({
+      where: { id: galleryId },
+      include: { project: { select: { title: true } } },
+    });
+
+    if (!gallery!.endedAt) {
+      throw new BadRequestException('Gallery has not ended yet');
+    }
+
+    const cutoff = new Date(gallery!.endedAt);
+    cutoff.setDate(cutoff.getDate() + EXPORT_WINDOW_DAYS);
+    if (new Date() > cutoff) {
+      throw new GoneException('Export window has expired (30 days after event end)');
+    }
+
+    const submissions = await this.prisma.gallerySubmission.findMany({
+      where: { galleryId, approved: true },
+      include: { photos: { orderBy: { createdAt: 'asc' as const } } },
+      orderBy: { createdAt: 'asc' as const },
+    });
+
+    const uploadsDir = join(process.cwd(), 'uploads');
+    const photoFiles: { filepath: string; archiveName: string }[] = [];
+
+    for (const sub of submissions) {
+      const safeName = sub.guestName.replace(/[^a-z0-9]/gi, '_').slice(0, 30);
+      for (const photo of sub.photos) {
+        const filename = photo.url.replace('/uploads/', '');
+        photoFiles.push({
+          filepath: join(uploadsDir, filename),
+          archiveName: `${safeName}_${photo.id.slice(-6)}${extname(filename)}`,
+        });
+      }
+    }
+
+    const slugTitle = (gallery!.project.title ?? galleryId)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .slice(0, 40);
+
+    return { filename: `${slugTitle}-moments.zip`, photoFiles, daysRemaining: Math.ceil((cutoff.getTime() - Date.now()) / 86_400_000) };
   }
 }

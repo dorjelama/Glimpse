@@ -44,6 +44,7 @@ export interface GlimpseEvent {
   pages: Page[];
   pageTransition: string;
   ownerId?: string;
+  galleryId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -143,6 +143,25 @@ export const api = {
   endGallery: (galleryId: string) =>
     request<{ id: string; isOpen: boolean; endedAt: string }>(`/gallery/${galleryId}/end`, { method: 'POST' }),
 
+  exportGallery: async (galleryId: string): Promise<void> => {
+    const token = useAuthStore.getState().token;
+    const res = await fetch(`${BASE}/gallery/${galleryId}/export`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => 'Export failed');
+      throw new Error(msg);
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const cd = res.headers.get('Content-Disposition');
+    a.download = cd?.match(/filename="([^"]+)"/)?.[1] ?? 'moments.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   // Image upload (multipart — handled separately)
   uploadImage: async (eventId: string, file: File): Promise<{ url: string }> => {
     const token = useAuthStore.getState().token;
@@ -241,6 +260,7 @@ export interface GlimpseEvent {
   canvas: CanvasSettings;
   pages: Page[];
   pageTransition: string;
+  galleryId?: string;
   createdAt: string;
   updatedAt: string;
 }
