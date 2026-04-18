@@ -21,7 +21,7 @@ _Last updated: 2026-04-19_
 | H4 | Share the card with guests | Published card has a URL. Publish modal shows it. | **No in-product sharing.** Host has to copy-paste the URL manually. No email, no WhatsApp share, no prominent copy button on the Event Hub. |
 | H5 | Set up a Moments gallery | One click, gallery created, QR code shown immediately. | Solid. |
 | H6 | Get the QR code to guests at the venue | "Download QR" exports SVG. | **No guidance on how to use it.** Hosts don't know to print it, put it on a projector slide, or embed it in signage. SVG is also an unusual format for non-technical users. |
-| H7 | Know when guests are uploading during the event | Moderation page lists submissions. | **No notifications.** Host must be on the moderation page watching. If they're busy hosting, submissions pile up unseen. |
+| H7 | Know when guests are uploading during the event | Moderation page lists submissions. Bell icon on Event Hub shows pending approval count, refreshed on page load. | **No real-time notifications.** Count only updates on refresh. Host still won't see new submissions unless they navigate back to the Event Hub. |
 | H8 | Approve photos quickly on mobile | 3-column grid with approve button. | **Not mobile-optimized for live use.** Hover state for actions doesn't work on touch. Column grid requires scrolling. Bulk approve missing. |
 | H9 | Control what's on the feed (open/close/end) | Pause + End event with confirm dialog. Three states implemented. | Solid. |
 | H10 | Download photos after the event | 30-day export window + ZIP download in moderation page. | **No notification of the export window.** Host ends the event and may never return to the moderation page. 30 days pass, photos deleted, trust broken. |

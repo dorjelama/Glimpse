@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import QRCode from 'react-qr-code';
 import { api, type GlimpseProject } from '@/lib/api';
@@ -105,7 +105,15 @@ function CardFeatureTile({ project }: { project: GlimpseProject }) {
 function MomentsFeatureTile({ project }: { project: GlimpseProject }) {
   const router = useRouter();
   const [setting, setSetting] = useState(false);
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!project.gallery) return;
+    api.listSubmissions(project.gallery.id)
+      .then(subs => setPendingCount(subs.filter(s => !s.approved).length))
+      .catch(() => {});
+  }, [project.gallery?.id]);
 
   const handleSetup = async () => {
     setSetting(true);
@@ -142,7 +150,25 @@ function MomentsFeatureTile({ project }: { project: GlimpseProject }) {
         <div className="p-5 flex flex-col gap-4 flex-1">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white font-semibold text-sm">Moments</p>
+              <div className="flex items-center gap-2">
+                <p className="text-white font-semibold text-sm">Moments</p>
+                {pendingCount != null && (
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border transition-colors ${
+                      pendingCount > 0
+                        ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                        : 'bg-white/5 text-gray-500 border-white/10'
+                    }`}
+                    title={pendingCount > 0 ? `${pendingCount} pending approval` : 'No pending submissions'}
+                  >
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    {pendingCount}
+                  </span>
+                )}
+              </div>
               <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-full font-medium mt-1 ${
                 project.gallery.isOpen
                   ? 'bg-amber-500/20 text-amber-400'
