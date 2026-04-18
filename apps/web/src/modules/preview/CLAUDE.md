@@ -1,9 +1,9 @@
 # CLAUDE.md — preview module (frontend)
 
 ## What this module does
-Read-only rendering of an invitation project. Used in two contexts:
+Read-only rendering of a card. Used in two contexts:
 1. **In-editor preview** — editor's "Preview" toggle disables editing and shows the final look
-2. **Public viewer** — `/view/[slug]` page renders a published invitation for anyone with the link
+2. **Public viewer** — `/view/[slug]` page renders a published card for anyone with the link
 
 ## Component tree
 ```
@@ -32,7 +32,7 @@ PreviewLayout      ← thin header (back to editor button / published badge)
 | `/view/[slug]` | Fetches published project by slug via `GET /api/publish/view/:slug` |
 
 ## Mobile responsiveness
-Invitations are primarily shared and opened on mobile browsers. `PreviewCanvas` handles this with:
+Cards are primarily shared and opened on mobile browsers. `PreviewCanvas` handles this with:
 
 - **Scale logic** (`fitToContainer`): on viewports `< 640px` wide, scales to fit width only (no height constraint) so text stays readable and the user scrolls vertically for tall canvases. On desktop, fits both axes with no scroll.
 - **Layout wrapper**: the canvas is wrapped in a div sized to `canvas.width * scale` × `canvas.height * scale`. This is required because CSS `transform: scale()` doesn't affect layout flow — without the wrapper the full unscaled div would overflow and cause a horizontal scrollbar.

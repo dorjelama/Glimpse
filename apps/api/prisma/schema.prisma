@@ -1,4 +1,4 @@
-// Prisma schema for Glimpse — invitation builder
+// Prisma schema for Glimpse
 // Docs: https://pris.ly/d/prisma-schema
 
 generator client {
@@ -43,8 +43,64 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   events       Event[]
+  projects     Project[]
 
   @@map("users")
+}
+
+model Project {
+  id        String    @id @default(cuid())
+  title     String
+  date      DateTime?
+  ownerId   String
+  owner     User      @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  events    Event[]
+  gallery   Gallery?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([ownerId])
+  @@map("projects")
+}
+
+model Gallery {
+  id          String              @id @default(cuid())
+  projectId   String              @unique
+  project     Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  isOpen      Boolean             @default(true)
+  submissions GallerySubmission[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@map("galleries")
+}
+
+model GallerySubmission {
+  id              String         @id @default(cuid())
+  galleryId       String
+  gallery         Gallery        @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  guestName       String
+  message         String?
+  token           String         @unique @default(uuid())
+  photos          GalleryPhoto[]
+  featuredPhotoId String?
+  approved        Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([galleryId])
+  @@map("gallery_submissions")
+}
+
+model GalleryPhoto {
+  id           String            @id @default(cuid())
+  submissionId String
+  submission   GallerySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  url          String
+  createdAt    DateTime          @default(now())
+
+  @@index([submissionId])
+  @@map("gallery_photos")
 }
 
 model Event {
@@ -60,6 +116,9 @@ model Event {
 
   owner         User?       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   ownerId       String?
+
+  project       Project?    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  projectId     String?
 
   pages         Page[]
   guests        Guest[]

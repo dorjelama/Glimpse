@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useAuthStore } from '@/lib/authStore';
 import { useStatusStore } from '@/lib/statusStore';
+import DashboardShell from '@/components/DashboardShell';
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -87,15 +87,10 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-950 via-[#1a1230] to-indigo-950">
-      <header className="border-b border-white/10 px-6 py-4 flex items-center gap-4">
-        <Link href="/" className="text-gray-400 hover:text-white transition-colors text-sm">
-          ← Dashboard
-        </Link>
-        <h1 className="text-xl font-bold text-white tracking-tight">Settings</h1>
-      </header>
-
-      <main className="max-w-xl mx-auto px-6 py-8 flex flex-col gap-6">
+    <DashboardShell>
+      <div className="px-8 py-8 max-w-xl">
+        <h1 className="text-xl font-bold text-white mb-6">Settings</h1>
+        <div className="flex flex-col gap-6">
         {/* Update Name */}
         <Card title="Profile">
           <form onSubmit={handleSaveName} className="flex flex-col gap-4">
@@ -179,7 +174,7 @@ export default function SettingsPage() {
         {/* Danger Zone */}
         <Card title="Danger Zone">
           <p className="text-sm text-gray-400 mb-4">
-            Permanently delete your account and all your invitations. This cannot be undone.
+            Permanently delete your account and all your cards. This cannot be undone.
           </p>
           <button
             onClick={handleDeleteAccount}
@@ -201,7 +196,8 @@ export default function SettingsPage() {
             </button>
           )}
         </Card>
-      </main>
-    </div>
+      </div>
+      </div>
+    </DashboardShell>
   );
 }

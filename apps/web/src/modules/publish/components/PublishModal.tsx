@@ -47,7 +47,7 @@ export default function PublishModal({ onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between">
           <h2 className="text-white font-semibold text-base">
-            {isAlreadyPublished ? 'Published' : 'Publish Invitation'}
+            {isAlreadyPublished ? 'Published' : 'Publish Card'}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
             ✕
@@ -60,7 +60,7 @@ export default function PublishModal({ onClose }: Props) {
             <>
               <div className="flex items-center gap-2 text-green-400 text-sm">
                 <span>✓</span>
-                <span>Your invitation is live!</span>
+                <span>Your card is live!</span>
               </div>
 
               <div className="flex gap-2">

@@ -1,7 +1,7 @@
 # CLAUDE.md — Glimpse Root
 
 ## What this project is
-Glimpse is a SaaS invitation builder. Users create invitation cards on a drag-and-drop canvas, style elements, then publish to a shareable public URL.
+Glimpse is a SaaS platform for creating and sharing digital cards. The invitation builder is its MVP feature. Users create cards on a drag-and-drop canvas, style elements, then publish to a shareable public URL.
 
 ## Architecture
 - **Monorepo** managed with pnpm workspaces
@@ -34,7 +34,8 @@ User action → Zustand store (immer) → 800ms debounce → PATCH /api/events/:
 | Path | Purpose |
 |------|---------|
 | `apps/api/src/prisma` | PrismaService + PrismaModule (@Global) |
-| `apps/api/src/modules/events` | CRUD for invitation events (guarded, owner-scoped) |
+| `apps/api/src/modules/projects` | Parent "Event" CRUD (owner-scoped, JWT-guarded) |
+| `apps/api/src/modules/events` | Card CRUD (owner-scoped, JWT-guarded) |
 | `apps/api/src/modules/elements` | Element add/update/delete/reorder (guarded) |
 | `apps/api/src/modules/publish` | Publishing: slug generation, public read |
 | `apps/api/src/modules/guests` | Guest list management (guarded); token resolve is public |

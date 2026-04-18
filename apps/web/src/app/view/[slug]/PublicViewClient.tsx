@@ -48,9 +48,9 @@ export default function PublicViewClient({ slug }: Props) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-800 mb-2">Invitation not found</p>
+          <p className="text-2xl font-bold text-gray-800 mb-2">Card not found</p>
           <p className="text-gray-500 text-sm">
-            This invitation may have been unpublished or the link is incorrect.
+            This card may have been unpublished or the link is incorrect.
           </p>
         </div>
       </div>

@@ -107,7 +107,7 @@ const DEFAULT_CANVAS: CanvasSettings & { backgroundColor: string } = {
 export class EventsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateEventDto, ownerId?: string): Promise<GlimpseEvent> {
+  async create(dto: CreateEventDto, ownerId?: string, projectId?: string): Promise<GlimpseEvent> {
     const canvas = { ...DEFAULT_CANVAS, ...(dto.canvas ?? {}) };
     const eventId = `evt_${uuidv4().replace(/-/g, '').slice(0, 12)}`;
 
@@ -115,11 +115,12 @@ export class EventsService {
       const e = await tx.event.create({
         data: {
           id: eventId,
-          title: dto.title || 'Untitled Invitation',
+          title: dto.title || 'Untitled Card',
           status: 'draft',
           canvasWidth: canvas.width,
           canvasHeight: canvas.height,
           ownerId: ownerId ?? null,
+          projectId: projectId ?? null,
         },
       });
 

@@ -1,0 +1,146 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Patch,
+  Body,
+  Param,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
+  UseGuards,
+  Req,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { MomentsService } from './moments.service';
+import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { SetFeaturedDto } from './dto/set-featured.dto';
+import { ApproveSubmissionDto } from './dto/approve-submission.dto';
+import { SetGalleryOpenDto } from './dto/set-gallery-open.dto';
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+
+const storage = diskStorage({
+  destination: join(process.cwd(), 'uploads'),
+  filename: (_req, file, cb) => {
+    cb(null, `${uuidv4()}${extname(file.originalname)}`);
+  },
+});
+
+@ApiTags('Moments')
+@Controller('gallery')
+export class MomentsController {
+  constructor(private readonly momentsService: MomentsService) {}
+
+  @Get(':galleryId')
+  @ApiOperation({ summary: 'Get gallery info (public)' })
+  @ApiParam({ name: 'galleryId' })
+  getGallery(@Param('galleryId') galleryId: string) {
+    return this.momentsService.getGallery(galleryId);
+  }
+
+  @Post(':galleryId/submissions')
+  @ApiOperation({ summary: 'Create a guest submission (public)' })
+  @ApiParam({ name: 'galleryId' })
+  createSubmission(
+    @Param('galleryId') galleryId: string,
+    @Body() dto: CreateSubmissionDto,
+  ) {
+    return this.momentsService.createSubmission(galleryId, dto);
+  }
+
+  @Get('submission/:token')
+  @ApiOperation({ summary: 'Get submission by guest token' })
+  getSubmission(@Param('token') token: string) {
+    return this.momentsService.getSubmissionByToken(token);
+  }
+
+  @Post('submission/:token/photos')
+  @ApiOperation({ summary: 'Upload a photo to a submission' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('file', { storage }))
+  async uploadPhoto(
+    @Param('token') token: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) throw new BadRequestException('No file uploaded');
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPEG, PNG, WebP, or HEIC images are allowed');
+    }
+    const url = `/uploads/${file.filename}`;
+    return this.momentsService.addPhoto(token, url);
+  }
+
+  @Delete('submission/:token/photos/:photoId')
+  @ApiOperation({ summary: 'Remove a photo from a submission' })
+  deletePhoto(
+    @Param('token') token: string,
+    @Param('photoId') photoId: string,
+  ) {
+    return this.momentsService.deletePhoto(token, photoId);
+  }
+
+  @Patch('submission/:token/featured')
+  @ApiOperation({ summary: 'Set the featured photo for a submission' })
+  setFeatured(@Param('token') token: string, @Body() dto: SetFeaturedDto) {
+    return this.momentsService.setFeatured(token, dto.photoId);
+  }
+
+  @Post('submission/:token/finalise')
+  @ApiOperation({ summary: 'Finalise and submit (validates photos + featured selected)' })
+  finalise(@Param('token') token: string) {
+    return this.momentsService.finalise(token);
+  }
+
+  @Get(':galleryId/feed')
+  @ApiOperation({ summary: 'Get approved submissions for the live feed (public)' })
+  @ApiParam({ name: 'galleryId' })
+  getFeed(@Param('galleryId') galleryId: string) {
+    return this.momentsService.getFeed(galleryId);
+  }
+
+  // ── Host moderation (JWT-guarded) ────────────────────────────────────────
+
+  @Get(':galleryId/manage')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'List all submissions for a gallery (host only)' })
+  @ApiParam({ name: 'galleryId' })
+  listSubmissions(@Param('galleryId') galleryId: string, @Req() req: any) {
+    return this.momentsService.listSubmissions(galleryId, req.user.userId);
+  }
+
+  @Patch(':galleryId/submissions/:id/approve')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Approve or revoke a submission (host only)' })
+  @ApiParam({ name: 'galleryId' })
+  @ApiParam({ name: 'id', description: 'Submission ID' })
+  approveSubmission(
+    @Param('galleryId') galleryId: string,
+    @Param('id') submissionId: string,
+    @Body() dto: ApproveSubmissionDto,
+    @Req() req: any,
+  ) {
+    return this.momentsService.setApproved(galleryId, submissionId, dto.approved, req.user.userId);
+  }
+
+  @Patch(':galleryId/open')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Open or close gallery for new submissions (host only)' })
+  @ApiParam({ name: 'galleryId' })
+  setGalleryOpen(
+    @Param('galleryId') galleryId: string,
+    @Body() dto: SetGalleryOpenDto,
+    @Req() req: any,
+  ) {
+    return this.momentsService.setGalleryOpen(galleryId, dto.isOpen, req.user.userId);
+  }
+}

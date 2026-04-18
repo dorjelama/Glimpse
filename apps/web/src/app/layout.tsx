@@ -3,8 +3,8 @@ import './globals.css';
 import StatusBar from '@/components/StatusBar';
 
 export const metadata: Metadata = {
-  title: 'Glimpse — Invitation Builder',
-  description: 'Create beautiful digital invitations with a drag-and-drop editor',
+  title: 'Glimpse',
+  description: 'Create beautiful digital cards with a drag-and-drop editor',
 };
 
 export const viewport: Viewport = {

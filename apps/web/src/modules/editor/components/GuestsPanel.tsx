@@ -96,7 +96,7 @@ export default function GuestsPanel() {
       {/* Not published warning */}
       {!isPublished && (
         <div className="mx-3 mt-3 px-2 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-[10px] text-yellow-400 leading-relaxed">
-          Publish the invitation to generate shareable guest links.
+          Publish the card to generate shareable guest links.
         </div>
       )}
 

@@ -1,8 +1,8 @@
+import { useAuthStore } from './authStore';
+
 const BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  // Lazy import to avoid circular dependency — authStore imports nothing from api.ts
-  const { useAuthStore } = await import('./authStore');
   const token = useAuthStore.getState().token;
 
   const res = await fetch(`${BASE}${path}`, {
@@ -31,7 +31,24 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  // Events
+  // Projects (parent "Event" in UI)
+  createProject: (body: { title: string; date?: string }) =>
+    request<GlimpseProject>('/projects', { method: 'POST', body: JSON.stringify(body) }),
+
+  listProjects: () => request<GlimpseProject[]>('/projects'),
+
+  getProject: (id: string) => request<GlimpseProject>(`/projects/${id}`),
+
+  updateProject: (id: string, body: { title?: string; date?: string }) =>
+    request<GlimpseProject>(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteProject: (id: string) =>
+    request<void>(`/projects/${id}`, { method: 'DELETE' }),
+
+  createGallery: (projectId: string) =>
+    request<{ id: string; isOpen: boolean }>(`/projects/${projectId}/gallery`, { method: 'POST' }),
+
+  // Events (Cards)
   createEvent: (body: { title?: string; canvas?: Record<string, any> }) =>
     request<GlimpseEvent>('/events', { method: 'POST', body: JSON.stringify(body) }),
 
@@ -77,9 +94,54 @@ export const api = {
   listAdminEvents: () => request<AdminEvent[]>('/admin/events'),
   deleteAdminEvent: (id: string) => request<void>(`/admin/events/${id}`, { method: 'DELETE' }),
 
+  // Moments / Gallery
+  getGallery: (galleryId: string) =>
+    request<GalleryInfo>(`/gallery/${galleryId}`),
+
+  createSubmission: (galleryId: string, body: { guestName: string; message?: string }) =>
+    request<GallerySubmission>(`/gallery/${galleryId}/submissions`, { method: 'POST', body: JSON.stringify(body) }),
+
+  getSubmission: (token: string) =>
+    request<GallerySubmission>(`/gallery/submission/${token}`),
+
+  uploadMomentPhoto: async (token: string, file: File): Promise<GalleryPhoto> => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`${BASE}/gallery/submission/${token}/photos`, {
+      method: 'POST',
+      body: form,
+    });
+    if (!res.ok) throw new Error(await res.text().catch(() => 'Upload failed'));
+    return res.json();
+  },
+
+  deleteMomentPhoto: (token: string, photoId: string) =>
+    request<void>(`/gallery/submission/${token}/photos/${photoId}`, { method: 'DELETE' }),
+
+  setFeaturedPhoto: (token: string, photoId: string) =>
+    request<GallerySubmission>(`/gallery/submission/${token}/featured`, { method: 'PATCH', body: JSON.stringify({ photoId }) }),
+
+  finaliseSubmission: (token: string) =>
+    request<GallerySubmission>(`/gallery/submission/${token}/finalise`, { method: 'POST' }),
+
+  // Host moderation
+  listSubmissions: (galleryId: string) =>
+    request<GallerySubmission[]>(`/gallery/${galleryId}/manage`),
+
+  approveSubmission: (galleryId: string, submissionId: string, approved: boolean) =>
+    request<GallerySubmission>(`/gallery/${galleryId}/submissions/${submissionId}/approve`, {
+      method: 'PATCH',
+      body: JSON.stringify({ approved }),
+    }),
+
+  setGalleryOpen: (galleryId: string, isOpen: boolean) =>
+    request<{ id: string; isOpen: boolean }>(`/gallery/${galleryId}/open`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isOpen }),
+    }),
+
   // Image upload (multipart — handled separately)
   uploadImage: async (eventId: string, file: File): Promise<{ url: string }> => {
-    const { useAuthStore } = await import('./authStore');
     const token = useAuthStore.getState().token;
     const form = new FormData();
     form.append('file', file);
@@ -176,6 +238,50 @@ export interface GlimpseEvent {
   canvas: CanvasSettings;
   pages: Page[];
   pageTransition: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GalleryPhoto {
+  id: string;
+  submissionId: string;
+  url: string;
+  createdAt: string;
+}
+
+export interface GallerySubmission {
+  id: string;
+  galleryId: string;
+  guestName: string;
+  message?: string;
+  token: string;
+  photos: GalleryPhoto[];
+  featuredPhotoId?: string;
+  approved: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GalleryInfo {
+  id: string;
+  projectId: string;
+  isOpen: boolean;
+  project: { title: string };
+}
+
+export interface GlimpseProject {
+  id: string;
+  title: string;
+  date?: string;
+  events: Array<{
+    id: string;
+    title: string;
+    status: EventStatus;
+    slug?: string;
+    updatedAt: string;
+    pages: Array<{ id: string; bgColor: string; bgImage?: string }>;
+  }>;
+  gallery: { id: string; isOpen: boolean } | null;
   createdAt: string;
   updatedAt: string;
 }

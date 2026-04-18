@@ -6,8 +6,9 @@ export class AdminService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats() {
-    const [totalUsers, totalEvents, publishedEvents, recentUsers] = await Promise.all([
+    const [totalUsers, totalProjects, totalEvents, publishedEvents, recentUsers] = await Promise.all([
       this.prisma.user.count(),
+      this.prisma.project.count(),
       this.prisma.event.count(),
       this.prisma.event.count({ where: { status: 'published' } }),
       this.prisma.user.findMany({
@@ -19,6 +20,7 @@ export class AdminService {
 
     return {
       totalUsers,
+      totalProjects,
       totalEvents,
       publishedEvents,
       draftEvents: totalEvents - publishedEvents,
