@@ -43,7 +43,7 @@ export default function ElementsPanel() {
   ];
 
   return (
-    <aside className="w-56 bg-panel border-r border-white/10 flex flex-col overflow-hidden">
+    <aside className="w-56 bg-panel border-r border-white/10 hidden md:flex flex-col overflow-hidden">
       {/* Tab bar */}
       <div className="flex border-b border-white/10 flex-shrink-0">
         {tabs.map(({ id, label }) => (

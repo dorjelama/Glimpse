@@ -92,7 +92,10 @@ function LockIcon({ locked }: { locked: boolean }) {
   );
 }
 
-export default function PropertiesPanel() {
+const DESKTOP_ASIDE = 'w-60 bg-panel border-l border-white/10 hidden md:flex flex-col overflow-y-auto';
+const MOBILE_ASIDE  = 'flex flex-col w-full overflow-y-auto';
+
+export default function PropertiesPanel({ mobile = false }: { mobile?: boolean }) {
   const selectedId      = useEditorStore((s) => s.selectedId);
   const selectedIds     = useEditorStore((s) => s.selectedIds);
   const event           = useEditorStore((s) => s.event);
@@ -131,7 +134,7 @@ export default function PropertiesPanel() {
   // === Canvas settings panel ===
   if (!element) {
     return (
-      <aside className="w-60 bg-panel border-l border-white/10 flex flex-col overflow-y-auto">
+      <aside className={mobile ? MOBILE_ASIDE : DESKTOP_ASIDE}>
         <div className="px-3 py-3 border-b border-white/10">
           <h2 className="text-xs font-semibold text-purple-300 uppercase tracking-widest">Canvas</h2>
         </div>

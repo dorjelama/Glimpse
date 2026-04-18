@@ -40,7 +40,7 @@ export default function Toolbar() {
 
   return (
     <>
-      <header className="h-12 bg-panel border-b border-white/10 flex items-center px-4 gap-4 flex-shrink-0">
+      <header className="h-12 bg-panel border-b border-white/10 hidden md:flex items-center px-4 gap-4 flex-shrink-0">
         {/* Logo */}
         <button
           onClick={() => router.push('/')}
