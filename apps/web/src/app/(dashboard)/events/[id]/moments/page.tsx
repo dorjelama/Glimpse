@@ -11,6 +11,26 @@ function photoUrl(url: string) {
   return url.startsWith('http') ? url : `${API_BASE}${url}`;
 }
 
+function galleryStatus(gallery: { isOpen: boolean; endedAt?: string }) {
+  if (gallery.endedAt) return 'ended';
+  if (!gallery.isOpen) return 'closed';
+  return 'open';
+}
+
+function StatusBadge({ status }: { status: 'open' | 'closed' | 'ended' }) {
+  const styles = {
+    open: 'bg-green-500/20 text-green-400',
+    closed: 'bg-amber-500/20 text-amber-400',
+    ended: 'bg-white/10 text-gray-400',
+  };
+  const labels = { open: 'Open', closed: 'Closed', ended: 'Ended' };
+  return (
+    <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide ${styles[status]}`}>
+      {labels[status]}
+    </span>
+  );
+}
+
 function SubmissionCard({
   sub,
   onToggle,
@@ -24,18 +44,13 @@ function SubmissionCard({
 
   const handleToggle = async () => {
     setLoading(true);
-    try {
-      await onToggle(sub);
-    } finally {
-      setLoading(false);
-    }
+    try { await onToggle(sub); } finally { setLoading(false); }
   };
 
   return (
     <div className={`bg-white/5 border rounded-2xl overflow-hidden flex flex-col ${
       sub.approved ? 'border-green-500/30' : 'border-white/10'
     }`}>
-      {/* Featured photo */}
       <div className="h-44 bg-black/20 relative flex-shrink-0">
         {featuredPhoto ? (
           <img src={photoUrl(featuredPhoto.url)} alt="" className="w-full h-full object-cover" />
@@ -54,7 +69,6 @@ function SubmissionCard({
         )}
       </div>
 
-      {/* Info */}
       <div className="p-4 flex flex-col gap-3 flex-1">
         <div>
           <p className="text-white font-semibold text-sm">{sub.guestName}</p>
@@ -63,7 +77,6 @@ function SubmissionCard({
           )}
         </div>
 
-        {/* Photo strip */}
         {sub.photos.length > 1 && (
           <div className="flex gap-1.5 flex-wrap">
             {sub.photos.map(p => (
@@ -88,7 +101,7 @@ function SubmissionCard({
               : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30'
           }`}
         >
-          {loading ? '…' : sub.approved ? 'Remove from live feed' : 'Approve for live feed'}
+          {loading ? '…' : sub.approved ? 'Remove from feed' : 'Approve for feed'}
         </button>
       </div>
     </div>
@@ -101,6 +114,8 @@ export default function MomentsModerationPage({ params }: { params: { id: string
   const [submissions, setSubmissions] = useState<GallerySubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingOpen, setTogglingOpen] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const [confirmEnd, setConfirmEnd] = useState(false);
 
   useEffect(() => {
     api.getProject(params.id)
@@ -134,6 +149,20 @@ export default function MomentsModerationPage({ params }: { params: { id: string
     }
   };
 
+  const handleEndEvent = async () => {
+    if (!project?.gallery) return;
+    setEnding(true);
+    try {
+      const updated = await api.endGallery(project.gallery.id);
+      setProject(prev =>
+        prev ? { ...prev, gallery: prev.gallery ? { ...prev.gallery, isOpen: updated.isOpen, endedAt: updated.endedAt } : null } : null
+      );
+      setConfirmEnd(false);
+    } finally {
+      setEnding(false);
+    }
+  };
+
   if (loading) {
     return (
       <DashboardShell>
@@ -154,6 +183,8 @@ export default function MomentsModerationPage({ params }: { params: { id: string
     );
   }
 
+  const gallery = project.gallery;
+  const status = galleryStatus(gallery);
   const pending = submissions.filter(s => !s.approved);
   const approved = submissions.filter(s => s.approved);
 
@@ -169,23 +200,57 @@ export default function MomentsModerationPage({ params }: { params: { id: string
             >
               ← {project.title}
             </button>
-            <h1 className="text-2xl font-bold text-white">Moments</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-white">Moments</h1>
+              <StatusBadge status={status} />
+            </div>
             <p className="text-sm text-gray-400 mt-1">
               {submissions.length} submission{submissions.length !== 1 ? 's' : ''} · {approved.length} live
             </p>
           </div>
 
-          <button
-            onClick={handleToggleOpen}
-            disabled={togglingOpen}
-            className={`mt-7 px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border flex-shrink-0 ${
-              project.gallery.isOpen
-                ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30'
-                : 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30'
-            }`}
-          >
-            {project.gallery.isOpen ? 'Close gallery' : 'Open gallery'}
-          </button>
+          {/* Gallery controls */}
+          {status !== 'ended' && (
+            <div className="mt-7 flex gap-2 flex-shrink-0">
+              <button
+                onClick={handleToggleOpen}
+                disabled={togglingOpen}
+                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border ${
+                  status === 'open'
+                    ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30'
+                    : 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30'
+                }`}
+              >
+                {status === 'open' ? 'Pause submissions' : 'Resume submissions'}
+              </button>
+
+              {!confirmEnd ? (
+                <button
+                  onClick={() => setConfirmEnd(true)}
+                  className="px-4 py-2 text-sm font-medium rounded-xl transition-colors border bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 border-white/10"
+                >
+                  End event
+                </button>
+              ) : (
+                <div className="flex gap-2 items-center">
+                  <span className="text-xs text-gray-400">Are you sure?</span>
+                  <button
+                    onClick={handleEndEvent}
+                    disabled={ending}
+                    className="px-3 py-2 text-xs font-semibold rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50"
+                  >
+                    {ending ? 'Ending…' : 'Yes, end'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmEnd(false)}
+                    className="px-3 py-2 text-xs rounded-xl bg-white/5 hover:bg-white/10 text-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {submissions.length === 0 ? (

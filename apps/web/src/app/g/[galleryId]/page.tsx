@@ -1,120 +1,108 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { api, type GalleryPhoto, type GallerySubmission } from '@/lib/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
-const MAX_PHOTOS = 5;
-
-type Step = 'info' | 'upload' | 'featured' | 'done';
+const MAX_PHOTOS = 3;
 
 function photoUrl(url: string) {
   return url.startsWith('http') ? url : `${API_BASE}${url}`;
 }
 
-// ─── Step 1: Guest info ──────────────────────────────────────────────────────
+// ─── Closed / Ended states ───────────────────────────────────────────────────
 
-function InfoStep({
-  eventTitle,
-  onNext,
-}: {
-  eventTitle: string;
-  onNext: (name: string, message: string) => Promise<void>;
-}) {
-  const [name, setName] = useState('');
-  const [message, setMessage] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    setLoading(true);
-    try {
-      await onNext(name.trim(), message.trim());
-    } finally {
-      setLoading(false);
-    }
-  };
-
+function ClosedScreen({ ended, eventTitle }: { ended: boolean; eventTitle: string }) {
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-      <div>
-        <h2 className="text-white font-semibold text-lg mb-1">{eventTitle}</h2>
-        <p className="text-gray-400 text-sm">Share a moment from today. Upload up to {MAX_PHOTOS} photos.</p>
+    <Shell eventTitle={eventTitle}>
+      <div className="flex flex-col items-center text-center gap-4 py-10">
+        <span className="text-4xl">{ended ? '🌅' : '⏸️'}</span>
+        <div>
+          <p className="text-white font-semibold text-base mb-1">
+            {ended ? 'This event has ended' : 'Submissions are paused'}
+          </p>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            {ended
+              ? 'Thank you for being part of it.'
+              : 'The host has paused photo uploads. Check back soon.'}
+          </p>
+        </div>
       </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-gray-400">Your name</label>
-        <input
-          required
-          autoFocus
-          type="text"
-          maxLength={80}
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="e.g. Jane Smith"
-          className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-amber-500/60 placeholder:text-gray-600"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-gray-400">Message <span className="text-gray-600">(optional)</span></label>
-        <textarea
-          maxLength={300}
-          rows={3}
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          placeholder="A little note for the couple…"
-          className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-amber-500/60 placeholder:text-gray-600 resize-none"
-        />
-        <p className="text-[11px] text-gray-600 text-right">{message.length}/300</p>
-      </div>
-
-      <button
-        type="submit"
-        disabled={loading || !name.trim()}
-        className="w-full py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-semibold text-sm rounded-xl transition-colors"
-      >
-        {loading ? 'Starting…' : 'Continue →'}
-      </button>
-    </form>
+    </Shell>
   );
 }
 
-// ─── Step 2: Upload photos ──────────────────────────────────────────────────
+// ─── Thank-you screen ────────────────────────────────────────────────────────
 
-function UploadStep({
-  token,
-  photos,
-  onPhotosChange,
-  onNext,
-  onBack,
+function DoneScreen({ eventTitle }: { eventTitle: string }) {
+  return (
+    <Shell eventTitle={eventTitle}>
+      <div className="flex flex-col items-center text-center gap-5 py-10">
+        <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-white font-semibold text-lg mb-1">Your moment is live</p>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            Pending host approval — it'll appear on the feed shortly.
+          </p>
+        </div>
+      </div>
+    </Shell>
+  );
+}
+
+// ─── Main upload form ────────────────────────────────────────────────────────
+
+function MomentForm({
+  eventTitle,
+  galleryId,
+  onDone,
 }: {
-  token: string;
-  photos: GalleryPhoto[];
-  onPhotosChange: (photos: GalleryPhoto[]) => void;
-  onNext: () => void;
-  onBack: () => void;
+  eventTitle: string;
+  galleryId: string;
+  onDone: () => void;
 }) {
+  const [name, setName] = useState('');
+  const [caption, setCaption] = useState('');
+  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
+  const [submission, setSubmission] = useState<GallerySubmission | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const handleFiles = async (files: FileList | null) => {
-    if (!files) return;
-    const remaining = MAX_PHOTOS - photos.length;
-    const toUpload = Array.from(files).slice(0, remaining);
-    if (toUpload.length === 0) return;
+  const canPost = name.trim().length > 0 && photos.length > 0 && !posting;
 
+  const ensureSubmission = async (): Promise<GallerySubmission> => {
+    if (submission) return submission;
+    const sub = await api.createSubmission(galleryId, {
+      guestName: name.trim(),
+      message: caption.trim() || undefined,
+    });
+    setSubmission(sub);
+    return sub;
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || photos.length >= MAX_PHOTOS) return;
+    if (!name.trim()) {
+      setError('Enter your name before adding photos.');
+      return;
+    }
+    const toUpload = Array.from(files).slice(0, MAX_PHOTOS - photos.length);
     setUploading(true);
     setError(null);
     try {
+      const sub = await ensureSubmission();
       const uploaded: GalleryPhoto[] = [];
       for (const file of toUpload) {
-        const photo = await api.uploadMomentPhoto(token, file);
+        const photo = await api.uploadMomentPhoto(sub.token, file);
         uploaded.push(photo);
       }
-      onPhotosChange([...photos, ...uploaded]);
+      setPhotos(prev => [...prev, ...uploaded]);
     } catch (e: any) {
       setError(e.message ?? 'Upload failed');
     } finally {
@@ -123,230 +111,176 @@ function UploadStep({
   };
 
   const handleDelete = async (photoId: string) => {
+    if (!submission) return;
     try {
-      await api.deleteMomentPhoto(token, photoId);
-      onPhotosChange(photos.filter(p => p.id !== photoId));
+      await api.deleteMomentPhoto(submission.token, photoId);
+      setPhotos(prev => prev.filter(p => p.id !== photoId));
     } catch (e: any) {
       setError(e.message ?? 'Failed to remove photo');
     }
   };
 
-  return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h2 className="text-white font-semibold text-lg mb-1">Upload photos</h2>
-        <p className="text-gray-400 text-sm">{photos.length}/{MAX_PHOTOS} photos added</p>
-      </div>
-
-      {/* Photo grid */}
-      {photos.length > 0 && (
-        <div className="grid grid-cols-3 gap-2">
-          {photos.map(photo => (
-            <div key={photo.id} className="relative aspect-square rounded-xl overflow-hidden group">
-              <img src={photoUrl(photo.url)} alt="" className="w-full h-full object-cover" />
-              <button
-                onClick={() => handleDelete(photo.id)}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
-              >
-                ×
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Upload zone */}
-      {photos.length < MAX_PHOTOS && (
-        <button
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-          className="w-full h-28 border-2 border-dashed border-white/20 hover:border-amber-500/50 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-amber-400 transition-colors disabled:opacity-50"
-        >
-          {uploading ? (
-            <span className="text-sm animate-pulse">Uploading…</span>
-          ) : (
-            <>
-              <span className="text-2xl">+</span>
-              <span className="text-xs">Tap to add photos ({MAX_PHOTOS - photos.length} remaining)</span>
-            </>
-          )}
-        </button>
-      )}
-
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic"
-        multiple
-        className="hidden"
-        onChange={e => handleFiles(e.target.files)}
-      />
-
-      {error && <p className="text-red-400 text-xs">{error}</p>}
-
-      <div className="flex gap-3">
-        <button onClick={onBack} className="px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
-          ← Back
-        </button>
-        <button
-          onClick={onNext}
-          disabled={photos.length === 0}
-          className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-semibold text-sm rounded-xl transition-colors"
-        >
-          Choose featured photo →
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ─── Step 3: Pick featured ──────────────────────────────────────────────────
-
-function FeaturedStep({
-  token,
-  photos,
-  featuredId,
-  onFeaturedChange,
-  onSubmit,
-  onBack,
-}: {
-  token: string;
-  photos: GalleryPhoto[];
-  featuredId?: string;
-  onFeaturedChange: (id: string) => void;
-  onSubmit: () => Promise<void>;
-  onBack: () => void;
-}) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleSelect = async (photoId: string) => {
-    try {
-      await api.setFeaturedPhoto(token, photoId);
-      onFeaturedChange(photoId);
-    } catch (e: any) {
-      setError(e.message ?? 'Failed to select photo');
-    }
-  };
-
-  const handleSubmit = async () => {
-    setLoading(true);
+  const handlePost = async () => {
+    if (!canPost) return;
+    setPosting(true);
     setError(null);
     try {
-      await onSubmit();
+      const sub = await ensureSubmission();
+      await api.finaliseSubmission(sub.token);
+      onDone();
     } catch (e: any) {
-      setError(e.message ?? 'Submission failed');
-      setLoading(false);
+      setError(e.message ?? 'Something went wrong');
+      setPosting(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-5">
-      <div>
-        <h2 className="text-white font-semibold text-lg mb-1">Pick your featured photo</h2>
-        <p className="text-gray-400 text-sm">This one will appear in the live feed (pending host approval).</p>
-      </div>
+    <Shell eventTitle={eventTitle}>
+      <div className="flex flex-col gap-5">
+        {/* Headline */}
+        <div className="text-center">
+          <p className="text-white font-bold text-xl">Share a Moment</p>
+          <p className="text-gray-500 text-xs mt-1">{eventTitle}</p>
+        </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {photos.map(photo => {
-          const selected = photo.id === featuredId;
-          return (
-            <button
-              key={photo.id}
-              onClick={() => handleSelect(photo.id)}
-              className={`relative aspect-square rounded-xl overflow-hidden border-2 transition-all ${
-                selected ? 'border-amber-400 shadow-lg shadow-amber-500/30' : 'border-transparent hover:border-white/30'
-              }`}
-            >
-              <img src={photoUrl(photo.url)} alt="" className="w-full h-full object-cover" />
-              {selected && (
-                <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  </div>
+        {/* Name */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs text-gray-400">Your name</label>
+          <input
+            autoFocus
+            type="text"
+            maxLength={80}
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="e.g. Jane Smith"
+            className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-amber-500/60 placeholder:text-gray-600"
+          />
+        </div>
+
+        {/* Photo area */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs text-gray-400">Photos</label>
+            <span className="text-xs text-gray-600">{photos.length}/{MAX_PHOTOS}</span>
+          </div>
+
+          {/* Photo grid */}
+          {photos.length > 0 && (
+            <div className="grid grid-cols-3 gap-2">
+              {photos.map((photo, i) => (
+                <div key={photo.id} className="relative aspect-square rounded-xl overflow-hidden group">
+                  <img src={photoUrl(photo.url)} alt="" className="w-full h-full object-cover" />
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 text-[9px] font-bold uppercase tracking-wide bg-amber-500 text-black px-1.5 py-0.5 rounded-full">
+                      Main
+                    </span>
+                  )}
+                  <button
+                    onClick={() => handleDelete(photo.id)}
+                    className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white text-xs items-center justify-center hidden group-hover:flex hover:bg-red-500 transition-colors"
+                  >
+                    ×
+                  </button>
                 </div>
+              ))}
+
+              {photos.length < MAX_PHOTOS && (
+                <button
+                  onClick={() => fileRef.current?.click()}
+                  disabled={uploading}
+                  className="aspect-square rounded-xl border-2 border-dashed border-white/15 hover:border-amber-500/40 flex flex-col items-center justify-center text-gray-500 hover:text-amber-400 transition-colors disabled:opacity-40"
+                >
+                  {uploading ? (
+                    <span className="text-[10px] animate-pulse">…</span>
+                  ) : (
+                    <span className="text-2xl leading-none">+</span>
+                  )}
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Empty state tap target */}
+          {photos.length === 0 && (
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+              className="w-full h-32 border-2 border-dashed border-white/15 hover:border-amber-500/40 rounded-xl flex flex-col items-center justify-center gap-2 text-gray-500 hover:text-amber-400 transition-colors disabled:opacity-40"
+            >
+              {uploading ? (
+                <span className="text-sm animate-pulse">Uploading…</span>
+              ) : (
+                <>
+                  <span className="text-3xl">📷</span>
+                  <span className="text-xs">Tap to add a photo</span>
+                </>
               )}
             </button>
-          );
-        })}
-      </div>
+          )}
+        </div>
 
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic"
+          multiple
+          className="hidden"
+          onChange={e => handleFiles(e.target.files)}
+        />
 
-      <div className="flex gap-3">
-        <button onClick={onBack} className="px-4 py-3 text-sm text-gray-400 hover:text-white transition-colors">
-          ← Back
-        </button>
+        {/* Caption */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs text-gray-400">Caption <span className="text-gray-600">(optional)</span></label>
+          <textarea
+            maxLength={200}
+            rows={2}
+            value={caption}
+            onChange={e => setCaption(e.target.value)}
+            placeholder="What's happening right now?"
+            className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-amber-500/60 placeholder:text-gray-600 resize-none"
+          />
+          <p className="text-[11px] text-gray-600 text-right">{caption.length}/200</p>
+        </div>
+
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+
+        {/* Post button */}
         <button
-          onClick={handleSubmit}
-          disabled={!featuredId || loading}
-          className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black font-semibold text-sm rounded-xl transition-colors"
+          onClick={handlePost}
+          disabled={!canPost}
+          className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-40 text-black font-bold text-sm rounded-xl transition-colors"
         >
-          {loading ? 'Submitting…' : 'Submit'}
+          {posting ? 'Posting…' : 'Post'}
         </button>
       </div>
-    </div>
-  );
-}
-
-// ─── Done ───────────────────────────────────────────────────────────────────
-
-function DoneStep({ eventTitle }: { eventTitle: string }) {
-  return (
-    <div className="flex flex-col items-center text-center gap-5 py-8">
-      <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-3xl">
-        🎉
-      </div>
-      <div>
-        <h2 className="text-white font-semibold text-lg mb-2">You're in the album!</h2>
-        <p className="text-gray-400 text-sm leading-relaxed">
-          Your photo is waiting for approval and will appear in the {eventTitle} live feed shortly.
-        </p>
-      </div>
-    </div>
+    </Shell>
   );
 }
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 
 export default function GuestUploadPage({ params }: { params: { galleryId: string } }) {
-  const [step, setStep] = useState<Step>('info');
   const [eventTitle, setEventTitle] = useState('');
-  const [galleryOpen, setGalleryOpen] = useState(true);
-  const [submission, setSubmission] = useState<GallerySubmission | null>(null);
-  const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
-  const [featuredId, setFeaturedId] = useState<string | undefined>();
+  const [isOpen, setIsOpen] = useState(true);
+  const [ended, setEnded] = useState(false);
+  const [done, setDone] = useState(false);
   const [initError, setInitError] = useState<string | null>(null);
-  const [initialised, setInitialised] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  // Fetch gallery info once on mount
-  useState(() => {
+  useEffect(() => {
     api.getGallery(params.galleryId)
       .then(g => {
         setEventTitle(g.project.title);
-        setGalleryOpen(g.isOpen);
+        setIsOpen(g.isOpen);
+        setEnded(!!g.endedAt);
       })
-      .catch(() => setInitError('This gallery could not be found.'))
-      .finally(() => setInitialised(true));
-  });
+      .catch(() => setInitError('Gallery not found.'))
+      .finally(() => setReady(true));
+  }, [params.galleryId]);
 
-  const handleInfoNext = async (name: string, message: string) => {
-    const sub = await api.createSubmission(params.galleryId, { guestName: name, message: message || undefined });
-    setSubmission(sub);
-    setStep('upload');
-  };
-
-  const handleSubmit = async () => {
-    if (!submission) return;
-    await api.finaliseSubmission(submission.token);
-    setStep('done');
-  };
-
-  if (!initialised) {
+  if (!ready) {
     return (
-      <Shell>
+      <Shell eventTitle="">
         <p className="text-gray-400 text-sm animate-pulse text-center py-12">Loading…</p>
       </Shell>
     );
@@ -354,68 +288,27 @@ export default function GuestUploadPage({ params }: { params: { galleryId: strin
 
   if (initError) {
     return (
-      <Shell>
+      <Shell eventTitle="">
         <p className="text-red-400 text-sm text-center py-12">{initError}</p>
       </Shell>
     );
   }
 
-  if (!galleryOpen) {
-    return (
-      <Shell>
-        <div className="text-center py-12">
-          <p className="text-2xl mb-3">🔒</p>
-          <p className="text-white font-semibold mb-1">Gallery is closed</p>
-          <p className="text-gray-400 text-sm">The host has closed photo uploads for this event.</p>
-        </div>
-      </Shell>
-    );
-  }
+  if (done) return <DoneScreen eventTitle={eventTitle} />;
+  if (!isOpen) return <ClosedScreen ended={ended} eventTitle={eventTitle} />;
 
   return (
-    <Shell>
-      {/* Step indicator */}
-      {step !== 'done' && (
-        <div className="flex gap-1.5 mb-6">
-          {(['info', 'upload', 'featured'] as Step[]).map((s, i) => (
-            <div
-              key={s}
-              className={`h-1 flex-1 rounded-full transition-colors ${
-                step === s ? 'bg-amber-400' : i < ['info', 'upload', 'featured'].indexOf(step) ? 'bg-amber-400/40' : 'bg-white/10'
-              }`}
-            />
-          ))}
-        </div>
-      )}
-
-      {step === 'info' && (
-        <InfoStep eventTitle={eventTitle} onNext={handleInfoNext} />
-      )}
-      {step === 'upload' && submission && (
-        <UploadStep
-          token={submission.token}
-          photos={photos}
-          onPhotosChange={setPhotos}
-          onNext={() => setStep('featured')}
-          onBack={() => setStep('info')}
-        />
-      )}
-      {step === 'featured' && submission && (
-        <FeaturedStep
-          token={submission.token}
-          photos={photos}
-          featuredId={featuredId}
-          onFeaturedChange={setFeaturedId}
-          onSubmit={handleSubmit}
-          onBack={() => setStep('upload')}
-        />
-      )}
-      {step === 'done' && <DoneStep eventTitle={eventTitle} />}
-    </Shell>
+    <MomentForm
+      eventTitle={eventTitle}
+      galleryId={params.galleryId}
+      onDone={() => setDone(true)}
+    />
   );
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+// ─── Shell ───────────────────────────────────────────────────────────────────
+
+function Shell({ children, eventTitle }: { children: React.ReactNode; eventTitle: string }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-950 via-[#1a1230] to-indigo-950 flex items-start justify-center px-4 py-10">
       <div className="w-full max-w-sm">

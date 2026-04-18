@@ -23,7 +23,7 @@ interface FeedSubmission {
 }
 
 interface FeedData {
-  gallery: { id: string; isOpen: boolean; project: { title: string } };
+  gallery: { id: string; isOpen: boolean; endedAt?: string; project: { title: string } };
   submissions: FeedSubmission[];
 }
 
@@ -251,6 +251,18 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
           </div>
         </div>
       </header>
+
+      {/* Post-event banner */}
+      {data.gallery.endedAt && (
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <div
+            className="rounded-xl px-4 py-3 text-center text-[12px]"
+            style={{ backgroundColor: '#f5ebe0', border: '1px solid #e8d9bd', color: '#8a6840' }}
+          >
+            This event has ended · {new Date(data.gallery.endedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} · Thank you for sharing your moments
+          </div>
+        </div>
+      )}
 
       {/* Feed */}
       <main className="max-w-lg mx-auto px-4 py-6 flex flex-col gap-4">

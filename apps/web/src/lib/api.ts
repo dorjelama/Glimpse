@@ -140,6 +140,9 @@ export const api = {
       body: JSON.stringify({ isOpen }),
     }),
 
+  endGallery: (galleryId: string) =>
+    request<{ id: string; isOpen: boolean; endedAt: string }>(`/gallery/${galleryId}/end`, { method: 'POST' }),
+
   // Image upload (multipart — handled separately)
   uploadImage: async (eventId: string, file: File): Promise<{ url: string }> => {
     const token = useAuthStore.getState().token;
@@ -266,6 +269,7 @@ export interface GalleryInfo {
   id: string;
   projectId: string;
   isOpen: boolean;
+  endedAt?: string;
   project: { title: string };
 }
 
@@ -281,7 +285,7 @@ export interface GlimpseProject {
     updatedAt: string;
     pages: Array<{ id: string; bgColor: string; bgImage?: string }>;
   }>;
-  gallery: { id: string; isOpen: boolean } | null;
+  gallery: { id: string; isOpen: boolean; endedAt?: string } | null;
   createdAt: string;
   updatedAt: string;
 }

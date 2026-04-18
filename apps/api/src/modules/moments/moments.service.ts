@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 
-const MAX_PHOTOS = 5;
+const MAX_PHOTOS = 3;
 
 const SUBMISSION_INCLUDE = {
   photos: { orderBy: { createdAt: 'asc' as const } },
@@ -51,9 +51,19 @@ export class MomentsService {
       throw new BadRequestException(`Maximum ${MAX_PHOTOS} photos allowed`);
     }
 
-    return this.prisma.galleryPhoto.create({
+    const photo = await this.prisma.galleryPhoto.create({
       data: { submissionId: sub.id, url },
     });
+
+    // Auto-set the first uploaded photo as featured
+    if (!sub.featuredPhotoId) {
+      await this.prisma.gallerySubmission.update({
+        where: { id: sub.id },
+        data: { featuredPhotoId: photo.id },
+      });
+    }
+
+    return photo;
   }
 
   async deletePhoto(token: string, photoId: string) {
@@ -63,11 +73,11 @@ export class MomentsService {
 
     await this.prisma.galleryPhoto.delete({ where: { id: photoId } });
 
-    // Clear featuredPhotoId if it was this photo
     if (sub.featuredPhotoId === photoId) {
+      const remaining = sub.photos.filter((p) => p.id !== photoId);
       await this.prisma.gallerySubmission.update({
         where: { id: sub.id },
-        data: { featuredPhotoId: null },
+        data: { featuredPhotoId: remaining[0]?.id ?? null },
       });
     }
   }
@@ -88,9 +98,6 @@ export class MomentsService {
     const sub = await this.getSubmissionByToken(token);
     if (sub.photos.length === 0) {
       throw new BadRequestException('Upload at least one photo before submitting');
-    }
-    if (!sub.featuredPhotoId) {
-      throw new BadRequestException('Select a featured photo before submitting');
     }
     return sub;
   }
@@ -148,5 +155,13 @@ export class MomentsService {
   async setGalleryOpen(galleryId: string, isOpen: boolean, ownerId: string) {
     await this.verifyGalleryOwnership(galleryId, ownerId);
     return this.prisma.gallery.update({ where: { id: galleryId }, data: { isOpen } });
+  }
+
+  async endGallery(galleryId: string, ownerId: string) {
+    await this.verifyGalleryOwnership(galleryId, ownerId);
+    return this.prisma.gallery.update({
+      where: { id: galleryId },
+      data: { isOpen: false, endedAt: new Date() },
+    });
   }
 }

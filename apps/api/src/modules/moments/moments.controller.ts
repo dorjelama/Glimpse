@@ -143,4 +143,13 @@ export class MomentsController {
   ) {
     return this.momentsService.setGalleryOpen(galleryId, dto.isOpen, req.user.userId);
   }
+
+  @Post(':galleryId/end')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'End the event — closes gallery and sets endedAt (host only)' })
+  @ApiParam({ name: 'galleryId' })
+  endGallery(@Param('galleryId') galleryId: string, @Req() req: any) {
+    return this.momentsService.endGallery(galleryId, req.user.userId);
+  }
 }

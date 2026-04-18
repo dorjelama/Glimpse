@@ -93,3 +93,13 @@ Each module has its own detailed CLAUDE.md:
 - [`modules/editor/CLAUDE.md`](src/modules/editor/CLAUDE.md) — canvas editor, store, drag/resize hooks
 - [`modules/preview/CLAUDE.md`](src/modules/preview/CLAUDE.md) — read-only renderer, public viewer
 - [`modules/publish/CLAUDE.md`](src/modules/publish/CLAUDE.md) — publish modal and hook
+
+## Future Features
+
+### Projection Mode (Moments)
+A full-screen, auto-scrolling view of the live Moments feed designed to be displayed on a venue screen or projector.
+- Full-screen layout, large photos, minimal chrome
+- Event name + optional branding overlay
+- Auto-scroll with configurable speed
+- QR code shown periodically so guests can scan and upload
+- Route: `/g/[galleryId]/display`
