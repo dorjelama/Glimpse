@@ -120,7 +120,7 @@ export class MomentsService {
 
   // ── Public live feed ─────────────────────────────────────────────────────
 
-  async getFeed(galleryId: string) {
+  async getFeed(galleryId: string, sessionId?: string) {
     const gallery = await this.prisma.gallery.findUnique({
       where: { id: galleryId },
       include: { project: { select: { title: true } } },
@@ -129,11 +129,50 @@ export class MomentsService {
 
     const submissions = await this.prisma.gallerySubmission.findMany({
       where: { galleryId, approved: true },
-      include: { photos: { orderBy: { createdAt: 'asc' as const } } },
+      include: {
+        photos: { orderBy: { createdAt: 'asc' as const } },
+        reactions: true,
+      },
       orderBy: { updatedAt: 'desc' as const },
     });
 
-    return { gallery, submissions };
+    const mapped = submissions.map(sub => {
+      const counts: Record<string, number> = {};
+      const mine: string[] = [];
+      for (const r of sub.reactions) {
+        counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
+        if (sessionId && r.sessionId === sessionId) mine.push(r.emoji);
+      }
+      const { reactions: _, ...rest } = sub;
+      return { ...rest, reactionCounts: counts, myReactions: mine };
+    });
+
+    return { gallery, submissions: mapped };
+  }
+
+  // ── Reactions (public, session-based) ────────────────────────────────────
+
+  async toggleReaction(submissionId: string, sessionId: string, emoji: string) {
+    const existing = await this.prisma.submissionReaction.findUnique({
+      where: { submissionId_sessionId_emoji: { submissionId, sessionId, emoji } },
+    });
+
+    if (existing) {
+      await this.prisma.submissionReaction.delete({ where: { id: existing.id } });
+    } else {
+      await this.prisma.submissionReaction.create({
+        data: { submissionId, sessionId, emoji },
+      });
+    }
+
+    const reactions = await this.prisma.submissionReaction.findMany({ where: { submissionId } });
+    const counts: Record<string, number> = {};
+    const mine: string[] = [];
+    for (const r of reactions) {
+      counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
+      if (r.sessionId === sessionId) mine.push(r.emoji);
+    }
+    return { reactionCounts: counts, myReactions: mine };
   }
 
   // ── Host moderation ───────────────────────────────────────────────────────

@@ -22,12 +22,16 @@ function formatDate(dateStr?: string) {
   return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+type GalleryStats = { total: number; pending: number };
+
 function ProjectCard({
   project,
   onDelete,
+  stats,
 }: {
   project: GlimpseProject;
   onDelete: (id: string) => void;
+  stats?: GalleryStats;
 }) {
   const router = useRouter();
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -88,7 +92,12 @@ function ProjectCard({
           )}
           {hasGallery && (
             <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-gold/20 text-ink/60 border border-gold/30">
-              Glimpses
+              {stats != null ? `📸 ${stats.total - stats.pending} live` : 'Glimpses'}
+            </span>
+          )}
+          {stats != null && stats.pending > 0 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-amber-100 text-amber-700 border border-amber-200">
+              {stats.pending} pending
             </span>
           )}
         </div>
@@ -231,6 +240,7 @@ function NewEventModal({ onCreate, onClose }: { onCreate: (title: string, date?:
 export default function DashboardPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<GlimpseProject[]>([]);
+  const [galleryStats, setGalleryStats] = useState<Record<string, GalleryStats>>({});
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -243,6 +253,20 @@ export default function DashboardPage() {
       setProjects(sorted);
       if (sorted.length === 0 && !localStorage.getItem('glimpse-onboarded')) {
         setShowWelcome(true);
+      }
+      const withGalleries = sorted.filter(p => p.gallery);
+      if (withGalleries.length > 0) {
+        const entries = await Promise.all(
+          withGalleries.map(async p => {
+            try {
+              const subs = await api.listSubmissions(p.gallery!.id);
+              return [p.id, { total: subs.length, pending: subs.filter(s => !s.approved).length }] as const;
+            } catch {
+              return [p.id, { total: 0, pending: 0 }] as const;
+            }
+          })
+        );
+        setGalleryStats(Object.fromEntries(entries));
       }
     } catch (e: any) {
       setError(e.message);
@@ -319,7 +343,7 @@ export default function DashboardPage() {
         {!loading && projects.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {projects.map(p => (
-              <ProjectCard key={p.id} project={p} onDelete={handleDelete} />
+              <ProjectCard key={p.id} project={p} onDelete={handleDelete} stats={galleryStats[p.id]} />
             ))}
           </div>
         )}

@@ -52,7 +52,6 @@ export function useCanvas() {
 
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent) => {
-      // Deselect if clicking empty canvas area
       if (e.target === canvasRef.current) selectElement(null);
     },
     [selectElement],

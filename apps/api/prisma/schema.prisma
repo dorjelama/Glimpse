@@ -77,20 +77,33 @@ model Gallery {
 }
 
 model GallerySubmission {
-  id              String         @id @default(cuid())
+  id              String               @id @default(cuid())
   galleryId       String
-  gallery         Gallery        @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+  gallery         Gallery              @relation(fields: [galleryId], references: [id], onDelete: Cascade)
   guestName       String
   message         String?
-  token           String         @unique @default(uuid())
+  token           String               @unique @default(uuid())
   photos          GalleryPhoto[]
+  reactions       SubmissionReaction[]
   featuredPhotoId String?
-  approved        Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  approved        Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
   @@index([galleryId])
   @@map("gallery_submissions")
+}
+
+model SubmissionReaction {
+  id           String            @id @default(uuid())
+  submissionId String
+  submission   GallerySubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  sessionId    String
+  emoji        String
+
+  @@unique([submissionId, sessionId, emoji])
+  @@index([submissionId])
+  @@map("submission_reactions")
 }
 
 model GalleryPhoto {

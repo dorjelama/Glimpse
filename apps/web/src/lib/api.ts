@@ -124,6 +124,12 @@ export const api = {
   finaliseSubmission: (token: string, message?: string) =>
     request<GallerySubmission>(`/gallery/submission/${token}/finalise`, { method: 'POST', body: JSON.stringify({ message }) }),
 
+  toggleReaction: (submissionId: string, sessionId: string, emoji: string) =>
+    request<{ reactionCounts: Record<string, number>; myReactions: string[] }>(
+      `/gallery/submission/${submissionId}/react`,
+      { method: 'POST', body: JSON.stringify({ sessionId, emoji }) },
+    ),
+
   // Host moderation
   listSubmissions: (galleryId: string) =>
     request<GallerySubmission[]>(`/gallery/${galleryId}/manage`),

@@ -4,6 +4,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+// Stable per-device session ID — persisted in localStorage
+function getSessionId(): string {
+  let id = localStorage.getItem('glimpse-session-id');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('glimpse-session-id', id);
+  }
+  return id;
+}
 const POLL_MS = 10_000;
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -20,6 +30,8 @@ interface FeedSubmission {
   featuredPhotoId?: string;
   photos: FeedPhoto[];
   updatedAt: string;
+  reactionCounts: Record<string, number>;
+  myReactions: string[];
 }
 
 interface FeedData {
@@ -63,35 +75,20 @@ function avatarBg(name: string) {
   return WARM_PALETTES[name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % WARM_PALETTES.length];
 }
 
-// ── Likes (localStorage, per-device) ────────────────────────────────────────
+// ── Reactions ─────────────────────────────────────────────────────────────────
 
-const LIKES_KEY = 'glimpse-liked-posts';
-
-function useLikes() {
-  const [liked, setLiked] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(LIKES_KEY);
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
-    } catch {
-      return new Set();
-    }
-  });
-
-  const toggle = useCallback((id: string) => {
-    setLiked(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      localStorage.setItem(LIKES_KEY, JSON.stringify([...next]));
-      return next;
-    });
-  }, []);
-
-  return { liked, toggle };
-}
+const REACTIONS = ['❤️', '🎉', '😂', '😮', '👏', '🥰'] as const;
+type Reaction = typeof REACTIONS[number];
 
 // ── Post card ────────────────────────────────────────────────────────────────
 
-function PostCard({ sub, fresh, liked, onLike }: { sub: FeedSubmission; fresh: boolean; liked: boolean; onLike: () => void }) {
+function PostCard({ sub, fresh, onReact }: {
+  sub: FeedSubmission;
+  fresh: boolean;
+  onReact: (emoji: Reaction) => void;
+}) {
+  const myReactions = (sub.myReactions ?? []) as Reaction[];
+  const reactionCounts = sub.reactionCounts ?? {};
   const featured = sub.photos.find(p => p.id === sub.featuredPhotoId) ?? sub.photos[0];
   const rest = sub.photos.filter(p => p.id !== featured?.id);
 
@@ -173,21 +170,39 @@ function PostCard({ sub, fresh, liked, onLike }: { sub: FeedSubmission; fresh: b
         </div>
       )}
 
-      {/* Footer */}
-      <div className="px-4 py-2 flex items-center justify-between" style={{ borderTop: '1px solid #f0e0c8' }}>
-        <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: '#c8a878' }}>
-          Glimpse
-        </span>
-        <button
-          onClick={onLike}
-          className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all active:scale-90"
-          style={{ color: liked ? '#e53e3e' : '#c8a878' }}
-          aria-label={liked ? 'Unlike' : 'Like'}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-          </svg>
-        </button>
+      {/* Reactions */}
+      <div className="px-3 py-3" style={{ borderTop: '1px solid #f0e0c8' }}>
+        <div className="flex items-center justify-between">
+          <div className="flex gap-1 flex-wrap">
+            {REACTIONS.map(emoji => {
+              const active = myReactions.includes(emoji);
+              const count = reactionCounts[emoji] ?? 0;
+              return (
+                <button
+                  key={emoji}
+                  onClick={() => onReact(emoji)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-xl text-sm transition-all active:scale-90 select-none"
+                  style={{
+                    backgroundColor: active ? '#fef3c7' : count > 0 ? '#fdf8f0' : 'transparent',
+                    border: active ? '1.5px solid #f59e0b' : count > 0 ? '1.5px solid #f0e0c8' : '1.5px solid transparent',
+                  }}
+                  aria-label={emoji}
+                  aria-pressed={active}
+                >
+                  <span>{emoji}</span>
+                  {count > 0 && (
+                    <span className="text-[11px] font-semibold leading-none" style={{ color: active ? '#92400e' : '#a08060' }}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-[10px] font-semibold tracking-widest uppercase pl-2" style={{ color: '#c8a878' }}>
+            Glimpse
+          </span>
+        </div>
       </div>
     </article>
   );
@@ -210,7 +225,6 @@ function EmptyFeed() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FeedPage({ params }: { params: { galleryId: string } }) {
-  const { liked, toggle: toggleLike } = useLikes();
   const [data, setData] = useState<FeedData | null>(null);
   const [submissions, setSubmissions] = useState<FeedSubmission[]>([]);
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
@@ -222,7 +236,8 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
 
   const fetchFeed = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/gallery/${params.galleryId}/feed`);
+      const sessionId = getSessionId();
+      const res = await fetch(`${API_URL}/gallery/${params.galleryId}/feed?sessionId=${sessionId}`);
       if (!res.ok) { setError(true); return; }
       const json: FeedData = await res.json();
 
@@ -377,7 +392,40 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
                     <span className="mx-1.5 opacity-50">·</span>
                     {timeAgo(sub.updatedAt)}
                   </p>
-                  <PostCard sub={sub} fresh={freshIds.has(sub.id)} liked={liked.has(sub.id)} onLike={() => toggleLike(sub.id)} />
+                  <PostCard
+                    sub={sub}
+                    fresh={freshIds.has(sub.id)}
+                    onReact={async (emoji) => {
+                      const sessionId = getSessionId();
+                      // Optimistic update
+                      setSubmissions(prev => prev.map(s => {
+                        if (s.id !== sub.id) return s;
+                        const active = s.myReactions.includes(emoji);
+                        return {
+                          ...s,
+                          myReactions: active ? s.myReactions.filter(e => e !== emoji) : [...s.myReactions, emoji],
+                          reactionCounts: {
+                            ...s.reactionCounts,
+                            [emoji]: Math.max(0, (s.reactionCounts[emoji] ?? 0) + (active ? -1 : 1)),
+                          },
+                        };
+                      }));
+                      // Sync to server
+                      try {
+                        const result = await fetch(`${API_URL}/gallery/submission/${sub.id}/react`, {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ sessionId, emoji }),
+                        }).then(r => r.json());
+                        // Reconcile with server truth
+                        setSubmissions(prev => prev.map(s =>
+                          s.id === sub.id
+                            ? { ...s, reactionCounts: result.reactionCounts, myReactions: result.myReactions }
+                            : s
+                        ));
+                      } catch { /* keep optimistic state on network error */ }
+                    }}
+                  />
                 </div>
               </div>
             ))}

@@ -6,6 +6,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   UploadedFile,
   UseInterceptors,
   BadRequestException,
@@ -118,8 +119,22 @@ export class MomentsController {
   @Get(':galleryId/feed')
   @ApiOperation({ summary: 'Get approved submissions for the live feed (public)' })
   @ApiParam({ name: 'galleryId' })
-  getFeed(@Param('galleryId') galleryId: string) {
-    return this.momentsService.getFeed(galleryId);
+  getFeed(
+    @Param('galleryId') galleryId: string,
+    @Query('sessionId') sessionId?: string,
+  ) {
+    return this.momentsService.getFeed(galleryId, sessionId);
+  }
+
+  @Post('submission/:submissionId/react')
+  @ApiOperation({ summary: 'Toggle an emoji reaction on a submission (public, session-based)' })
+  toggleReaction(
+    @Param('submissionId') submissionId: string,
+    @Body('sessionId') sessionId: string,
+    @Body('emoji') emoji: string,
+  ) {
+    if (!sessionId || !emoji) throw new BadRequestException('sessionId and emoji are required');
+    return this.momentsService.toggleReaction(submissionId, sessionId, emoji);
   }
 
   // ── Host moderation (JWT-guarded) ────────────────────────────────────────
