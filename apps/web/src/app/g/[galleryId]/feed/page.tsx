@@ -108,26 +108,39 @@ function PostCard({ sub, fresh }: { sub: FeedSubmission; fresh: boolean }) {
 
       {/* Featured photo */}
       {featured && (
-        <div style={{ backgroundColor: '#f5ebe0' }}>
+        <div style={{ backgroundColor: '#1e1206', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <img
             src={photoUrl(featured.url)}
             alt=""
-            className="w-full object-cover"
-            style={{ maxHeight: '420px', filter: 'sepia(10%) contrast(0.97) brightness(1.01)' }}
+            style={{
+              display: 'block',
+              maxWidth: '100%',
+              maxHeight: '560px',
+              width: 'auto',
+              height: 'auto',
+              margin: '0 auto',
+              filter: 'sepia(8%) contrast(0.97) brightness(1.02)',
+            }}
           />
         </div>
       )}
 
-      {/* Additional photos strip */}
+      {/* Additional photos — row for landscape, column for portrait feel */}
       {rest.length > 0 && (
-        <div className="flex gap-px" style={{ backgroundColor: '#e8d9bd' }}>
+        <div className="flex gap-px" style={{ backgroundColor: '#1e1206' }}>
           {rest.map(p => (
-            <div key={p.id} className="flex-1 overflow-hidden" style={{ height: '88px' }}>
+            <div key={p.id} className="flex-1 overflow-hidden flex items-center justify-center" style={{ maxHeight: '200px', backgroundColor: '#1e1206' }}>
               <img
                 src={photoUrl(p.url)}
                 alt=""
-                className="w-full h-full object-cover"
-                style={{ filter: 'sepia(10%) contrast(0.97)' }}
+                style={{
+                  display: 'block',
+                  maxWidth: '100%',
+                  maxHeight: '200px',
+                  width: 'auto',
+                  height: 'auto',
+                  filter: 'sepia(8%) contrast(0.97)',
+                }}
               />
             </div>
           ))}
