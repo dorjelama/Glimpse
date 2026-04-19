@@ -13,13 +13,14 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { existsSync } from 'fs';
+import { existsSync, unlink } from 'fs';
 import archiver from 'archiver';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import * as sharp from 'sharp';
 import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MomentsService } from './moments.service';
@@ -28,7 +29,8 @@ import { SetFeaturedDto } from './dto/set-featured.dto';
 import { ApproveSubmissionDto } from './dto/approve-submission.dto';
 import { SetGalleryOpenDto } from './dto/set-gallery-open.dto';
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+const HEIC_TYPES = new Set(['image/heic', 'image/heif']);
 
 const storage = diskStorage({
   destination: join(process.cwd(), 'uploads'),
@@ -77,7 +79,18 @@ export class MomentsController {
     if (!ALLOWED_TYPES.includes(file.mimetype)) {
       throw new BadRequestException('Only JPEG, PNG, WebP, or HEIC images are allowed');
     }
-    const url = `/uploads/${file.filename}`;
+
+    let filename = file.filename;
+
+    if (HEIC_TYPES.has(file.mimetype)) {
+      const jpegName = `${uuidv4()}.jpg`;
+      const jpegPath = join(process.cwd(), 'uploads', jpegName);
+      await sharp(file.path).rotate().jpeg({ quality: 90 }).toFile(jpegPath);
+      unlink(file.path, () => {});
+      filename = jpegName;
+    }
+
+    const url = `/uploads/${filename}`;
     return this.momentsService.addPhoto(token, url);
   }
 

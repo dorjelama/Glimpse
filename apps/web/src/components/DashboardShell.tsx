@@ -1,12 +1,13 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import UserMenu from '@/components/UserMenu';
+import { useAuthStore } from '@/lib/authStore';
 
 const NAV = [
   {
-    href: '/',
+    href: '/dashboard',
     label: 'Events',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -29,6 +30,13 @@ const SETTINGS_ICON = (
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuthStore();
+
+  const handleLogout = () => {
+    logout();
+    router.push('/auth/login');
+  };
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-violet-950 via-[#1a1230] to-indigo-950 overflow-hidden">
@@ -83,6 +91,17 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </svg>
             Settings
           </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors w-full"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign out
+          </button>
           <div className="px-1 py-1">
             <UserMenu compact />
           </div>

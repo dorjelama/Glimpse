@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (token) router.replace('/');
+    if (token) router.replace('/dashboard');
   }, [token, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,7 +23,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login({ email, password });
-      router.push('/');
+      router.push('/dashboard');
     } catch (err: any) {
       setError(err.message ?? 'Login failed');
     } finally {
@@ -32,52 +32,53 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-sm bg-neutral-900 border border-white/10 rounded-2xl p-8 shadow-2xl">
-      <h2 className="text-lg font-semibold text-white mb-6">Sign in to your account</h2>
+    <div className="w-full max-w-sm bg-blush/50 border border-gold/30 rounded-2xl p-8 shadow-sm">
+      <h2 className="text-xl font-semibold text-ink mb-1" style={{ fontFamily: 'Georgia, serif' }}>Welcome back</h2>
+      <p className="text-sm text-ink/50 mb-6">Sign in to your account</p>
 
       {error && (
-        <div className="mb-4 px-3 py-2.5 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm">
+        <div className="mb-4 px-3 py-2.5 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-gray-400">Email</label>
+          <label className="text-xs font-medium text-ink/60">Email</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full bg-white/5 text-white text-sm rounded-lg px-3 py-2.5 border border-white/10 focus:outline-none focus:border-accent placeholder-gray-600"
+            className="w-full bg-cream text-ink text-sm rounded-xl px-3 py-2.5 border border-gold/40 focus:outline-none focus:border-terra placeholder:text-ink/30 transition-colors"
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs text-gray-400">Password</label>
+          <label className="text-xs font-medium text-ink/60">Password</label>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            className="w-full bg-white/5 text-white text-sm rounded-lg px-3 py-2.5 border border-white/10 focus:outline-none focus:border-accent placeholder-gray-600"
+            className="w-full bg-cream text-ink text-sm rounded-xl px-3 py-2.5 border border-gold/40 focus:outline-none focus:border-terra placeholder:text-ink/30 transition-colors"
           />
         </div>
 
         <button
           type="submit"
           disabled={loading}
-          className="mt-2 w-full py-2.5 bg-accent hover:bg-accent-hover disabled:opacity-60 text-white text-sm font-medium rounded-xl transition-colors"
+          className="mt-2 w-full py-3 bg-terra hover:bg-terra/90 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
         >
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-xs text-gray-500">
+      <p className="mt-6 text-center text-xs text-ink/40">
         Don&apos;t have an account?{' '}
-        <Link href="/auth/register" className="text-purple-400 hover:text-purple-300 transition-colors">
+        <Link href="/auth/register" className="text-terra hover:text-terra/80 font-medium transition-colors">
           Create one
         </Link>
       </p>

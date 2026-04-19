@@ -1,371 +1,361 @@
-'use client';
+import Link from 'next/link';
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { api, type GlimpseProject } from '@/lib/api';
-import DashboardShell from '@/components/DashboardShell';
+const PILLARS = [
+  { icon: '✦', label: 'Drag & Drop Canvas' },
+  { icon: '🎨', label: 'Rich Styling Tools' },
+  { icon: '👥', label: 'Guest List & QR' },
+  { icon: '📸', label: 'Live Photo Glimpses' },
+  { icon: '🔗', label: 'Instant Share Link' },
+  { icon: '📱', label: 'Mobile Ready' },
+];
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
-}
+const STEPS = [
+  {
+    number: '01',
+    title: 'Create your event',
+    body: 'Give it a name and date. Glimpse sets up your workspace in seconds.',
+  },
+  {
+    number: '02',
+    title: 'Design your card',
+    body: 'Drag, drop, and style every element on a pixel-perfect canvas.',
+  },
+  {
+    number: '03',
+    title: 'Share with guests',
+    body: 'Publish to a unique link. Guests open it on any device — no app needed.',
+  },
+];
 
-function formatDate(dateStr?: string) {
-  if (!dateStr) return null;
-  return new Date(dateStr).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-}
+const PRICING = [
+  {
+    name: 'Free',
+    price: '$0',
+    period: 'forever',
+    features: ['Card editor', '1 active event', 'Shareable link', 'No Glimpses'],
+    cta: 'Get started',
+    href: '/auth/register',
+    highlight: false,
+  },
+  {
+    name: 'Pro',
+    price: '$15',
+    period: 'per month',
+    features: ['Everything in Free', 'Unlimited events', 'Glimpses enabled', '30-day photo export'],
+    cta: 'Upgrade to Pro',
+    href: '/auth/register',
+    highlight: true,
+  },
+  {
+    name: 'Business',
+    price: '$49',
+    period: 'per month',
+    features: ['Everything in Pro', 'Multiple galleries', '60-day photo export', 'Priority support'],
+    cta: 'Contact us',
+    href: 'mailto:hello@glimpse.app',
+    highlight: false,
+  },
+];
 
-function ProjectCard({
-  project,
-  onDelete,
-}: {
-  project: GlimpseProject;
-  onDelete: (id: string) => void;
-}) {
-  const router = useRouter();
-  const [confirmDelete, setConfirmDelete] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-
-  const card = project.events[0];
-  const hasGallery = !!project.gallery;
-
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!confirmDelete) { setConfirmDelete(true); return; }
-    setDeleting(true);
-    try {
-      await api.deleteProject(project.id);
-      onDelete(project.id);
-    } catch {
-      setDeleting(false);
-      setConfirmDelete(false);
-    }
-  };
-
-  const firstPage = card?.pages?.[0];
-
+export default function LandingPage() {
   return (
-    <div
-      onClick={() => router.push(`/events/${project.id}`)}
-      className="group relative bg-white/5 border border-white/10 rounded-2xl overflow-hidden cursor-pointer hover:border-accent/60 hover:shadow-lg hover:shadow-accent/10 transition-all duration-200"
-    >
-      {/* Preview thumbnail */}
-      <div
-        className="h-36 flex items-center justify-center border-b border-white/10 overflow-hidden"
-        style={{ backgroundColor: firstPage?.bgColor || '#1e1830' }}
-      >
-        {firstPage?.bgImage ? (
-          <img src={firstPage.bgImage} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="text-4xl opacity-10 select-none">✦</span>
-        )}
-      </div>
+    <div className="min-h-screen bg-cream text-ink" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
 
-      {/* Info */}
-      <div className="p-4">
-        <p className="text-white font-medium text-sm truncate">{project.title}</p>
-        {project.date && (
-          <p className="text-[11px] text-purple-300/60 mt-0.5">{formatDate(project.date)}</p>
-        )}
-
-        {/* Feature chips */}
-        <div className="flex gap-1.5 mt-2 flex-wrap">
-          {card && (
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-              card.status === 'published'
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-accent/20 text-purple-400'
-            }`}>
-              Card {card.status === 'published' ? '· Live' : '· Draft'}
+      {/* Navbar */}
+      <header className="sticky top-0 z-50 bg-cream border-b border-gold/30">
+        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-12 h-12 rounded-xl flex-shrink-0"
+              style={{ backgroundImage: 'url("/App Icon and Favicon Terra.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+            />
+            <span className="text-2xl font-semibold text-ink" style={{ fontFamily: 'Georgia, serif', letterSpacing: '0.02em' }}>
+              Glimpse
             </span>
-          )}
-          {hasGallery && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/20 text-amber-400">
-              Glimpses
-            </span>
-          )}
-        </div>
-
-        <p className="text-[11px] text-gray-500 mt-2">Edited {timeAgo(project.updatedAt)}</p>
-      </div>
-
-      {/* Actions — always visible on touch, hover-only on desktop */}
-      <div className="absolute top-3 right-3 flex gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-        <button
-          onClick={handleDelete}
-          disabled={deleting}
-          onBlur={() => setConfirmDelete(false)}
-          className={`text-[11px] px-2.5 py-1 rounded-lg transition-colors ${
-            confirmDelete
-              ? 'bg-red-500/60 text-white'
-              : 'bg-black/40 hover:bg-red-500/30 text-gray-400 hover:text-red-300'
-          }`}
-        >
-          {deleting ? '…' : confirmDelete ? 'Sure?' : 'Delete'}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SkeletonCard() {
-  return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden animate-pulse">
-      <div className="h-36 bg-white/5" />
-      <div className="p-4 space-y-2">
-        <div className="h-3.5 bg-white/10 rounded w-3/4" />
-        <div className="h-3 bg-white/5 rounded w-1/2" />
-        <div className="h-3 bg-white/5 rounded w-1/3 mt-3" />
-      </div>
-    </div>
-  );
-}
-
-function WelcomeModal({ onGetStarted, onSkip }: { onGetStarted: () => void; onSkip: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-      <div className="bg-[#1e1830] border border-white/10 rounded-2xl shadow-2xl w-full max-w-md p-7 flex flex-col gap-6">
-        {/* Header */}
-        <div>
-          <p className="text-xs font-bold tracking-widest uppercase text-accent mb-3">Glimpse</p>
-          <h2 className="text-white font-bold text-xl leading-snug">Create events your guests will remember.</h2>
-          <p className="text-gray-400 text-sm mt-2 leading-relaxed">
-            Two tools, one event — design a beautiful card and capture live Glimpses as they happen.
-          </p>
-        </div>
-
-        {/* Feature tiles */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex flex-col gap-2">
-            <span className="text-2xl">✦</span>
-            <p className="text-white font-semibold text-sm">Cards</p>
-            <p className="text-gray-400 text-xs leading-relaxed">
-              Design an invitation on a drag-and-drop canvas. Publish to a shareable link.
-            </p>
           </div>
-          <div className="bg-white/5 border border-amber-500/20 rounded-xl p-4 flex flex-col gap-2">
-            <span className="text-2xl">📸</span>
-            <p className="text-white font-semibold text-sm">Moments</p>
-            <p className="text-gray-400 text-xs leading-relaxed">
-              Guests scan a QR code and upload live photos. You curate what shows on the feed.
-            </p>
-          </div>
+          <nav className="flex items-center gap-2">
+            <Link
+              href="/auth/login"
+              className="px-4 py-2 text-sm font-medium text-ink/70 hover:text-ink transition-colors"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/auth/register"
+              className="px-4 py-2 bg-terra hover:bg-terra/90 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+            >
+              Get started free
+            </Link>
+          </nav>
         </div>
+      </header>
 
-        {/* Actions */}
-        <div className="flex flex-col gap-2">
-          <button
-            onClick={onGetStarted}
-            className="w-full py-3 bg-accent hover:bg-accent-hover text-white font-semibold text-sm rounded-xl transition-colors"
+      {/* Hero */}
+      <section className="py-24 px-6 text-center">
+        <div className="max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blush border border-gold/40 rounded-full text-xs font-semibold text-terra mb-8">
+            <span className="w-1.5 h-1.5 rounded-full bg-terra inline-block" />
+            Now in beta — free to try
+          </div>
+
+          <h1
+            className="text-5xl md:text-6xl font-bold text-ink leading-tight mb-6"
+            style={{ fontFamily: 'Georgia, serif' }}
           >
-            Create your first event →
-          </button>
-          <button
-            onClick={onSkip}
-            className="w-full py-2 text-sm text-gray-500 hover:text-gray-300 transition-colors"
-          >
-            I'll explore on my own
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+            Create beautiful<br />digital invitations
+          </h1>
 
-function NewEventModal({ onCreate, onClose }: { onCreate: (title: string, date?: string) => Promise<void>; onClose: () => void }) {
-  const [title, setTitle] = useState('');
-  const [date, setDate] = useState('');
-  const [creating, setCreating] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setCreating(true);
-    await onCreate(title.trim(), date || undefined);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#1e1830] border border-white/10 rounded-2xl shadow-2xl w-[400px] max-w-full mx-4 p-6" onClick={e => e.stopPropagation()}>
-        <h2 className="text-white font-semibold text-base mb-1">New Event</h2>
-        <p className="text-gray-400 text-sm mb-4">Give your event a name and date. You can change these later.</p>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <input
-            autoFocus
-            type="text"
-            placeholder="e.g. Sarah's Wedding"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-accent placeholder:text-gray-600"
-          />
-          <input
-            type="date"
-            value={date}
-            onChange={e => setDate(e.target.value)}
-            className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-accent [color-scheme:dark]"
-          />
-          <div className="flex gap-2 justify-end">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={creating || !title.trim()}
-              className="px-4 py-2 bg-accent hover:bg-accent-hover disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
-            >
-              {creating ? 'Creating…' : 'Create Event'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-export default function DashboardPage() {
-  const router = useRouter();
-  const [projects, setProjects] = useState<GlimpseProject[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const loadProjects = useCallback(async () => {
-    try {
-      const list = await api.listProjects();
-      const sorted = [...list].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      setProjects(sorted);
-      if (sorted.length === 0 && !localStorage.getItem('glimpse-onboarded')) {
-        setShowWelcome(true);
-      }
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { loadProjects(); }, [loadProjects]);
-
-  const dismissWelcome = () => {
-    localStorage.setItem('glimpse-onboarded', '1');
-    setShowWelcome(false);
-  };
-
-  const handleCreate = async (title: string, date?: string) => {
-    const project = await api.createProject({ title, ...(date && { date: new Date(date).toISOString() }) });
-    router.push(`/events/${project.id}`);
-  };
-
-  const handleDelete = (id: string) => {
-    setProjects(prev => prev.filter(p => p.id !== id));
-  };
-
-  return (
-    <DashboardShell>
-      <div className="px-4 py-6 md:px-8 md:py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-xl font-bold text-white">Events</h1>
-            <p className="text-sm text-gray-500 mt-0.5">All your events in one place</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowWelcome(true)}
-              title="What is Glimpse?"
-              className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-sm font-bold transition-colors border border-white/10"
-            >
-              ?
-            </button>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-white text-sm font-medium rounded-xl transition-colors shadow-lg shadow-accent/20"
-            >
-              <span className="text-base leading-none">+</span>
-              New Event
-            </button>
-          </div>
-        </div>
-
-        {error && (
-          <div className="mb-6 px-4 py-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-            {error}
-          </div>
-        )}
-
-        {/* Section label */}
-        {!loading && projects.length > 0 && (
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">
-            {projects.length} Event{projects.length !== 1 ? 's' : ''}
+          <p className="text-lg text-ink/60 leading-relaxed mb-10 max-w-xl mx-auto">
+            Design stunning cards, manage your guest list, and let guests share live photo memories — all in one place.
           </p>
-        )}
 
-        {/* Skeleton */}
-        {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
+            <Link
+              href="/auth/register"
+              className="w-full sm:w-auto px-8 py-3.5 bg-terra hover:bg-terra/90 text-white font-semibold rounded-xl transition-colors shadow-md text-base"
+            >
+              Start for free →
+            </Link>
+            <Link
+              href="/auth/login"
+              className="w-full sm:w-auto px-8 py-3.5 border-2 border-ink/20 hover:border-ink/40 text-ink font-semibold rounded-xl transition-colors text-base"
+            >
+              Sign in
+            </Link>
           </div>
-        )}
 
-        {/* Grid */}
-        {!loading && projects.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {projects.map(p => (
-              <ProjectCard key={p.id} project={p} onDelete={handleDelete} />
+        </div>
+      </section>
+
+      {/* Feature pillars */}
+      <section className="py-10 px-6 bg-blush/40">
+        <div className="max-w-4xl mx-auto flex flex-wrap justify-center gap-3">
+          {PILLARS.map(({ icon, label }) => (
+            <div
+              key={label}
+              className="flex items-center gap-2 px-4 py-2 bg-blush border border-gold/30 rounded-full text-sm font-medium text-ink"
+            >
+              <span className="text-lg leading-none">{icon}</span>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-terra mb-4 text-center">How it works</p>
+          <h2
+            className="text-3xl md:text-4xl font-bold text-ink text-center mb-16"
+            style={{ fontFamily: 'Georgia, serif' }}
+          >
+            From idea to invite in minutes
+          </h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {STEPS.map(({ number, title, body }) => (
+              <div key={number} className="flex flex-col gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-blush border border-gold/30 flex items-center justify-center">
+                  <span className="text-xl font-bold text-terra" style={{ fontFamily: 'Georgia, serif' }}>
+                    {number}
+                  </span>
+                </div>
+                <h3 className="text-lg font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>
+                  {title}
+                </h3>
+                <p className="text-sm text-ink/60 leading-relaxed">{body}</p>
+              </div>
             ))}
           </div>
-        )}
+        </div>
+      </section>
 
-        {/* Empty state */}
-        {!loading && projects.length === 0 && !error && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="text-5xl mb-5 opacity-20 select-none">✦</div>
-            <p className="text-white font-semibold text-lg mb-2">No events yet</p>
-            <p className="text-gray-500 text-sm mb-8 max-w-xs leading-relaxed">
-              Each event gets a Card you design and a Glimpses feed your guests post to live.
-            </p>
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-accent hover:bg-accent-hover text-white font-medium rounded-xl transition-colors mb-10"
+      {/* Feature: Card Editor */}
+      <section className="py-24 px-6 bg-blush/30">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+          <div>
+            <p className="text-xs font-bold tracking-widest uppercase text-terra mb-4">Card Editor</p>
+            <h2
+              className="text-3xl md:text-4xl font-bold text-ink mb-6"
+              style={{ fontFamily: 'Georgia, serif' }}
             >
-              + New Event
-            </button>
+              A canvas that feels like magic
+            </h2>
+            <p className="text-base text-ink/60 leading-relaxed mb-8">
+              Every element — text, images, shapes, countdown timers — snaps into place on a pixel-perfect canvas. Style freely, preview instantly, and publish when you're ready.
+            </p>
+            <Link
+              href="/auth/register"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-terra hover:bg-terra/90 text-white font-semibold rounded-xl transition-colors text-sm"
+            >
+              Try the editor →
+            </Link>
+          </div>
 
-            {/* Product preview tiles */}
-            <div className="grid grid-cols-2 gap-3 w-full max-w-sm text-left opacity-50">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <p className="text-base mb-1">✦</p>
-                <p className="text-white text-xs font-semibold mb-1">Card</p>
-                <p className="text-gray-500 text-[11px] leading-relaxed">Design an invitation. Publish to a shareable link.</p>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-                <p className="text-base mb-1">📸</p>
-                <p className="text-white text-xs font-semibold mb-1">Moments</p>
-                <p className="text-gray-500 text-[11px] leading-relaxed">Guests upload live photos. You curate the feed.</p>
-              </div>
+          {/* Placeholder preview */}
+          <div className="rounded-2xl bg-ink/5 border border-ink/10 aspect-[4/3] flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-5xl mb-3 opacity-20 select-none">✦</div>
+              <p className="text-xs text-ink/30 font-medium">Card Editor Preview</p>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      </section>
 
-      {showWelcome && (
-        <WelcomeModal
-          onGetStarted={() => { dismissWelcome(); setShowModal(true); }}
-          onSkip={dismissWelcome}
-        />
-      )}
+      {/* Feature: Glimpses */}
+      <section className="py-24 px-6">
+        <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+          {/* Placeholder preview */}
+          <div className="rounded-2xl bg-ink/5 border border-ink/10 aspect-[4/3] flex items-center justify-center order-2 md:order-1">
+            <div className="text-center">
+              <div className="text-5xl mb-3 opacity-20 select-none">📸</div>
+              <p className="text-xs text-ink/30 font-medium">Glimpses Feed Preview</p>
+            </div>
+          </div>
 
-      {showModal && (
-        <NewEventModal onCreate={handleCreate} onClose={() => setShowModal(false)} />
-      )}
-    </DashboardShell>
+          <div className="order-1 md:order-2">
+            <div className="flex items-center gap-2 mb-4">
+              <p className="text-xs font-bold tracking-widest uppercase text-terra">Glimpses</p>
+              <span className="px-2 py-0.5 bg-gold/20 text-gold text-[10px] font-bold tracking-wider uppercase rounded-full border border-gold/30">
+                Pro
+              </span>
+            </div>
+            <h2
+              className="text-3xl md:text-4xl font-bold text-ink mb-6"
+              style={{ fontFamily: 'Georgia, serif' }}
+            >
+              Let guests be part of the story
+            </h2>
+            <p className="text-base text-ink/60 leading-relaxed mb-8">
+              Guests scan a QR code to upload live photos straight from their phones. You curate what shows on the feed and project it at your venue — or share a link anyone can view.
+            </p>
+            <Link
+              href="/auth/register"
+              className="inline-flex items-center gap-2 px-6 py-3 border-2 border-terra/30 hover:border-terra text-terra font-semibold rounded-xl transition-colors text-sm"
+            >
+              Explore Glimpses →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing */}
+      <section className="py-24 px-6 bg-blush/30">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-terra mb-4 text-center">Pricing</p>
+          <h2
+            className="text-3xl md:text-4xl font-bold text-ink text-center mb-4"
+            style={{ fontFamily: 'Georgia, serif' }}
+          >
+            Simple, honest pricing
+          </h2>
+          <p className="text-base text-ink/50 text-center mb-16">
+            Start free. Upgrade when you need more.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {PRICING.map(({ name, price, period, features, cta, href, highlight }) => (
+              <div
+                key={name}
+                className={`rounded-2xl p-7 flex flex-col gap-6 ${
+                  highlight
+                    ? 'bg-cream border-2 border-terra shadow-lg shadow-terra/10'
+                    : 'bg-cream border border-ink/10'
+                }`}
+              >
+                {highlight && (
+                  <div className="text-[10px] font-bold tracking-widest uppercase text-terra">
+                    Most popular
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-semibold text-ink/50 mb-1">{name}</p>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className="text-4xl font-bold text-ink"
+                      style={{ fontFamily: 'Georgia, serif' }}
+                    >
+                      {price}
+                    </span>
+                    <span className="text-sm text-ink/40">{period}</span>
+                  </div>
+                </div>
+
+                <ul className="flex flex-col gap-2.5">
+                  {features.map((f) => (
+                    <li key={f} className="flex items-start gap-2 text-sm text-ink/70">
+                      <span className="text-terra mt-0.5 leading-none">✓</span>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  href={href}
+                  className={`mt-auto block text-center py-3 rounded-xl text-sm font-semibold transition-colors ${
+                    highlight
+                      ? 'bg-terra hover:bg-terra/90 text-white'
+                      : 'border border-ink/20 hover:border-ink/40 text-ink'
+                  }`}
+                >
+                  {cta}
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Banner */}
+      <section className="py-24 px-6 bg-terra">
+        <div className="max-w-2xl mx-auto text-center">
+          <h2
+            className="text-3xl md:text-4xl font-bold text-cream mb-6"
+            style={{ fontFamily: 'Georgia, serif' }}
+          >
+            Ready to create something beautiful?
+          </h2>
+          <p className="text-base text-cream/70 mb-10">
+            Join the creators who trust Glimpse for their most important moments.
+          </p>
+          <Link
+            href="/auth/register"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-cream hover:bg-blush text-terra font-bold rounded-xl transition-colors text-base shadow-lg"
+          >
+            Start for free →
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-12 px-6 bg-ink">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-2.5">
+              <div
+              className="w-8 h-8 rounded-lg flex-shrink-0"
+              style={{ backgroundImage: 'url("/App Icon and Favicon Cream Alt.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+            />
+            <div>
+              <span className="text-sm font-semibold text-cream" style={{ fontFamily: 'Georgia, serif', letterSpacing: '0.02em' }}>Glimpse</span>
+              <span className="text-[10px] text-cream/30 ml-2 uppercase tracking-widest">by Elegant Decorations</span>
+            </div>
+            </div>
+
+            <nav className="flex items-center gap-6 text-sm text-cream/40">
+              <Link href="#features" className="hover:text-cream/70 transition-colors">Features</Link>
+              <Link href="#pricing" className="hover:text-cream/70 transition-colors">Pricing</Link>
+              <Link href="/auth/login" className="hover:text-cream/70 transition-colors">Sign in</Link>
+              <Link href="/auth/register" className="hover:text-cream/70 transition-colors">Register</Link>
+            </nav>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-cream/10 text-center text-xs text-cream/25">
+            © {new Date().getFullYear()} Elegant Decorations Nepal Pvt. Ltd. All rights reserved.
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }

@@ -16,7 +16,8 @@ The Glimpse frontend — a Next.js 14 app with two primary surfaces:
 ```
 src/
 ├── app/                          Next.js App Router pages
-│   ├── page.tsx                  Dashboard — lists user's events
+│   ├── page.tsx                  Landing page (public marketing page)
+│   ├── dashboard/                Authenticated dashboard — lists user's events
 │   ├── auth/                     Login + register pages (public)
 │   ├── editor/[id]/              Full drag-and-drop editor
 │   ├── preview/[id]/             In-editor preview (no editing)
@@ -27,7 +28,7 @@ src/
 ├── lib/
 │   ├── api.ts                    API client + shared TypeScript types
 │   └── authStore.ts              Zustand auth store with JWT persistence
-├── middleware.ts                 Edge middleware: protect all routes except /auth/* and /view/*
+├── middleware.ts                 Edge middleware: protect all routes except /, /auth/*, /view/*, /g/*
 └── modules/
     ├── editor/                   Editor module (see editor/CLAUDE.md)
     ├── preview/                  Preview module (see preview/CLAUDE.md)
@@ -37,7 +38,8 @@ src/
 ## Routes
 | Route | Auth required | Description |
 |-------|---------------|-------------|
-| `/` | Yes | Dashboard — lists user's Events (Projects), create/delete |
+| `/` | No | Public landing / marketing page |
+| `/dashboard` | Yes | Dashboard — lists user's Events (Projects), create/delete |
 | `/events/[id]` | Yes | Event Hub — shows Card + Moments tiles for a project |
 | `/auth/login` | No | Login form |
 | `/auth/register` | No | Register form |
