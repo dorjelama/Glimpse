@@ -61,8 +61,8 @@ function ElementWrapper({
   const isLocked   = !!element.styles?._locked;
   const groupId    = element.styles?._groupId as string | undefined;
 
-  const { onMouseDown } = useDrag({ element, canvasRef, scale });
-  const { onHandleMouseDown } = useResize({ element, scale });
+  const { onPointerDown } = useDrag({ element, canvasRef, scale });
+  const { onHandlePointerDown } = useResize({ element, scale });
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -148,7 +148,7 @@ function ElementWrapper({
 
   return (
     <div
-      onMouseDown={onMouseDown}
+      onPointerDown={onPointerDown}
       onDoubleClick={handleDoubleClick}
       onClick={(e) => {
         e.stopPropagation();
@@ -166,6 +166,7 @@ function ElementWrapper({
         zIndex: element.zIndex,
         cursor: isPreviewMode ? 'default' : 'move',
         userSelect: 'none',
+        touchAction: isPreviewMode ? 'auto' : 'none',
         outline: isSelected && !isPreviewMode ? `${outlineW}px solid ${outlineColor}` : 'none',
         outlineOffset: `${Math.max(1, outlineW / 2)}px`,
       }}
@@ -189,7 +190,7 @@ function ElementWrapper({
           <div
             key={handle}
             data-handle={handle}
-            onMouseDown={onHandleMouseDown(handle)}
+            onPointerDown={onHandlePointerDown(handle)}
             style={{
               position: 'absolute',
               width: handleSize,
@@ -198,6 +199,7 @@ function ElementWrapper({
               border: `${Math.max(2, outlineW)}px solid ${outlineColor}`,
               borderRadius: '3px',
               zIndex: 9999,
+              touchAction: 'none',
               ...handlePos[handle],
               cursor: handlePos[handle].cursor,
             }}

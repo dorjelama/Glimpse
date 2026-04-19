@@ -13,10 +13,15 @@ export function useResize({ element, scale }: UseResizeOptions) {
   const updateElement = useEditorStore((s) => s.updateElement);
   const event = useEditorStore((s) => s.event);
 
-  const onHandleMouseDown = useCallback(
-    (handle: ResizeHandle) => (e: React.MouseEvent) => {
+  const onHandlePointerDown = useCallback(
+    (handle: ResizeHandle) => (e: React.PointerEvent) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
       e.stopPropagation();
       e.preventDefault();
+
+      const pointerId = e.pointerId;
+      const targetEl = e.currentTarget as HTMLElement;
+      try { targetEl.setPointerCapture(pointerId); } catch {}
 
       const startMX = e.clientX;
       const startMY = e.clientY;
@@ -25,8 +30,9 @@ export function useResize({ element, scale }: UseResizeOptions) {
       const startX = element.x;
       const startY = element.y;
 
-      const onMove = (me: MouseEvent) => {
+      const onMove = (me: PointerEvent) => {
         if (!event) return;
+        if (me.pointerId !== pointerId) return;
         const dx = (me.clientX - startMX) / scale;
         const dy = (me.clientY - startMY) / scale;
 
@@ -63,16 +69,20 @@ export function useResize({ element, scale }: UseResizeOptions) {
         });
       };
 
-      const onUp = () => {
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
+      const onUp = (me: PointerEvent) => {
+        if (me.pointerId !== pointerId) return;
+        try { targetEl.releasePointerCapture(pointerId); } catch {}
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
       };
 
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
     },
     [element, scale, event, updateElement],
   );
 
-  return { onHandleMouseDown };
+  return { onHandlePointerDown };
 }

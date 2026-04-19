@@ -94,14 +94,21 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
     groupMemberStarts: [] as { id: string; x: number; y: number; width: number; height: number }[],
   });
 
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent) => {
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
       if (isPreviewMode) return;
       if ((e.target as HTMLElement).dataset.handle) return;
+      // Ignore non-primary mouse buttons; accept all touch/pen.
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
 
       e.stopPropagation();
       e.preventDefault();
       selectElement(element.id);
+
+      const pointerId = e.pointerId;
+      const targetEl = e.currentTarget as HTMLElement;
+      // Keep receiving move/up events even if the finger slides off this element.
+      try { targetEl.setPointerCapture(pointerId); } catch {}
 
       const d = dragRef.current;
       d.active = true;
@@ -126,8 +133,9 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
         d.groupMemberStarts = [];
       }
 
-      const onMove = (me: MouseEvent) => {
+      const onMove = (me: PointerEvent) => {
         if (!d.active || !event) return;
+        if (me.pointerId !== pointerId) return;
 
         const dx = (me.clientX - d.startMouseX) / scale;
         const dy = (me.clientY - d.startMouseY) / scale;
@@ -167,19 +175,23 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
         }
       };
 
-      const onUp = () => {
+      const onUp = (me: PointerEvent) => {
+        if (me.pointerId !== pointerId) return;
         d.active = false;
         d.groupMemberStarts = [];
         setSnapLines([]);
-        window.removeEventListener('mousemove', onMove);
-        window.removeEventListener('mouseup', onUp);
+        try { targetEl.releasePointerCapture(pointerId); } catch {}
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener('pointercancel', onUp);
       };
 
-      window.addEventListener('mousemove', onMove);
-      window.addEventListener('mouseup', onUp);
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onUp);
     },
     [element, scale, event, currentPageId, updateElement, batchMove, selectElement, setSnapLines, isPreviewMode],
   );
 
-  return { onMouseDown };
+  return { onPointerDown };
 }

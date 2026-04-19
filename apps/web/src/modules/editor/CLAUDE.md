@@ -30,8 +30,8 @@ EditorLayout          ← loads project, keyboard shortcuts, wires layout
 | `components/PropertiesPanel.tsx` | Right panel: style controls, layer buttons |
 | `components/elements/*.tsx` | Individual element renderers |
 | `hooks/useCanvas.ts` | Canvas scale, drop handler, fit-to-container |
-| `hooks/useDrag.ts` | Mouse-based drag within canvas bounds |
-| `hooks/useResize.ts` | 8-handle resize with min/max constraints |
+| `hooks/useDrag.ts` | Pointer-based drag within canvas bounds (mouse + touch + pen) |
+| `hooks/useResize.ts` | 8-handle resize with min/max constraints (pointer events) |
 | `store/editorStore.ts` | Zustand + immer store — all editor state |
 | `types/index.ts` | Shared types, DEFAULT_STYLES, ELEMENT_DEFAULTS |
 
