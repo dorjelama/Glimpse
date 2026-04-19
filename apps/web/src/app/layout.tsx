@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import StatusBar from '@/components/StatusBar';
+import NavigationProgress from '@/components/NavigationProgress';
 
 export const metadata: Metadata = {
   title: 'Glimpse',
@@ -16,6 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <NavigationProgress />
         {children}
         <StatusBar />
       </body>
