@@ -121,8 +121,8 @@ export const api = {
   setFeaturedPhoto: (token: string, photoId: string) =>
     request<GallerySubmission>(`/gallery/submission/${token}/featured`, { method: 'PATCH', body: JSON.stringify({ photoId }) }),
 
-  finaliseSubmission: (token: string) =>
-    request<GallerySubmission>(`/gallery/submission/${token}/finalise`, { method: 'POST' }),
+  finaliseSubmission: (token: string, message?: string) =>
+    request<GallerySubmission>(`/gallery/submission/${token}/finalise`, { method: 'POST', body: JSON.stringify({ message }) }),
 
   // Host moderation
   listSubmissions: (galleryId: string) =>

@@ -133,7 +133,7 @@ function MomentForm({
     setError(null);
     try {
       const sub = await ensureSubmission();
-      await api.finaliseSubmission(sub.token);
+      await api.finaliseSubmission(sub.token, caption.trim() || undefined);
       onDone();
     } catch (e: any) {
       setError(e.message ?? 'Something went wrong');

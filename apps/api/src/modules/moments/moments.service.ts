@@ -98,12 +98,17 @@ export class MomentsService {
     });
   }
 
-  async finalise(token: string) {
+  async finalise(token: string, message?: string) {
     const sub = await this.getSubmissionByToken(token);
     if (sub.photos.length === 0) {
       throw new BadRequestException('Upload at least one photo before submitting');
     }
-    return sub;
+    // Always write the final caption so text typed after photo upload is captured.
+    return this.prisma.gallerySubmission.update({
+      where: { id: sub.id },
+      data: { message: message?.trim() || null },
+      include: SUBMISSION_INCLUDE,
+    });
   }
 
   // ── Public live feed ─────────────────────────────────────────────────────

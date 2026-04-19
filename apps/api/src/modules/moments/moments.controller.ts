@@ -98,8 +98,8 @@ export class MomentsController {
 
   @Post('submission/:token/finalise')
   @ApiOperation({ summary: 'Finalise and submit (validates photos + featured selected)' })
-  finalise(@Param('token') token: string) {
-    return this.momentsService.finalise(token);
+  finalise(@Param('token') token: string, @Body('message') message?: string) {
+    return this.momentsService.finalise(token, message);
   }
 
   @Get(':galleryId/feed')
