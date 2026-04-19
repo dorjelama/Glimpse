@@ -29,15 +29,16 @@ export default function MobileToolbar() {
   return (
     <>
       <header className="h-12 bg-panel border-b border-white/10 flex items-center px-3 gap-2 flex-shrink-0 md:hidden">
-        {/* Back */}
+        {/* Back / Logo */}
         <button
           onClick={() => router.push('/')}
-          className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-white flex-shrink-0"
+          className="flex-shrink-0 hover:opacity-80 transition-opacity"
           aria-label="Back to dashboard"
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 12H5M12 19l-7-7 7-7" />
-          </svg>
+          <div
+            className="w-10 h-10 rounded-xl flex-shrink-0"
+            style={{ backgroundImage: 'url("/App Icon and Favicon Dark.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+          />
         </button>
 
         {/* Title */}

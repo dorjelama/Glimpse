@@ -35,8 +35,15 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       {/* Sidebar — desktop only */}
       <aside className="hidden md:flex w-56 flex-shrink-0 flex-col border-r border-white/10 bg-black/20">
         {/* Logo */}
-        <div className="px-5 py-5 border-b border-white/10">
-          <span className="text-lg font-bold text-white tracking-tight">Glimpse</span>
+        <div className="px-4 py-4 border-b border-white/10 flex items-center gap-3">
+          <div
+            className="w-12 h-12 rounded-xl flex-shrink-0"
+            style={{ backgroundImage: 'url("/App Icon and Favicon Dark.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+          />
+          <div className="leading-tight min-w-0">
+            <div className="text-sm font-semibold text-white" style={{ fontFamily: 'Georgia, serif', letterSpacing: '0.02em' }}>Glimpse</div>
+            <div className="text-[9px] text-gray-500 uppercase tracking-widest truncate">by Elegant Decorations</div>
+          </div>
         </div>
 
         {/* Nav */}
@@ -86,7 +93,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <main className="flex-1 overflow-auto pb-16 md:pb-0">
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-white/10 bg-black/20">
-          <span className="text-base font-bold text-white tracking-tight">Glimpse</span>
+          <div className="flex items-center gap-2">
+            <div
+              className="w-9 h-9 rounded-xl flex-shrink-0"
+              style={{ backgroundImage: 'url("/App Icon and Favicon Dark.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+            />
+            <span className="text-base font-semibold text-white" style={{ fontFamily: 'Georgia, serif' }}>Glimpse</span>
+          </div>
           <UserMenu compact />
         </div>
 

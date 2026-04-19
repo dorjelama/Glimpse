@@ -44,9 +44,14 @@ export default function Toolbar() {
         {/* Logo */}
         <button
           onClick={() => router.push('/')}
-          className="text-purple-400 font-bold text-lg tracking-tight hover:text-purple-300 transition-colors flex-shrink-0"
+          className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
+          aria-label="Back to dashboard"
         >
-          Glimpse
+          <div
+            className="w-9 h-9 rounded-xl flex-shrink-0"
+            style={{ backgroundImage: 'url("/App Icon and Favicon Dark.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+          />
+          <span className="text-sm font-semibold text-white" style={{ fontFamily: 'Georgia, serif' }}>Glimpse</span>
         </button>
 
         <div className="w-px h-6 bg-white/10" />
