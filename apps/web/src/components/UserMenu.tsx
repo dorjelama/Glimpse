@@ -41,21 +41,21 @@ export default function UserMenu({ compact = false }: { compact?: boolean }) {
     <div ref={menuRef} className="relative">
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex items-center gap-2 rounded-xl hover:bg-white/10 transition-colors ${compact ? 'w-full px-1 py-1.5' : 'px-2 py-1.5'}`}
+        className={`flex items-center gap-2 rounded-xl hover:bg-ink/5 transition-colors ${compact ? 'w-full px-1 py-1.5' : 'px-2 py-1.5'}`}
       >
-        <div className="w-7 h-7 rounded-full bg-accent/40 border border-accent/60 flex items-center justify-center text-xs font-semibold text-white select-none flex-shrink-0">
+        <div className="w-7 h-7 rounded-full bg-terra/20 border border-terra/30 flex items-center justify-center text-xs font-semibold text-terra select-none flex-shrink-0">
           {initials(user.name)}
         </div>
         {!compact && (
           <>
-            <span className="text-sm text-gray-300 hidden sm:block max-w-[120px] truncate">{user.name}</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-gray-500 transition-transform ${open ? 'rotate-180' : ''}`}>
+            <span className="text-sm text-ink/70 hidden sm:block max-w-[120px] truncate">{user.name}</span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-ink/30 transition-transform ${open ? 'rotate-180' : ''}`}>
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </>
         )}
         {compact && (
-          <span className="text-sm text-gray-300 truncate flex-1 text-left">{user.name}</span>
+          <span className="text-sm text-ink/70 truncate flex-1 text-left">{user.name}</span>
         )}
       </button>
 

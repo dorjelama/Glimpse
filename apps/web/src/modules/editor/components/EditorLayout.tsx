@@ -13,6 +13,8 @@ import PagesPanel from './PagesPanel';
 import LayersPanel from './LayersPanel';
 // Element type buttons rendered inside the "Add" bottom sheet
 import type { ElementType } from '../types';
+import TemplatePickerModal from './TemplatePickerModal';
+import type { CardTemplate } from '../templates';
 const ADD_TYPES: { type: ElementType; icon: string; label: string; desc: string }[] = [
   { type: 'text',      icon: 'T',  label: 'Text',       desc: 'Add heading or body text' },
   { type: 'image',     icon: '🖼', label: 'Image',      desc: 'Upload or place an image' },
@@ -31,15 +33,31 @@ export default function EditorLayout({ eventId }: Props) {
   const event        = useEditorStore((s) => s.event);
   const selectedId   = useEditorStore((s) => s.selectedId);
   const deleteElement = useEditorStore((s) => s.deleteElement);
-  const addElement   = useEditorStore((s) => s.addElement);
+  const addElement    = useEditorStore((s) => s.addElement);
+  const applyTemplate = useEditorStore((s) => s.applyTemplate);
   const isPreviewMode = useEditorStore((s) => s.isPreviewMode);
 
   const [activeSheet, setActiveSheet] = useState<MobileSheet>(null);
   const closeSheet = () => setActiveSheet(null);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
   useEffect(() => {
     loadEvent(eventId);
   }, [eventId, loadEvent]);
+
+  // Show template picker once when the card has no elements
+  useEffect(() => {
+    if (!event) return;
+    const firstPage = event.pages[0];
+    if (firstPage && firstPage.elements.length === 0) {
+      setShowTemplatePicker(true);
+    }
+  }, [event?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSelectTemplate = (tpl: CardTemplate) => {
+    applyTemplate(tpl.pages);
+    setShowTemplatePicker(false);
+  };
 
   // Keyboard shortcuts (desktop)
   const handleKeyDown = useCallback(
@@ -75,6 +93,13 @@ export default function EditorLayout({ eventId }: Props) {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-panel text-white">
+      {showTemplatePicker && (
+        <TemplatePickerModal
+          onSelect={handleSelectTemplate}
+          onSkip={() => setShowTemplatePicker(false)}
+        />
+      )}
+
       {/* Desktop toolbar */}
       <Toolbar />
 

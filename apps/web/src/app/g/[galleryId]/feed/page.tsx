@@ -63,9 +63,35 @@ function avatarBg(name: string) {
   return WARM_PALETTES[name.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % WARM_PALETTES.length];
 }
 
+// ── Likes (localStorage, per-device) ────────────────────────────────────────
+
+const LIKES_KEY = 'glimpse-liked-posts';
+
+function useLikes() {
+  const [liked, setLiked] = useState<Set<string>>(() => {
+    try {
+      const raw = localStorage.getItem(LIKES_KEY);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const toggle = useCallback((id: string) => {
+    setLiked(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem(LIKES_KEY, JSON.stringify([...next]));
+      return next;
+    });
+  }, []);
+
+  return { liked, toggle };
+}
+
 // ── Post card ────────────────────────────────────────────────────────────────
 
-function PostCard({ sub, fresh }: { sub: FeedSubmission; fresh: boolean }) {
+function PostCard({ sub, fresh, liked, onLike }: { sub: FeedSubmission; fresh: boolean; liked: boolean; onLike: () => void }) {
   const featured = sub.photos.find(p => p.id === sub.featuredPhotoId) ?? sub.photos[0];
   const rest = sub.photos.filter(p => p.id !== featured?.id);
 
@@ -147,11 +173,21 @@ function PostCard({ sub, fresh }: { sub: FeedSubmission; fresh: boolean }) {
         </div>
       )}
 
-      {/* Footer stamp */}
-      <div className="px-4 py-2 flex items-center gap-1.5" style={{ borderTop: '1px solid #f0e0c8' }}>
+      {/* Footer */}
+      <div className="px-4 py-2 flex items-center justify-between" style={{ borderTop: '1px solid #f0e0c8' }}>
         <span className="text-[10px] font-semibold tracking-widest uppercase" style={{ color: '#c8a878' }}>
-          Glimpse · Glimpses
+          Glimpse
         </span>
+        <button
+          onClick={onLike}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all active:scale-90"
+          style={{ color: liked ? '#e53e3e' : '#c8a878' }}
+          aria-label={liked ? 'Unlike' : 'Like'}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </button>
       </div>
     </article>
   );
@@ -174,6 +210,7 @@ function EmptyFeed() {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function FeedPage({ params }: { params: { galleryId: string } }) {
+  const { liked, toggle: toggleLike } = useLikes();
   const [data, setData] = useState<FeedData | null>(null);
   const [submissions, setSubmissions] = useState<FeedSubmission[]>([]);
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
@@ -251,21 +288,21 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
   return (
     <div style={pageStyle}>
       {/* Header */}
-      <header style={{ backgroundColor: '#1e1206', borderBottom: '2px solid #3d2810' }} className="sticky top-0 z-20">
+      <header style={{ backgroundColor: '#B85C37', borderBottom: '2px solid #9e4e2f' }} className="sticky top-0 z-20">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-bold text-sm leading-tight truncate" style={{ color: '#f5d99a' }}>
+            <p className="font-bold text-sm leading-tight truncate" style={{ color: '#F6EBDD' }}>
               {data.gallery.project.title}
             </p>
-            <p className="text-[11px]" style={{ color: '#a08050' }}>Glimpses · Live feed</p>
+            <p className="text-[11px]" style={{ color: '#f6ebddaa' }}>Glimpses · Live feed</p>
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="flex items-center gap-1.5">
               <span
                 className="w-2 h-2 rounded-full animate-pulse"
-                style={{ backgroundColor: data.gallery.isOpen ? '#22c55e' : '#6b7280' }}
+                style={{ backgroundColor: data.gallery.isOpen ? '#86efac' : '#f6ebdd66' }}
               />
-              <span className="text-[11px] font-medium" style={{ color: data.gallery.isOpen ? '#86efac' : '#9ca3af' }}>
+              <span className="text-[11px] font-medium" style={{ color: data.gallery.isOpen ? '#86efac' : '#f6ebdd99' }}>
                 {data.gallery.isOpen ? 'Open' : 'Closed'}
               </span>
             </div>
@@ -274,7 +311,7 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
               disabled={refreshing}
               title="Refresh feed"
               className="w-7 h-7 flex items-center justify-center rounded-lg transition-opacity disabled:opacity-40"
-              style={{ backgroundColor: '#3d2810', color: '#f5d99a' }}
+              style={{ backgroundColor: '#9e4e2f', color: '#F6EBDD' }}
             >
               <svg
                 width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -307,10 +344,10 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
           <a
             href={`/g/${params.galleryId}`}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#1e1206', color: '#f5d99a', border: '1px solid #3d2810' }}
+            style={{ backgroundColor: '#B85C37', color: '#F6EBDD', border: '1px solid #9e4e2f' }}
           >
             <span>📸</span>
-            Share your moment
+            Share your glimpse
           </a>
         </div>
       )}
@@ -340,7 +377,7 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
                     <span className="mx-1.5 opacity-50">·</span>
                     {timeAgo(sub.updatedAt)}
                   </p>
-                  <PostCard sub={sub} fresh={freshIds.has(sub.id)} />
+                  <PostCard sub={sub} fresh={freshIds.has(sub.id)} liked={liked.has(sub.id)} onLike={() => toggleLike(sub.id)} />
                 </div>
               </div>
             ))}
@@ -350,7 +387,7 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
         {/* Footer */}
         {submissions.length > 0 && (
           <p className="text-center text-[11px] py-6" style={{ color: '#c8a878' }}>
-            · {submissions.length} moment{submissions.length !== 1 ? 's' : ''} shared ·
+            · {submissions.length} glimpse{submissions.length !== 1 ? 's' : ''} shared ·
           </p>
         )}
       </main>

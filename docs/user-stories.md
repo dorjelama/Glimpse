@@ -35,7 +35,7 @@ _Last updated: 2026-04-20_
 |---|-------|--------------|-----|
 | H1 | Register and understand what Glimpse does | Welcome modal fires on first login explaining Cards + Glimpses. Re-openable via `?` button. Enhanced empty state shows product preview tiles. | ✅ Resolved |
 | H2 | Create an event with a name and date | Modal asks for title and date. Date is optional but surfaced upfront at creation and editable on the Event Hub. | ✅ Resolved |
-| H3 | Build and publish an invitation card | Full canvas editor works. Publish generates a slug URL. | **No templates.** Blank canvas on first open is daunting. No starting point. |
+| H3 | Build and publish an invitation card | Full canvas editor works. Publish generates a slug URL. Template picker modal on first open offers 4 starting layouts (Elegant Dark, Cream Classic, Modern Bold, Blush Soft) or blank canvas. | ✅ Resolved |
 | H4 | Share the card with guests | Published card has a URL. Publish modal shows it. | **No in-product sharing.** Host has to copy-paste the URL manually. No email, no WhatsApp share, no prominent copy button on the Event Hub. |
 | H5 | Set up a Glimpses gallery | One click, gallery created, QR code shown immediately. | Solid. |
 | H6 | Get the QR code to guests at the venue | "Download QR" exports SVG. | **No guidance on how to use it.** Hosts don't know to print it, put it on a projector slide, or embed it in signage. SVG is also an unusual format for non-technical users. |
@@ -59,7 +59,7 @@ _Last updated: 2026-04-20_
 | G1 | Receive an invitation and view the card | Public `/view/[slug]` renders the card. No auth required. | Solid. |
 | G2 | Discover that I can share a photo | Published card shows a floating "Share a Glimpse" button linking to the upload page when a gallery exists. | ✅ Resolved |
 | G3 | Open the upload page on my phone | `/g/[galleryId]` works, no auth, mobile-friendly shell. | Solid. |
-| G4 | Enter my name and upload a photo quickly | Name field, photo picker (1–3 photos), caption, Post button. | **Name not persisted.** Close the tab, come back — name is gone. At a 200-person wedding, this friction compounds. |
+| G4 | Enter my name and upload a photo quickly | Name field, photo picker (1–3 photos), caption, Post button. Name saved to localStorage and restored on return. | ✅ Resolved |
 | G5 | Upload a HEIC photo from my iPhone | HEIC/HEIF accepted and auto-converted to JPEG on the server via Sharp (libvips). | ✅ Resolved |
 | G6 | Know my photo was received | Thank-you screen: "Your glimpse is live — pending review." | Solid. |
 | G7 | See my photo appear on the feed | Thank-you screen has a "See the live feed →" button linking to `/g/[galleryId]/feed`. | ✅ Resolved |
@@ -79,7 +79,7 @@ _Last updated: 2026-04-20_
 | V2 | See new photos appear without refreshing | New submissions get "New" badge after poll. Amber dot on timeline spine for fresh posts. | Solid. |
 | V3 | Know the event is active or over | Open/Closed indicator in header. Post-event banner when `endedAt` is set. | Solid. |
 | V4 | Navigate a feed with 100+ posts | Infinite scroll down the page. | **No pagination or lazy loading.** 100+ posts with images will be slow and memory-heavy on mobile. |
-| V5 | React to a post | Nothing. | **No engagement mechanism.** Likes, emoji reactions, even a simple heart — absent. The feed is read-only. Viewing without interacting kills the social feeling. |
+| V5 | React to a post | Heart button on each post card. Liked state persists in localStorage per device. Toggled heart turns red. | ✅ Resolved — reactions are device-local (no cross-device sync). |
 | V6 | See the feed on a projector at the venue | Regular mobile feed page. | **No Projection Mode** (documented as future). The feed isn't designed for a large screen. Small text, portrait layout, no auto-scroll. |
 | V7 | Feel the feed is part of the event's identity | Generic dark header, amber accent. | **No brand continuity from the card.** The invitation card can be beautifully designed, but the feed has no connection to those colors, fonts, or style. |
 | V8 | Find the upload page from the feed | Feed shows a "Share your glimpse" CTA when gallery is open, linking to `/g/[galleryId]`. | ✅ Resolved |
@@ -98,6 +98,11 @@ _Last updated: 2026-04-20_
 | 3 | No export notification after event ends | H10 | Open |
 | 4 | No submission/pending count visible on dashboard | H11 | Open |
 | 5 | No in-product card sharing | H4 | Open |
-| 6 | No reactions on feed | V5 | Open |
-| 7 | Guest name not persisted between sessions | G4 | Open |
-| 8 | No card templates — blank canvas on first open | H3 | Open |
+| ~~6~~ | ~~No reactions on feed~~ | V5 | ✅ Done — device-local hearts. |
+| ~~7~~ | ~~Guest name not persisted between sessions~~ | G4 | ✅ Done |
+| ~~8~~ | ~~No card templates — blank canvas on first open~~ | H3 | ✅ Done |
+
+
+## Enhancements
+On clicking outside canvas should show element selector in mobile view
+Feedback feature from host and viewer

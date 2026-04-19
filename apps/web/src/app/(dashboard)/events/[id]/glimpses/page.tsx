@@ -19,9 +19,9 @@ function galleryStatus(gallery: { isOpen: boolean; endedAt?: string }) {
 
 function StatusBadge({ status }: { status: 'open' | 'closed' | 'ended' }) {
   const styles = {
-    open: 'bg-green-500/20 text-green-400',
-    closed: 'bg-amber-500/20 text-amber-400',
-    ended: 'bg-white/10 text-gray-400',
+    open: 'bg-green-100 text-green-700',
+    closed: 'bg-amber-100 text-amber-700',
+    ended: 'bg-blush text-ink/50 border border-gold/20',
   };
   const labels = { open: 'Open', closed: 'Closed', ended: 'Ended' };
   return (
@@ -57,22 +57,22 @@ function SubmissionCard({
   };
 
   return (
-    <div className={`bg-white/5 border rounded-2xl overflow-hidden flex flex-col ${
-      sub.approved ? 'border-green-500/30' : 'border-white/10'
+    <div className={`bg-cream border rounded-2xl overflow-hidden flex flex-col ${
+      sub.approved ? 'border-green-300' : 'border-gold/30'
     }`}>
-      <div className="h-44 bg-black/20 relative flex-shrink-0">
+      <div className="h-44 bg-blush relative flex-shrink-0">
         {featuredPhoto ? (
           <img src={photoUrl(featuredPhoto.url)} alt="" className="w-full h-full object-cover" />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-600 text-sm">No photo</div>
+          <div className="flex items-center justify-center h-full text-ink/30 text-sm">No photo</div>
         )}
         {sub.approved && (
-          <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+          <div className="absolute top-2 right-2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
             Live
           </div>
         )}
         {extraCount > 0 && (
-          <div className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-0.5 rounded-full">
+          <div className="absolute bottom-2 left-2 bg-ink/60 text-cream text-[10px] px-2 py-0.5 rounded-full">
             +{extraCount} more
           </div>
         )}
@@ -80,9 +80,9 @@ function SubmissionCard({
 
       <div className="p-4 flex flex-col gap-3 flex-1">
         <div>
-          <p className="text-white font-semibold text-sm">{sub.guestName}</p>
+          <p className="text-ink font-semibold text-sm">{sub.guestName}</p>
           {sub.message && (
-            <p className="text-gray-400 text-xs mt-1 leading-relaxed line-clamp-2 italic">"{sub.message}"</p>
+            <p className="text-ink/50 text-xs mt-1 leading-relaxed line-clamp-2 italic">"{sub.message}"</p>
           )}
         </div>
 
@@ -92,7 +92,7 @@ function SubmissionCard({
               <div
                 key={p.id}
                 className={`w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
-                  p.id === sub.featuredPhotoId ? 'border-amber-400' : 'border-transparent'
+                  p.id === sub.featuredPhotoId ? 'border-terra' : 'border-transparent'
                 }`}
               >
                 <img src={photoUrl(p.url)} alt="" className="w-full h-full object-cover" />
@@ -107,8 +107,8 @@ function SubmissionCard({
             disabled={loading || deleting}
             className={`w-full py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
               sub.approved
-                ? 'bg-white/10 hover:bg-red-500/20 text-gray-300 hover:text-red-400'
-                : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30'
+                ? 'bg-ink/5 hover:bg-red-50 text-ink/50 hover:text-red-600 border border-gold/20'
+                : 'bg-green-100 hover:bg-green-200 text-green-700 border border-green-200'
             }`}
           >
             {loading ? '…' : sub.approved ? 'Remove from feed' : 'Approve for feed'}
@@ -118,7 +118,7 @@ function SubmissionCard({
             <button
               onClick={() => setConfirmDelete(true)}
               disabled={loading || deleting}
-              className="w-full py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 bg-white/5 hover:bg-red-500/15 text-gray-500 hover:text-red-400 border border-white/10 hover:border-red-500/30"
+              className="w-full py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 bg-blush hover:bg-red-50 text-ink/40 hover:text-red-500 border border-gold/20 hover:border-red-200"
             >
               Delete
             </button>
@@ -127,14 +127,14 @@ function SubmissionCard({
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex-1 py-2 text-sm font-semibold rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50 transition-colors"
+                className="flex-1 py-2 text-sm font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50 transition-colors"
               >
                 {deleting ? 'Deleting…' : 'Confirm delete'}
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                className="flex-1 py-2 text-sm rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 transition-colors"
+                className="flex-1 py-2 text-sm rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20 transition-colors"
               >
                 Cancel
               </button>
@@ -166,7 +166,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
           setSubmissions(subs);
         }
       })
-      .catch(() => router.push('/'))
+      .catch(() => router.push('/dashboard'))
       .finally(() => setLoading(false));
   }, [params.id, router]);
 
@@ -225,8 +225,8 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   if (loading) {
     return (
       <DashboardShell>
-        <div className="flex items-center justify-center h-full">
-          <p className="text-gray-400 text-sm animate-pulse">Loading…</p>
+        <div className="min-h-full bg-cream flex items-center justify-center">
+          <p className="text-ink/40 text-sm animate-pulse">Loading…</p>
         </div>
       </DashboardShell>
     );
@@ -235,8 +235,8 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   if (!project || !project.gallery) {
     return (
       <DashboardShell>
-        <div className="px-8 py-8">
-          <p className="text-gray-400 text-sm">Gallery not found.</p>
+        <div className="min-h-full bg-cream px-8 py-8">
+          <p className="text-ink/40 text-sm">Gallery not found.</p>
         </div>
       </DashboardShell>
     );
@@ -254,21 +254,22 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
 
   return (
     <DashboardShell>
-      <div className="px-8 py-8 max-w-4xl">
+      <div className="min-h-full bg-cream px-4 py-6 md:px-8 md:py-8 max-w-4xl">
+
         {/* Header */}
         <div className="flex items-start justify-between mb-8 gap-4">
           <div>
             <button
               onClick={() => router.push(`/events/${params.id}`)}
-              className="text-xs text-gray-500 hover:text-gray-300 mb-2 block transition-colors"
+              className="text-xs text-ink/40 hover:text-ink mb-2 block transition-colors"
             >
               ← {project.title}
             </button>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-white">Glimpses</h1>
+              <h1 className="text-2xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>Glimpses</h1>
               <StatusBadge status={status} />
             </div>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-ink/40 mt-1">
               {submissions.length} submission{submissions.length !== 1 ? 's' : ''} · {approved.length} live
             </p>
           </div>
@@ -281,8 +282,8 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
                 disabled={togglingOpen}
                 className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border ${
                   status === 'open'
-                    ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 border-red-500/30'
-                    : 'bg-green-500/10 hover:bg-green-500/20 text-green-400 border-green-500/30'
+                    ? 'bg-red-50 hover:bg-red-100 text-red-600 border-red-200'
+                    : 'bg-green-100 hover:bg-green-200 text-green-700 border-green-200'
                 }`}
               >
                 {status === 'open' ? 'Pause submissions' : 'Resume submissions'}
@@ -291,23 +292,23 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
               {!confirmEnd ? (
                 <button
                   onClick={() => setConfirmEnd(true)}
-                  className="px-4 py-2 text-sm font-medium rounded-xl transition-colors border bg-white/5 hover:bg-white/10 text-gray-400 hover:text-gray-200 border-white/10"
+                  className="px-4 py-2 text-sm font-medium rounded-xl transition-colors border bg-blush hover:bg-gold/20 text-ink/50 hover:text-ink border-gold/30"
                 >
                   End event
                 </button>
               ) : (
                 <div className="flex gap-2 items-center">
-                  <span className="text-xs text-gray-400">Are you sure?</span>
+                  <span className="text-xs text-ink/50">Are you sure?</span>
                   <button
                     onClick={handleEndEvent}
                     disabled={ending}
-                    className="px-3 py-2 text-xs font-semibold rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50"
+                    className="px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
                   >
                     {ending ? 'Ending…' : 'Yes, end'}
                   </button>
                   <button
                     onClick={() => setConfirmEnd(false)}
-                    className="px-3 py-2 text-xs rounded-xl bg-white/5 hover:bg-white/10 text-gray-400"
+                    className="px-3 py-2 text-xs rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20"
                   >
                     Cancel
                   </button>
@@ -317,25 +318,25 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
           )}
         </div>
 
-        {/* Export banner — shown when event has ended */}
+        {/* Export banner */}
         {status === 'ended' && (
-          <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-5 py-4 flex items-center justify-between gap-4">
+          <div className="mb-6 rounded-2xl border border-gold/30 bg-blush px-5 py-4 flex items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-white">Download your Glimpses</p>
+              <p className="text-sm font-semibold text-ink">Download your Glimpses</p>
               {exportExpired ? (
-                <p className="text-xs text-gray-500 mt-0.5">Export window has expired · photos will be removed shortly</p>
+                <p className="text-xs text-ink/40 mt-0.5">Export window has expired · photos will be removed shortly</p>
               ) : (
-                <p className="text-xs text-gray-400 mt-0.5">
+                <p className="text-xs text-ink/50 mt-0.5">
                   ZIP of all approved photos · {exportWindowDays} day{exportWindowDays !== 1 ? 's' : ''} remaining
                 </p>
               )}
-              {downloadError && <p className="text-xs text-red-400 mt-1">{downloadError}</p>}
+              {downloadError && <p className="text-xs text-red-500 mt-1">{downloadError}</p>}
             </div>
             {!exportExpired && (
               <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="flex-shrink-0 px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/30"
+                className="flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 bg-terra hover:bg-terra/90 text-white"
               >
                 {downloading ? 'Preparing…' : 'Download ZIP'}
               </button>
@@ -344,14 +345,14 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
         )}
 
         {submissions.length === 0 ? (
-          <div className="text-center py-20 text-gray-500 text-sm">
+          <div className="text-center py-20 text-ink/40 text-sm">
             No submissions yet. Share the QR code with guests to get started.
           </div>
         ) : (
           <div className="flex flex-col gap-10">
             {pending.length > 0 && (
               <section>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">
+                <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest mb-4">
                   Pending review ({pending.length})
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -364,7 +365,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
 
             {approved.length > 0 && (
               <section>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-4">
+                <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest mb-4">
                   Live on feed ({approved.length})
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

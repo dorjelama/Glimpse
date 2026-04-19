@@ -72,7 +72,7 @@ function MomentForm({
   galleryId: string;
   onDone: () => void;
 }) {
-  const [name, setName] = useState('');
+  const [name, setName] = useState(() => localStorage.getItem('glimpse-guest-name') ?? '');
   const [caption, setCaption] = useState('');
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [submission, setSubmission] = useState<GallerySubmission | null>(null);
@@ -158,7 +158,7 @@ function MomentForm({
             type="text"
             maxLength={80}
             value={name}
-            onChange={e => setName(e.target.value)}
+            onChange={e => { setName(e.target.value); localStorage.setItem('glimpse-guest-name', e.target.value); }}
             placeholder="e.g. Jane Smith"
             className="w-full bg-white/5 text-white text-sm rounded-xl px-4 py-3 border border-white/10 focus:outline-none focus:border-amber-500/60 placeholder:text-gray-600"
           />

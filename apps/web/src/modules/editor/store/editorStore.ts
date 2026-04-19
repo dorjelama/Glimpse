@@ -3,6 +3,7 @@ import { immer } from 'zustand/middleware/immer';
 import type { CanvasElement, Page, GlimpseEvent } from '@/lib/api';
 import { api } from '@/lib/api';
 import { DEFAULT_STYLES, ELEMENT_DEFAULTS, ElementType } from '../types';
+import type { TemplatePageDef } from '../templates';
 import { useStatusStore } from '@/lib/statusStore';
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -72,6 +73,7 @@ interface EditorState {
   updateTitle: (title: string) => void;
   updateTransition: (type: string) => void;
 
+  applyTemplate: (pages: TemplatePageDef[]) => void;
   saveNow: () => Promise<void>;
   scheduleSave: () => void;
 
@@ -472,6 +474,27 @@ export const useEditorStore = create<EditorState>()(
 
     updateTransition: (type) => {
       set((s) => { if (s.event) s.event.pageTransition = type; });
+      get().scheduleSave();
+    },
+
+    applyTemplate: (templatePages) => {
+      set((s) => {
+        if (!s.event) return;
+        const existingIds = s.event.pages.map((p) => p.id);
+        s.event.pages = templatePages.map((tpl, i) => ({
+          id: existingIds[i] ?? `page_${Date.now()}_${i}`,
+          name: i === 0 ? 'Page 1' : `Page ${i + 1}`,
+          order: i,
+          backgroundColor: tpl.backgroundColor,
+          elements: tpl.elements.map((el, j) => ({
+            ...el,
+            id: `el_${Date.now()}_${j}_${Math.random().toString(36).slice(2, 6)}`,
+          })),
+        }));
+        s.currentPageId = s.event.pages[0]?.id ?? null;
+        s.selectedId = null;
+        s.selectedIds = [];
+      });
       get().scheduleSave();
     },
 
