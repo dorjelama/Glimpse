@@ -17,16 +17,22 @@ import CountdownElement from './elements/CountdownElement';
 
 const HANDLES: ResizeHandle[] = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
 
-const HANDLE_POSITIONS: Record<ResizeHandle, { top?: string; bottom?: string; left?: string; right?: string; cursor: string }> = {
-  nw: { top: '-4px', left: '-4px', cursor: 'nw-resize' },
-  n:  { top: '-4px', left: 'calc(50% - 4px)', cursor: 'n-resize' },
-  ne: { top: '-4px', right: '-4px', cursor: 'ne-resize' },
-  w:  { top: 'calc(50% - 4px)', left: '-4px', cursor: 'w-resize' },
-  e:  { top: 'calc(50% - 4px)', right: '-4px', cursor: 'e-resize' },
-  sw: { bottom: '-4px', left: '-4px', cursor: 'sw-resize' },
-  s:  { bottom: '-4px', left: 'calc(50% - 4px)', cursor: 's-resize' },
-  se: { bottom: '-4px', right: '-4px', cursor: 'se-resize' },
-};
+function handlePositions(size: number): Record<ResizeHandle, { top?: string; bottom?: string; left?: string; right?: string; cursor: string }> {
+  const half = size / 2;
+  const edge = `-${half}px`;
+  const midY = `calc(50% - ${half}px)`;
+  const midX = `calc(50% - ${half}px)`;
+  return {
+    nw: { top: edge, left: edge, cursor: 'nw-resize' },
+    n:  { top: edge, left: midX, cursor: 'n-resize' },
+    ne: { top: edge, right: edge, cursor: 'ne-resize' },
+    w:  { top: midY, left: edge, cursor: 'w-resize' },
+    e:  { top: midY, right: edge, cursor: 'e-resize' },
+    sw: { bottom: edge, left: edge, cursor: 'sw-resize' },
+    s:  { bottom: edge, left: midX, cursor: 's-resize' },
+    se: { bottom: edge, right: edge, cursor: 'se-resize' },
+  };
+}
 
 // Stable group-indicator colours keyed by a simple hash of groupId
 const GROUP_COLORS = ['#7c3aed', '#2563eb', '#16a34a', '#dc2626', '#d97706', '#db2777'];
@@ -133,6 +139,13 @@ function ElementWrapper({
   // Outline colour: group colour when part of a group, accent purple otherwise
   const outlineColor = groupId ? groupColor(groupId) : '#7c3aed';
 
+  // Counter-scale selection chrome so outline/handles stay visible & tappable
+  // regardless of canvas zoom. Clamped so they don't explode at very small scales.
+  const invScale = 1 / Math.max(scale, 0.05);
+  const outlineW = Math.min(8, Math.max(2, 2 * invScale));
+  const handleSize = Math.min(28, Math.max(10, 10 * invScale));
+  const handlePos = handlePositions(handleSize);
+
   return (
     <div
       onMouseDown={onMouseDown}
@@ -153,8 +166,8 @@ function ElementWrapper({
         zIndex: element.zIndex,
         cursor: isPreviewMode ? 'default' : 'move',
         userSelect: 'none',
-        outline: isSelected && !isPreviewMode ? `2px solid ${outlineColor}` : 'none',
-        outlineOffset: '1px',
+        outline: isSelected && !isPreviewMode ? `${outlineW}px solid ${outlineColor}` : 'none',
+        outlineOffset: `${Math.max(1, outlineW / 2)}px`,
       }}
     >
       {renderContent()}
@@ -179,14 +192,14 @@ function ElementWrapper({
             onMouseDown={onHandleMouseDown(handle)}
             style={{
               position: 'absolute',
-              width: 8,
-              height: 8,
+              width: handleSize,
+              height: handleSize,
               background: 'white',
-              border: `2px solid ${outlineColor}`,
-              borderRadius: '2px',
+              border: `${Math.max(2, outlineW)}px solid ${outlineColor}`,
+              borderRadius: '3px',
               zIndex: 9999,
-              ...HANDLE_POSITIONS[handle],
-              cursor: HANDLE_POSITIONS[handle].cursor,
+              ...handlePos[handle],
+              cursor: handlePos[handle].cursor,
             }}
           />
         ))}
@@ -231,9 +244,16 @@ export default function Canvas() {
     position: 'relative',
     overflow: 'hidden',
     transform: `scale(${scale})`,
-    transformOrigin: 'top center',
+    transformOrigin: 'top left',
     flexShrink: 0,
     boxShadow: '0 4px 32px rgba(0,0,0,0.18)',
+  };
+
+  // Wrapper takes the *scaled* layout size so no phantom space appears below
+  const wrapperStyle: React.CSSProperties = {
+    width: event.canvas.width * scale,
+    height: event.canvas.height * scale,
+    flexShrink: 0,
   };
 
   // Hidden elements are excluded from the canvas render (editor-only toggle)
@@ -244,9 +264,10 @@ export default function Canvas() {
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-auto flex items-start justify-center pt-8 pb-16"
+      className="flex-1 overflow-auto flex items-start justify-center pt-2 pb-2 md:pt-8 md:pb-16"
       style={{ background: '#e5e7eb' }}
     >
+      <div style={wrapperStyle}>
       <div
         ref={canvasRef}
         style={canvasStyle}
@@ -319,6 +340,7 @@ export default function Canvas() {
             />
           )
         )}
+      </div>
       </div>
     </div>
   );

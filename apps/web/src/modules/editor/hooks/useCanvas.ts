@@ -15,7 +15,7 @@ export function useCanvas() {
   const fitToContainer = useCallback(() => {
     if (!containerRef.current || !event) return;
     const container = containerRef.current;
-    const padding = 80;
+    const padding = window.innerWidth < 768 ? 24 : 80;
     const maxW = container.clientWidth - padding;
     const maxH = container.clientHeight - padding;
     const scaleW = maxW / event.canvas.width;

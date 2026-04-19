@@ -296,7 +296,7 @@ export default function PropertiesPanel({ mobile = false }: { mobile?: boolean }
 
   // === Element properties panel ===
   return (
-    <aside className="w-60 bg-panel border-l border-white/10 flex flex-col overflow-y-auto">
+    <aside className={mobile ? MOBILE_ASIDE : DESKTOP_ASIDE}>
 
       {/* Header: type label + z-index + lock toggle */}
       <div className="px-3 py-3 border-b border-white/10 flex items-center justify-between">

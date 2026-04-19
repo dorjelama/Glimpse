@@ -15,23 +15,41 @@ export default function TextElement({ element, isSelected, isPreview }: Props) {
   const updateElement = useEditorStore((s) => s.updateElement);
   const ref = useRef<HTMLDivElement>(null);
 
+  const enterEditMode = useCallback(() => {
+    if (!ref.current) return;
+    ref.current.contentEditable = 'true';
+    ref.current.focus();
+    // Place cursor at end
+    const range = document.createRange();
+    range.selectNodeContents(ref.current);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+  }, []);
+
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       if (isPreview) return;
       e.stopPropagation();
-      if (ref.current) {
-        ref.current.contentEditable = 'true';
-        ref.current.focus();
-        // Place cursor at end
-        const range = document.createRange();
-        range.selectNodeContents(ref.current);
-        range.collapse(false);
-        const sel = window.getSelection();
-        sel?.removeAllRanges();
-        sel?.addRange(range);
-      }
+      enterEditMode();
     },
-    [isPreview],
+    [isPreview, enterEditMode],
+  );
+
+  // On touch devices, a tap on an already-selected text element enters edit mode
+  // (desktop still uses double-click; avoids breaking single-click selection behaviour)
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (isPreview || !isSelected) return;
+      const isTouch =
+        typeof window !== 'undefined' &&
+        window.matchMedia('(hover: none), (pointer: coarse)').matches;
+      if (!isTouch) return;
+      e.stopPropagation();
+      enterEditMode();
+    },
+    [isPreview, isSelected, enterEditMode],
   );
 
   const handleBlur = useCallback(() => {
@@ -52,6 +70,7 @@ export default function TextElement({ element, isSelected, isPreview }: Props) {
     <div
       ref={ref}
       onDoubleClick={handleDoubleClick}
+      onClick={handleClick}
       onBlur={handleBlur}
       onKeyDown={handleKeyDown}
       suppressContentEditableWarning

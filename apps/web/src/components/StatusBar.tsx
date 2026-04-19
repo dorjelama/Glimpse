@@ -73,9 +73,10 @@ export default function StatusBar() {
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-50 transition-transform duration-200 ease-out ${
+      className={`fixed left-0 right-0 z-50 transition-transform duration-200 ease-out ${
         visible ? 'translate-y-0' : 'translate-y-full'
       }`}
+      style={{ bottom: 'var(--mobile-bar-h, 0px)' }}
     >
       {/* Progress bar — sits as a 2px strip along the very top edge */}
       <div className="relative h-0.5 bg-white/5">
