@@ -34,17 +34,26 @@ function StatusBadge({ status }: { status: 'open' | 'closed' | 'ended' }) {
 function SubmissionCard({
   sub,
   onToggle,
+  onDelete,
 }: {
   sub: GallerySubmission;
   onToggle: (sub: GallerySubmission) => Promise<void>;
+  onDelete: (sub: GallerySubmission) => Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const featuredPhoto = sub.photos.find(p => p.id === sub.featuredPhotoId) ?? sub.photos[0];
   const extraCount = sub.photos.length - 1;
 
   const handleToggle = async () => {
     setLoading(true);
     try { await onToggle(sub); } finally { setLoading(false); }
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try { await onDelete(sub); } finally { setDeleting(false); setConfirmDelete(false); }
   };
 
   return (
@@ -92,17 +101,46 @@ function SubmissionCard({
           </div>
         )}
 
-        <button
-          onClick={handleToggle}
-          disabled={loading}
-          className={`w-full py-2 text-sm font-medium rounded-xl transition-colors mt-auto disabled:opacity-50 ${
-            sub.approved
-              ? 'bg-white/10 hover:bg-red-500/20 text-gray-300 hover:text-red-400'
-              : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30'
-          }`}
-        >
-          {loading ? '…' : sub.approved ? 'Remove from feed' : 'Approve for feed'}
-        </button>
+        <div className="flex flex-col gap-2 mt-auto">
+          <button
+            onClick={handleToggle}
+            disabled={loading || deleting}
+            className={`w-full py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
+              sub.approved
+                ? 'bg-white/10 hover:bg-red-500/20 text-gray-300 hover:text-red-400'
+                : 'bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/30'
+            }`}
+          >
+            {loading ? '…' : sub.approved ? 'Remove from feed' : 'Approve for feed'}
+          </button>
+
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              disabled={loading || deleting}
+              className="w-full py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 bg-white/5 hover:bg-red-500/15 text-gray-500 hover:text-red-400 border border-white/10 hover:border-red-500/30"
+            >
+              Delete
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="flex-1 py-2 text-sm font-semibold rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 disabled:opacity-50 transition-colors"
+              >
+                {deleting ? 'Deleting…' : 'Confirm delete'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                disabled={deleting}
+                className="flex-1 py-2 text-sm rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -136,6 +174,12 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
     if (!project?.gallery) return;
     const updated = await api.approveSubmission(project.gallery.id, sub.id, !sub.approved);
     setSubmissions(prev => prev.map(s => s.id === updated.id ? updated : s));
+  };
+
+  const handleDelete = async (sub: GallerySubmission) => {
+    if (!project?.gallery) return;
+    await api.deleteSubmission(project.gallery.id, sub.id);
+    setSubmissions(prev => prev.filter(s => s.id !== sub.id));
   };
 
   const handleToggleOpen = async () => {
@@ -312,7 +356,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {pending.map(sub => (
-                    <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} />
+                    <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
                   ))}
                 </div>
               </section>
@@ -325,7 +369,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {approved.map(sub => (
-                    <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} />
+                    <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
                   ))}
                 </div>
               </section>

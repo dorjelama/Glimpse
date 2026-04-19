@@ -135,6 +135,20 @@ export class MomentsController {
     return this.momentsService.setApproved(galleryId, submissionId, dto.approved, req.user.userId);
   }
 
+  @Delete(':galleryId/submissions/:id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Delete a submission permanently (host only)' })
+  @ApiParam({ name: 'galleryId' })
+  @ApiParam({ name: 'id', description: 'Submission ID' })
+  deleteSubmission(
+    @Param('galleryId') galleryId: string,
+    @Param('id') submissionId: string,
+    @Req() req: any,
+  ) {
+    return this.momentsService.deleteSubmission(galleryId, submissionId, req.user.userId);
+  }
+
   @Patch(':galleryId/open')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT')

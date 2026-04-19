@@ -134,6 +134,9 @@ export const api = {
       body: JSON.stringify({ approved }),
     }),
 
+  deleteSubmission: (galleryId: string, submissionId: string) =>
+    request<void>(`/gallery/${galleryId}/submissions/${submissionId}`, { method: 'DELETE' }),
+
   setGalleryOpen: (galleryId: string, isOpen: boolean) =>
     request<{ id: string; isOpen: boolean }>(`/gallery/${galleryId}/open`, {
       method: 'PATCH',

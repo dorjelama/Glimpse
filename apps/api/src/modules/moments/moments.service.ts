@@ -111,6 +111,13 @@ export class MomentsService {
     });
   }
 
+  async deleteSubmission(galleryId: string, submissionId: string, ownerId: string) {
+    await this.verifyGalleryOwnership(galleryId, ownerId);
+    const sub = await this.prisma.gallerySubmission.findUnique({ where: { id: submissionId } });
+    if (!sub || sub.galleryId !== galleryId) throw new NotFoundException('Submission not found');
+    await this.prisma.gallerySubmission.delete({ where: { id: submissionId } });
+  }
+
   // ── Public live feed ─────────────────────────────────────────────────────
 
   async getFeed(galleryId: string) {
