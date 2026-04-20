@@ -90,6 +90,14 @@ function MomentForm({
       message: caption.trim() || undefined,
     });
     setSubmission(sub);
+    try {
+      const key = `glimpse-tokens:${galleryId}`;
+      const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]');
+      if (!existing.includes(sub.token)) {
+        existing.push(sub.token);
+        localStorage.setItem(key, JSON.stringify(existing.slice(-20)));
+      }
+    } catch { /* ignore storage errors */ }
     return sub;
   };
 

@@ -125,18 +125,26 @@ export class MomentsService {
 
   // ── Public live feed ─────────────────────────────────────────────────────
 
-  async getFeed(galleryId: string, sessionId?: string) {
+  async getFeed(galleryId: string, sessionId?: string, tokens?: string[]) {
     const gallery = await this.prisma.gallery.findUnique({
       where: { id: galleryId },
       include: { project: { select: { title: true } } },
     });
     if (!gallery) throw new NotFoundException('Gallery not found');
 
-    const submissions = await this.prisma.gallerySubmission.findMany({
+    const approved = await this.prisma.gallerySubmission.findMany({
       where: { galleryId, approved: true },
       include: { photos: { orderBy: { createdAt: 'asc' as const } } },
       orderBy: { updatedAt: 'desc' as const },
     });
+
+    const ownPending = tokens && tokens.length > 0
+      ? await this.prisma.gallerySubmission.findMany({
+          where: { galleryId, approved: false, token: { in: tokens } },
+          include: { photos: { orderBy: { createdAt: 'asc' as const } } },
+          orderBy: { updatedAt: 'desc' as const },
+        })
+      : [];
 
     const counts = await this.aggregateCountsByGallery(galleryId);
 
@@ -153,8 +161,13 @@ export class MomentsService {
       }
     }
 
-    const mapped = submissions.map(sub => ({
+    const merged = [...ownPending, ...approved].sort(
+      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
+    );
+
+    const mapped = merged.map(sub => ({
       ...sub,
+      pending: !sub.approved,
       reactionCounts: counts.get(sub.id) ?? {},
       myReactions: mineMap.get(sub.id) ?? [],
     }));

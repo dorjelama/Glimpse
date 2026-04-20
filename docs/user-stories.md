@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-20 — H11 resolved_
+_Last updated: 2026-04-20 — V1/V2 live feed real-time + reactions scale fix_
 
 ---
 
@@ -75,11 +75,11 @@ _Last updated: 2026-04-20 — H11 resolved_
 
 | # | Story | Current state | Gap |
 |---|-------|--------------|-----|
-| V1 | Open the feed on my phone and see live glimpses | `/g/[galleryId]/feed` renders approved posts as a timeline with timestamps. Polls every 10s. Manual refresh button in header. | ✅ Enhanced — timeline layout with clock time + relative time per post. |
-| V2 | See new photos appear without refreshing | New submissions get "New" badge after poll. Amber dot on timeline spine for fresh posts. | Solid. |
+| V1 | Open the feed on my phone and see live glimpses | `/g/[galleryId]/feed` renders approved posts as a timeline. Initial fetch + live SSE stream over `/gallery/:id/feed/stream`. Manual refresh button in header. | ✅ Resolved — timeline + real-time. |
+| V2 | See new photos appear without refreshing | SSE pushes `submission.approved` / `submission.deleted` / `reaction.changed` events (~1s latency). "New" badge + amber spine dot for fresh posts. Falls back to 30s polling if SSE fails 3× or unavailable. | ✅ Resolved |
 | V3 | Know the event is active or over | Open/Closed indicator in header. Post-event banner when `endedAt` is set. | Solid. |
 | V4 | Navigate a feed with 100+ posts | Infinite scroll down the page. | **No pagination or lazy loading.** 100+ posts with images will be slow and memory-heavy on mobile. |
-| V5 | React to a post | Reaction bar with 6 emojis (❤️ 🎉 😂 😮 👏 🥰). Counts synced across all devices via DB. Per-device state via persistent session ID. Optimistic updates, server-reconciled. | ✅ Resolved |
+| V5 | React to a post | Reaction bar with 6 emojis (❤️ 🎉 😂 😮 👏 🥰). Counts synced across devices via DB + SSE broadcast. Per-device state via persistent session ID. Optimistic UI, server-reconciled. Counts aggregated in SQL (`groupBy`), `sessionId` indexed. Rate-limited 30/min per session+IP. | ✅ Resolved |
 | V6 | See the feed on a projector at the venue | Regular mobile feed page. | **No Projection Mode** (documented as future). The feed isn't designed for a large screen. Small text, portrait layout, no auto-scroll. |
 | V7 | Feel the feed is part of the event's identity | Generic dark header, amber accent. | **No brand continuity from the card.** The invitation card can be beautifully designed, but the feed has no connection to those colors, fonts, or style. |
 | V8 | Find the upload page from the feed | Feed shows a "Share your glimpse" CTA when gallery is open, linking to `/g/[galleryId]`. | ✅ Resolved |

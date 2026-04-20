@@ -14,6 +14,14 @@ function getSessionId(): string {
   }
   return id;
 }
+
+function getOwnTokens(galleryId: string): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(`glimpse-tokens:${galleryId}`) || '[]');
+  } catch {
+    return [];
+  }
+}
 const POLL_FALLBACK_MS = 30_000;
 const SSE_FAIL_THRESHOLD = 3;
 
@@ -33,6 +41,7 @@ interface FeedSubmission {
   updatedAt: string;
   reactionCounts: Record<string, number>;
   myReactions: string[];
+  pending?: boolean;
 }
 
 interface FeedData {
@@ -92,6 +101,7 @@ function PostCard({ sub, fresh, onReact }: {
   const reactionCounts = sub.reactionCounts ?? {};
   const featured = sub.photos.find(p => p.id === sub.featuredPhotoId) ?? sub.photos[0];
   const rest = sub.photos.filter(p => p.id !== featured?.id);
+  const pending = !!sub.pending;
 
   return (
     <article
@@ -100,7 +110,11 @@ function PostCard({ sub, fresh, onReact }: {
           ? 'ring-2 ring-amber-400/70 shadow-amber-200/40'
           : 'ring-0'
       }`}
-      style={{ backgroundColor: '#fffdf7', border: '1px solid #e8d9bd' }}
+      style={{
+        backgroundColor: '#fffdf7',
+        border: pending ? '1px dashed #d4a574' : '1px solid #e8d9bd',
+        opacity: pending ? 0.92 : 1,
+      }}
     >
       {/* Author row */}
       <div className="flex items-center gap-3 px-4 pt-4 pb-2">
@@ -113,9 +127,17 @@ function PostCard({ sub, fresh, onReact }: {
         <div className="min-w-0">
           <p className="font-semibold text-sm leading-tight truncate" style={{ color: '#2d1a00' }}>
             {sub.guestName}
+            {pending && (
+              <span className="ml-1.5 text-[10px] font-normal" style={{ color: '#b07050' }}>(you)</span>
+            )}
           </p>
         </div>
-        {fresh && (
+        {pending ? (
+          <span className="ml-auto text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full flex-shrink-0"
+            style={{ backgroundColor: '#fde8d1', color: '#92400e' }}>
+            Pending
+          </span>
+        ) : fresh && (
           <span className="ml-auto text-[10px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full flex-shrink-0"
             style={{ backgroundColor: '#fef3c7', color: '#b45309' }}>
             New
@@ -171,7 +193,15 @@ function PostCard({ sub, fresh, onReact }: {
         </div>
       )}
 
-      {/* Reactions */}
+      {/* Pending notice — only visible to the uploader */}
+      {pending && (
+        <div className="px-4 py-3 text-[11px]" style={{ borderTop: '1px solid #f0e0c8', color: '#8a6840', backgroundColor: '#fff8ec' }}>
+          Visible only to you — waiting for host approval.
+        </div>
+      )}
+
+      {/* Reactions (hidden while pending) */}
+      {!pending && (
       <div className="px-3 py-3" style={{ borderTop: '1px solid #f0e0c8' }}>
         <div className="flex items-center justify-between">
           <div className="flex gap-1 flex-wrap">
@@ -205,6 +235,7 @@ function PostCard({ sub, fresh, onReact }: {
           </span>
         </div>
       </div>
+      )}
     </article>
   );
 }
@@ -238,7 +269,10 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
   const fetchFeed = useCallback(async () => {
     try {
       const sessionId = getSessionId();
-      const res = await fetch(`${API_URL}/gallery/${params.galleryId}/feed?sessionId=${sessionId}`);
+      const tokens = getOwnTokens(params.galleryId);
+      const qs = new URLSearchParams({ sessionId });
+      if (tokens.length > 0) qs.set('tokens', tokens.join(','));
+      const res = await fetch(`${API_URL}/gallery/${params.galleryId}/feed?${qs}`);
       if (!res.ok) { setError(true); return; }
       const json: FeedData = await res.json();
 
@@ -316,9 +350,15 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
           if (event.type === 'submission.approved') {
             const s = event.payload as FeedSubmission;
             setSubmissions(prev => {
-              if (prev.some(p => p.id === s.id)) return prev;
+              const existingIdx = prev.findIndex(p => p.id === s.id);
+              if (existingIdx >= 0) {
+                // Replace pending (or refreshed) entry in place, preserve myReactions
+                const next = [...prev];
+                next[existingIdx] = { ...s, pending: false, myReactions: prev[existingIdx].myReactions };
+                return next;
+              }
               seenRef.current.add(s.id);
-              return [s, ...prev];
+              return [{ ...s, pending: false }, ...prev];
             });
             markFresh(s.id);
           } else if (event.type === 'submission.deleted') {

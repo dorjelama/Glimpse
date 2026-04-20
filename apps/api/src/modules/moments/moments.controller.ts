@@ -151,8 +151,10 @@ export class MomentsController {
   getFeed(
     @Param('galleryId') galleryId: string,
     @Query('sessionId') sessionId?: string,
+    @Query('tokens') tokens?: string,
   ) {
-    return this.momentsService.getFeed(galleryId, sessionId);
+    const tokenList = tokens ? tokens.split(',').map(t => t.trim()).filter(Boolean).slice(0, 20) : undefined;
+    return this.momentsService.getFeed(galleryId, sessionId, tokenList);
   }
 
   @Sse(':galleryId/feed/stream')
