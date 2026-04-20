@@ -98,6 +98,10 @@ export function useDrag({ element, canvasRef, scale }: UseDragOptions) {
     (e: React.PointerEvent) => {
       if (isPreviewMode) return;
       if ((e.target as HTMLElement).dataset.handle) return;
+      // Don't hijack pointer events while the user is editing text inside a
+      // contentEditable child — caret placement and text selection need the
+      // native browser behaviour.
+      if ((e.target as HTMLElement).isContentEditable) return;
       // Ignore non-primary mouse buttons; accept all touch/pen.
       if (e.pointerType === 'mouse' && e.button !== 0) return;
 
