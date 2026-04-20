@@ -13,7 +13,10 @@ import {
   UseGuards,
   Req,
   Res,
+  Sse,
+  MessageEvent,
 } from '@nestjs/common';
+import { Observable, interval, merge, map } from 'rxjs';
 import { existsSync, unlink } from 'fs';
 import archiver from 'archiver';
 import { Response } from 'express';
@@ -25,6 +28,7 @@ import * as sharp from 'sharp';
 import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MomentsService } from './moments.service';
+import { FeedEventsService } from './feed-events.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { SetFeaturedDto } from './dto/set-featured.dto';
 import { ApproveSubmissionDto } from './dto/approve-submission.dto';
@@ -32,6 +36,28 @@ import { SetGalleryOpenDto } from './dto/set-gallery-open.dto';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 const HEIC_TYPES = new Set(['image/heic', 'image/heif']);
+
+// In-memory token bucket: 30 reactions/min per key. Evicts buckets after 5 min idle.
+const REACTION_RATE_MAX = 30;
+const REACTION_RATE_WINDOW_MS = 60_000;
+const reactionBuckets = new Map<string, { count: number; resetAt: number }>();
+function reactionRateLimiter(key: string): boolean {
+  const now = Date.now();
+  const b = reactionBuckets.get(key);
+  if (!b || now >= b.resetAt) {
+    reactionBuckets.set(key, { count: 1, resetAt: now + REACTION_RATE_WINDOW_MS });
+    return true;
+  }
+  if (b.count >= REACTION_RATE_MAX) return false;
+  b.count++;
+  return true;
+}
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, b] of reactionBuckets) {
+    if (now >= b.resetAt + REACTION_RATE_WINDOW_MS * 4) reactionBuckets.delete(k);
+  }
+}, 5 * 60_000).unref?.();
 
 const storage = diskStorage({
   destination: join(process.cwd(), 'uploads'),
@@ -43,7 +69,10 @@ const storage = diskStorage({
 @ApiTags('Moments')
 @Controller('gallery')
 export class MomentsController {
-  constructor(private readonly momentsService: MomentsService) {}
+  constructor(
+    private readonly momentsService: MomentsService,
+    private readonly feedEvents: FeedEventsService,
+  ) {}
 
   @Get(':galleryId')
   @ApiOperation({ summary: 'Get gallery info (public)' })
@@ -126,14 +155,32 @@ export class MomentsController {
     return this.momentsService.getFeed(galleryId, sessionId);
   }
 
+  @Sse(':galleryId/feed/stream')
+  @ApiOperation({ summary: 'Subscribe to live feed events via Server-Sent Events (public)' })
+  @ApiParam({ name: 'galleryId' })
+  streamFeed(@Param('galleryId') galleryId: string): Observable<MessageEvent> {
+    const events$ = this.feedEvents.subscribe(galleryId).pipe(
+      map((event) => ({ data: event }) as MessageEvent),
+    );
+    const heartbeat$ = interval(25_000).pipe(
+      map(() => ({ type: 'ping', data: {} }) as MessageEvent),
+    );
+    return merge(events$, heartbeat$);
+  }
+
   @Post('submission/:submissionId/react')
   @ApiOperation({ summary: 'Toggle an emoji reaction on a submission (public, session-based)' })
   toggleReaction(
     @Param('submissionId') submissionId: string,
     @Body('sessionId') sessionId: string,
     @Body('emoji') emoji: string,
+    @Req() req: any,
   ) {
     if (!sessionId || !emoji) throw new BadRequestException('sessionId and emoji are required');
+    const ip = (req.ip ?? req.socket?.remoteAddress ?? 'unknown') as string;
+    if (!reactionRateLimiter(`${sessionId}:${ip}`)) {
+      throw new BadRequestException('Too many reactions — slow down');
+    }
     return this.momentsService.toggleReaction(submissionId, sessionId, emoji);
   }
 

@@ -103,6 +103,7 @@ model SubmissionReaction {
 
   @@unique([submissionId, sessionId, emoji])
   @@index([submissionId])
+  @@index([sessionId])
   @@map("submission_reactions")
 }
 

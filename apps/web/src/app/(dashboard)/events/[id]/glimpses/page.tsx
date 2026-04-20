@@ -257,7 +257,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
       <div className="min-h-full bg-cream px-4 py-6 md:px-8 md:py-8 max-w-4xl">
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-8 gap-4">
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-4">
           <div>
             <button
               onClick={() => router.push(`/events/${params.id}`)}
@@ -276,11 +276,11 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
 
           {/* Gallery controls */}
           {status !== 'ended' && (
-            <div className="mt-7 flex gap-2 flex-shrink-0">
+            <div className="flex gap-2 flex-shrink-0 md:mt-7 w-full md:w-auto">
               <button
                 onClick={handleToggleOpen}
                 disabled={togglingOpen}
-                className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border ${
+                className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border ${
                   status === 'open'
                     ? 'bg-red-50 hover:bg-red-100 text-red-600 border-red-200'
                     : 'bg-green-100 hover:bg-green-200 text-green-700 border-green-200'
@@ -292,23 +292,23 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
               {!confirmEnd ? (
                 <button
                   onClick={() => setConfirmEnd(true)}
-                  className="px-4 py-2 text-sm font-medium rounded-xl transition-colors border bg-blush hover:bg-gold/20 text-ink/50 hover:text-ink border-gold/30"
+                  className="flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-xl transition-colors border bg-blush hover:bg-gold/20 text-ink/50 hover:text-ink border-gold/30"
                 >
                   End event
                 </button>
               ) : (
-                <div className="flex gap-2 items-center">
-                  <span className="text-xs text-ink/50">Are you sure?</span>
+                <div className="flex-1 md:flex-none flex gap-2 items-center">
+                  <span className="hidden md:inline text-xs text-ink/50">Are you sure?</span>
                   <button
                     onClick={handleEndEvent}
                     disabled={ending}
-                    className="px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
+                    className="flex-1 md:flex-none px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
                   >
                     {ending ? 'Ending…' : 'Yes, end'}
                   </button>
                   <button
                     onClick={() => setConfirmEnd(false)}
-                    className="px-3 py-2 text-xs rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20"
+                    className="flex-1 md:flex-none px-3 py-2 text-xs rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20"
                   >
                     Cancel
                   </button>

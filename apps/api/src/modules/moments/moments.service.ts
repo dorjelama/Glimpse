@@ -8,6 +8,7 @@ import {
 import { join, extname } from 'path';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { FeedEventsService } from './feed-events.service';
 
 const EXPORT_WINDOW_DAYS = 30;
 
@@ -19,7 +20,10 @@ const SUBMISSION_INCLUDE = {
 
 @Injectable()
 export class MomentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly feedEvents: FeedEventsService,
+  ) {}
 
   async getGallery(galleryId: string) {
     const gallery = await this.prisma.gallery.findUnique({
@@ -116,6 +120,7 @@ export class MomentsService {
     const sub = await this.prisma.gallerySubmission.findUnique({ where: { id: submissionId } });
     if (!sub || sub.galleryId !== galleryId) throw new NotFoundException('Submission not found');
     await this.prisma.gallerySubmission.delete({ where: { id: submissionId } });
+    this.feedEvents.publish(galleryId, { type: 'submission.deleted', payload: { id: submissionId } });
   }
 
   // ── Public live feed ─────────────────────────────────────────────────────
@@ -129,25 +134,58 @@ export class MomentsService {
 
     const submissions = await this.prisma.gallerySubmission.findMany({
       where: { galleryId, approved: true },
-      include: {
-        photos: { orderBy: { createdAt: 'asc' as const } },
-        reactions: true,
-      },
+      include: { photos: { orderBy: { createdAt: 'asc' as const } } },
       orderBy: { updatedAt: 'desc' as const },
     });
 
-    const mapped = submissions.map(sub => {
-      const counts: Record<string, number> = {};
-      const mine: string[] = [];
-      for (const r of sub.reactions) {
-        counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
-        if (sessionId && r.sessionId === sessionId) mine.push(r.emoji);
+    const counts = await this.aggregateCountsByGallery(galleryId);
+
+    const mineMap = new Map<string, string[]>();
+    if (sessionId) {
+      const mineRows = await this.prisma.submissionReaction.findMany({
+        where: { sessionId, submission: { galleryId } },
+        select: { submissionId: true, emoji: true },
+      });
+      for (const r of mineRows) {
+        const list = mineMap.get(r.submissionId) ?? [];
+        list.push(r.emoji);
+        mineMap.set(r.submissionId, list);
       }
-      const { reactions: _, ...rest } = sub;
-      return { ...rest, reactionCounts: counts, myReactions: mine };
-    });
+    }
+
+    const mapped = submissions.map(sub => ({
+      ...sub,
+      reactionCounts: counts.get(sub.id) ?? {},
+      myReactions: mineMap.get(sub.id) ?? [],
+    }));
 
     return { gallery, submissions: mapped };
+  }
+
+  private async aggregateCountsByGallery(galleryId: string) {
+    const grouped = await this.prisma.submissionReaction.groupBy({
+      by: ['submissionId', 'emoji'],
+      where: { submission: { galleryId, approved: true } },
+      _count: { _all: true },
+    });
+    const counts = new Map<string, Record<string, number>>();
+    for (const g of grouped) {
+      const byEmoji = counts.get(g.submissionId) ?? {};
+      byEmoji[g.emoji] = g._count._all;
+      counts.set(g.submissionId, byEmoji);
+    }
+    return counts;
+  }
+
+  private async countsForSubmission(submissionId: string): Promise<Record<string, number>> {
+    const grouped = await this.prisma.submissionReaction.groupBy({
+      by: ['emoji'],
+      where: { submissionId },
+      _count: { _all: true },
+    });
+    const counts: Record<string, number> = {};
+    for (const g of grouped) counts[g.emoji] = g._count._all;
+    return counts;
   }
 
   // ── Reactions (public, session-based) ────────────────────────────────────
@@ -165,14 +203,29 @@ export class MomentsService {
       });
     }
 
-    const reactions = await this.prisma.submissionReaction.findMany({ where: { submissionId } });
-    const counts: Record<string, number> = {};
-    const mine: string[] = [];
-    for (const r of reactions) {
-      counts[r.emoji] = (counts[r.emoji] ?? 0) + 1;
-      if (r.sessionId === sessionId) mine.push(r.emoji);
-    }
-    return { reactionCounts: counts, myReactions: mine };
+    const [reactionCounts, mineRows] = await Promise.all([
+      this.countsForSubmission(submissionId),
+      this.prisma.submissionReaction.findMany({
+        where: { submissionId, sessionId },
+        select: { emoji: true },
+      }),
+    ]);
+    const myReactions = mineRows.map(r => r.emoji);
+
+    this.feedEvents.publish(await this.galleryIdForSubmission(submissionId), {
+      type: 'reaction.changed',
+      payload: { submissionId, reactionCounts },
+    });
+
+    return { reactionCounts, myReactions };
+  }
+
+  private async galleryIdForSubmission(submissionId: string): Promise<string> {
+    const row = await this.prisma.gallerySubmission.findUnique({
+      where: { id: submissionId },
+      select: { galleryId: true },
+    });
+    return row?.galleryId ?? '';
   }
 
   // ── Host moderation ───────────────────────────────────────────────────────
@@ -200,11 +253,23 @@ export class MomentsService {
     await this.verifyGalleryOwnership(galleryId, ownerId);
     const sub = await this.prisma.gallerySubmission.findUnique({ where: { id: submissionId } });
     if (!sub || sub.galleryId !== galleryId) throw new NotFoundException('Submission not found');
-    return this.prisma.gallerySubmission.update({
+    const updated = await this.prisma.gallerySubmission.update({
       where: { id: submissionId },
       data: { approved },
       include: { photos: { orderBy: { createdAt: 'asc' as const } } },
     });
+
+    if (approved) {
+      const reactionCounts = await this.countsForSubmission(submissionId);
+      this.feedEvents.publish(galleryId, {
+        type: 'submission.approved',
+        payload: { ...updated, reactionCounts, myReactions: [] },
+      });
+    } else {
+      this.feedEvents.publish(galleryId, { type: 'submission.deleted', payload: { id: submissionId } });
+    }
+
+    return updated;
   }
 
   async setGalleryOpen(galleryId: string, isOpen: boolean, ownerId: string) {

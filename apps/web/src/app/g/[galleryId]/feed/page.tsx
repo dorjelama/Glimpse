@@ -14,7 +14,8 @@ function getSessionId(): string {
   }
   return id;
 }
-const POLL_MS = 10_000;
+const POLL_FALLBACK_MS = 30_000;
+const SSE_FAIL_THRESHOLD = 3;
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -271,11 +272,88 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
     }
   }, [params.galleryId]);
 
+  const markFresh = useCallback((id: string) => {
+    setFreshIds(prev => new Set(prev).add(id));
+    setTimeout(() => {
+      setFreshIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }, 6_000);
+  }, []);
+
   useEffect(() => {
     fetchFeed();
-    const id = setInterval(fetchFeed, POLL_MS);
-    return () => clearInterval(id);
-  }, [fetchFeed]);
+
+    if (typeof EventSource === 'undefined') {
+      const id = setInterval(fetchFeed, POLL_FALLBACK_MS);
+      return () => clearInterval(id);
+    }
+
+    let es: EventSource | null = null;
+    let pollId: ReturnType<typeof setInterval> | null = null;
+    let failures = 0;
+    let closed = false;
+
+    const startPollingFallback = () => {
+      if (pollId) return;
+      pollId = setInterval(fetchFeed, POLL_FALLBACK_MS);
+    };
+
+    const connect = () => {
+      if (closed) return;
+      es = new EventSource(`${API_URL}/gallery/${params.galleryId}/feed/stream`);
+
+      es.onopen = () => {
+        failures = 0;
+        if (pollId) { clearInterval(pollId); pollId = null; }
+      };
+
+      es.onmessage = (e) => {
+        try {
+          const event = JSON.parse(e.data);
+          if (event.type === 'submission.approved') {
+            const s = event.payload as FeedSubmission;
+            setSubmissions(prev => {
+              if (prev.some(p => p.id === s.id)) return prev;
+              seenRef.current.add(s.id);
+              return [s, ...prev];
+            });
+            markFresh(s.id);
+          } else if (event.type === 'submission.deleted') {
+            const { id } = event.payload;
+            seenRef.current.delete(id);
+            setSubmissions(prev => prev.filter(s => s.id !== id));
+          } else if (event.type === 'reaction.changed') {
+            const { submissionId, reactionCounts } = event.payload;
+            setSubmissions(prev => prev.map(s =>
+              s.id === submissionId ? { ...s, reactionCounts } : s
+            ));
+          }
+        } catch { /* ignore malformed */ }
+      };
+
+      es.onerror = () => {
+        failures++;
+        es?.close();
+        es = null;
+        if (failures >= SSE_FAIL_THRESHOLD) {
+          startPollingFallback();
+        } else {
+          setTimeout(connect, 2_000 * failures);
+        }
+      };
+    };
+
+    connect();
+
+    return () => {
+      closed = true;
+      es?.close();
+      if (pollId) clearInterval(pollId);
+    };
+  }, [fetchFeed, markFresh, params.galleryId]);
 
   // ── Shell ──────────────────────────────────────────────────────────────────
 

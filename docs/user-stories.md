@@ -86,6 +86,7 @@ _Last updated: 2026-04-20 — H11 resolved_
 
 ### Viewer drop-off moments
 - **V5** — Viewer scrolls the feed once, has nothing to do, closes it. Repeat opens drop sharply because there's no interaction to pull them back.
+may be show them how to create icon so that they have icons that can open feed directly from ios and andriod
 
 ---
 
@@ -103,17 +104,7 @@ _Last updated: 2026-04-20 — H11 resolved_
 | 8 | No QR code guidance for hosts | H6 | Open — SVG format, no usage instructions. |
 | 9 | No pagination / lazy loading on feed | V4 | Open — 100+ posts will be slow on mobile. |
 
-### Resolved
-| Gap | Story refs | Resolution |
-|-----|-----------|------------|
-| Submission/pending count not visible on dashboard | H11 | Live count + pending chip on project cards. |
-| No reactions on feed | V5 | 6 emoji reactions, cross-device synced via DB. |
-| Guest name not persisted between sessions | G4 | Name saved to localStorage, restored on return. |
-| No card templates — blank canvas on first open | H3 | Template picker with 4 layouts + blank canvas. |
-| No "Share a Glimpse" entry point on card | G2 | Floating button on published card links to upload page. |
-| No live feed link after uploading | G7 | "See the live feed →" on thank-you screen. |
-| HEIC photos fail on iPhone | G5 | Server-side HEIC → JPEG conversion via Sharp. |
-
-
 ## Enhancements
-Feedback feature from host and viewer
+- Feedback feature from host and viewer
+- S3 CDN
+- Seperate guest module.
