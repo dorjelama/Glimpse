@@ -15,12 +15,25 @@ function getSessionId(): string {
   return id;
 }
 
-function getOwnTokens(galleryId: string): string[] {
+function getTokenMap(galleryId: string): Record<string, string> {
   try {
-    return JSON.parse(localStorage.getItem(`glimpse-tokens:${galleryId}`) || '[]');
+    return JSON.parse(localStorage.getItem(`glimpse-token-map:${galleryId}`) || '{}');
   } catch {
-    return [];
+    return {};
   }
+}
+
+function getOwnTokens(galleryId: string): string[] {
+  return Object.values(getTokenMap(galleryId));
+}
+
+function removeTokenEntry(galleryId: string, submissionId: string) {
+  try {
+    const key = `glimpse-token-map:${galleryId}`;
+    const map = getTokenMap(galleryId);
+    delete map[submissionId];
+    localStorage.setItem(key, JSON.stringify(map));
+  } catch { /* ignore */ }
 }
 const POLL_FALLBACK_MS = 30_000;
 const SSE_FAIL_THRESHOLD = 3;
@@ -92,10 +105,11 @@ type Reaction = typeof REACTIONS[number];
 
 // ── Post card ────────────────────────────────────────────────────────────────
 
-function PostCard({ sub, fresh, onReact }: {
+function PostCard({ sub, fresh, onReact, onDelete }: {
   sub: FeedSubmission;
   fresh: boolean;
   onReact: (emoji: Reaction) => void;
+  onDelete?: () => void;
 }) {
   const myReactions = (sub.myReactions ?? []) as Reaction[];
   const reactionCounts = sub.reactionCounts ?? {};
@@ -195,8 +209,17 @@ function PostCard({ sub, fresh, onReact }: {
 
       {/* Pending notice — only visible to the uploader */}
       {pending && (
-        <div className="px-4 py-3 text-[11px]" style={{ borderTop: '1px solid #f0e0c8', color: '#8a6840', backgroundColor: '#fff8ec' }}>
-          Visible only to you — waiting for host approval.
+        <div className="px-4 py-3 text-[11px] flex items-center justify-between gap-3" style={{ borderTop: '1px solid #f0e0c8', color: '#8a6840', backgroundColor: '#fff8ec' }}>
+          <span>Visible only to you — waiting for host approval.</span>
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="flex-shrink-0 text-[11px] font-semibold underline underline-offset-2 transition-opacity hover:opacity-60"
+              style={{ color: '#b05030' }}
+            >
+              Delete
+            </button>
+          )}
         </div>
       )}
 
@@ -513,6 +536,15 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
                   <PostCard
                     sub={sub}
                     fresh={freshIds.has(sub.id)}
+                    onDelete={sub.pending ? async () => {
+                      const token = getTokenMap(params.galleryId)[sub.id];
+                      if (!token) return;
+                      try {
+                        await fetch(`${API_URL}/gallery/submission/${token}`, { method: 'DELETE' });
+                        setSubmissions(prev => prev.filter(s => s.id !== sub.id));
+                        removeTokenEntry(params.galleryId, sub.id);
+                      } catch { /* ignore */ }
+                    } : undefined}
                     onReact={async (emoji) => {
                       const sessionId = getSessionId();
                       // Optimistic update

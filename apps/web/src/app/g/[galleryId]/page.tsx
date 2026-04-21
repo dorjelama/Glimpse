@@ -91,12 +91,12 @@ function MomentForm({
     });
     setSubmission(sub);
     try {
-      const key = `glimpse-tokens:${galleryId}`;
-      const existing: string[] = JSON.parse(localStorage.getItem(key) || '[]');
-      if (!existing.includes(sub.token)) {
-        existing.push(sub.token);
-        localStorage.setItem(key, JSON.stringify(existing.slice(-20)));
-      }
+      const key = `glimpse-token-map:${galleryId}`;
+      const map: Record<string, string> = JSON.parse(localStorage.getItem(key) || '{}');
+      map[sub.id] = sub.token;
+      // Keep at most 20 entries
+      const entries = Object.entries(map).slice(-20);
+      localStorage.setItem(key, JSON.stringify(Object.fromEntries(entries)));
     } catch { /* ignore storage errors */ }
     return sub;
   };

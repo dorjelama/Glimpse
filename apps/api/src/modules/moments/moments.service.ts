@@ -74,6 +74,13 @@ export class MomentsService {
     return photo;
   }
 
+  async deleteSubmissionByToken(token: string) {
+    const sub = await this.getSubmissionByToken(token);
+    if (sub.approved) throw new ForbiddenException('Cannot delete an approved submission');
+    await this.prisma.gallerySubmission.delete({ where: { id: sub.id } });
+    this.feedEvents.publish(sub.galleryId, { type: 'submission.deleted', payload: { id: sub.id } });
+  }
+
   async deletePhoto(token: string, photoId: string) {
     const sub = await this.getSubmissionByToken(token);
     const photo = sub.photos.find((p) => p.id === photoId);

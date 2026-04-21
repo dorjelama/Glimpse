@@ -145,6 +145,12 @@ export class MomentsController {
     return this.momentsService.finalise(token, message);
   }
 
+  @Delete('submission/:token')
+  @ApiOperation({ summary: 'Delete own pending submission by guest token (public)' })
+  deleteOwnSubmission(@Param('token') token: string) {
+    return this.momentsService.deleteSubmissionByToken(token);
+  }
+
   @Get(':galleryId/feed')
   @ApiOperation({ summary: 'Get approved submissions for the live feed (public)' })
   @ApiParam({ name: 'galleryId' })
