@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-21 — G9 partial resolution; H7/G8 gaps tightened; V9 added_
+_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route_
 
 ---
 
@@ -58,7 +58,7 @@ _Last updated: 2026-04-21 — G9 partial resolution; H7/G8 gaps tightened; V9 ad
 |---|-------|--------------|-----|
 | G1 | Receive an invitation and view the card | Public `/view/[slug]` renders the card. No auth required. | Solid. |
 | G2 | Discover that I can share a photo | Published card shows a floating "Share a Glimpse" button linking to the upload page when a gallery exists. | ✅ Resolved |
-| G3 | Open the upload page on my phone | `/g/[galleryId]` works, no auth, mobile-friendly shell. | Solid. |
+| G3 | Open the upload page on my phone | QR code now points to `/g/[galleryId]/feed` (feed-first). Old QR codes pointing to `/g/[galleryId]` redirect to feed automatically. Upload form lives at `/g/[galleryId]/upload`, reached via the floating "Share a Glimpse" button on the feed. No auth required on either route. | ✅ Resolved — social proof before upload intent. |
 | G4 | Enter my name and upload a photo quickly | Name field, photo picker (1–3 photos), caption, Post button. Name saved to localStorage and restored on return. | ✅ Resolved |
 | G5 | Upload a HEIC photo from my iPhone | HEIC/HEIF accepted and auto-converted to JPEG on the server via Sharp (libvips). | ✅ Resolved |
 | G6 | Know my photo was received | Thank-you screen: "Your glimpse is live — pending review." | Solid. |
@@ -83,7 +83,7 @@ _Last updated: 2026-04-21 — G9 partial resolution; H7/G8 gaps tightened; V9 ad
 | V5 | React to a post | Reaction bar with 6 emojis (❤️ 🎉 😂 😮 👏 🥰). Counts synced across devices via DB + SSE broadcast. Per-device state via persistent session ID. Optimistic UI, server-reconciled. Counts aggregated in SQL (`groupBy`), `sessionId` indexed. Rate-limited 30/min per session+IP. | ✅ Resolved |
 | V6 | See the feed on a projector at the venue | Regular mobile feed page. | **No Projection Mode** (documented as future). The feed isn't designed for a large screen. Small text, portrait layout, no auto-scroll. |
 | V7 | Feel the feed is part of the event's identity | Generic dark header, amber accent. | **No brand continuity from the card.** The invitation card can be beautifully designed, but the feed has no connection to those colors, fonts, or style. |
-| V8 | Find the upload page from the feed | Feed shows a "Share your glimpse" CTA when gallery is open, linking to `/g/[galleryId]`. | ✅ Resolved |
+| V8 | Find the upload page from the feed | Feed shows a sticky floating "Share a Glimpse" button (fixed bottom, pill style, hidden when gallery is closed or ended) linking to `/g/[galleryId]/upload`. Content area adds `pb-24` so the last card isn't obscured by the button. | ✅ Resolved |
 | V9 | Open the feed directly from my phone's home screen | No PWA manifest or install prompt exists. | **No home screen shortcut.** Guests and viewers who want quick access during the event have to open the browser and navigate manually every time. A Web App Manifest + `<meta name="apple-mobile-web-app-capable">` would let iOS and Android users add the feed to their home screen as an icon. Low effort, high friction reduction at live events. |
 
 ### Viewer drop-off moments

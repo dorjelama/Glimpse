@@ -138,7 +138,7 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
   };
 
   if (project.gallery) {
-    const uploadUrl = `${window.location.origin}/g/${project.gallery.id}`;
+    const uploadUrl = `${window.location.origin}/g/${project.gallery.id}/feed`;
 
     return (
       <div className="bg-cream border border-gold/30 rounded-2xl overflow-hidden flex flex-col">

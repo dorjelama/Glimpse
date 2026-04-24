@@ -494,22 +494,8 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
         </div>
       )}
 
-      {/* Share CTA — only when gallery is open */}
-      {data.gallery.isOpen && (
-        <div className="max-w-lg mx-auto px-4 pt-4">
-          <a
-            href={`/g/${params.galleryId}`}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: '#B85C37', color: '#F6EBDD', border: '1px solid #9e4e2f' }}
-          >
-            <span>📸</span>
-            Share your glimpse
-          </a>
-        </div>
-      )}
-
       {/* Feed */}
-      <main className="max-w-lg mx-auto px-4 py-6">
+      <main className={`max-w-lg mx-auto px-4 pt-6 ${data.gallery.isOpen && !data.gallery.endedAt ? 'pb-24' : 'pb-6'}`}>
         {submissions.length === 0 ? (
           <EmptyFeed />
         ) : (
@@ -589,6 +575,20 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
           </p>
         )}
       </main>
+
+      {/* Floating upload button — only when gallery is open */}
+      {data.gallery.isOpen && !data.gallery.endedAt && (
+        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-30 pointer-events-none">
+          <a
+            href={`/g/${params.galleryId}/upload`}
+            className="pointer-events-auto flex items-center gap-2 px-6 py-3 rounded-full text-sm font-semibold shadow-lg transition-opacity hover:opacity-90 active:scale-95"
+            style={{ backgroundColor: '#B85C37', color: '#F6EBDD', boxShadow: '0 4px 20px rgba(184,92,55,0.45)' }}
+          >
+            <span>📸</span>
+            Share a Glimpse
+          </a>
+        </div>
+      )}
     </div>
   );
 }
