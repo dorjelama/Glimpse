@@ -28,8 +28,8 @@ export async function GET(
     orientation: 'portrait',
     icons: [
       {
-        src: '/icon.png',
-        sizes: '584x584',
+        src: '/logo without text.png',
+        sizes: 'any',
         type: 'image/png',
       },
     ],

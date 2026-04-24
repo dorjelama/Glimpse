@@ -46,8 +46,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         {/* Logo */}
         <div className="px-5 py-4 border-b border-gold/30">
-          <p className="text-xl font-semibold text-terra" style={{ fontFamily: 'Georgia, serif', letterSpacing: '0.02em' }}>Glimpse</p>
-          <p className="text-[9px] text-ink/30 uppercase tracking-widest mt-0.5">by Elegant Decorations</p>
+          <img src="/logo with text.png" alt="Glimpse" className="h-8 w-auto" />
+          <p className="text-[9px] text-ink/30 uppercase tracking-widest mt-1">by Elegant Decorations</p>
         </div>
 
         {/* Nav */}
@@ -111,7 +111,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
         {/* Mobile top bar */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 border-b border-gold/30 bg-blush/50">
-          <p className="text-lg font-semibold text-terra" style={{ fontFamily: 'Georgia, serif', letterSpacing: '0.02em' }}>Glimpse</p>
+          <img src="/logo with text.png" alt="Glimpse" className="h-7 w-auto" />
           <UserMenu compact />
         </div>
 

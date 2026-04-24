@@ -12,7 +12,7 @@ export async function generateMetadata(
       title: 'Glimpses',
     },
     icons: {
-      apple: '/icon.png',
+      apple: '/logo without text.png',
     },
   };
 }

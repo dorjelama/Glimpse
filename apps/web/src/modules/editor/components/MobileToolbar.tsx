@@ -37,7 +37,7 @@ export default function MobileToolbar() {
         >
           <div
             className="w-10 h-10 rounded-xl flex-shrink-0"
-            style={{ backgroundImage: 'url("/App Icon and Favicon Dark.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+            style={{ backgroundImage: 'url("/logo without text.png")', backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
           />
         </button>
 

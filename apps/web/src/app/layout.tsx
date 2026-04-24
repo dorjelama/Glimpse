@@ -6,6 +6,10 @@ import NavigationProgress from '@/components/NavigationProgress';
 export const metadata: Metadata = {
   title: 'Glimpse',
   description: 'Create beautiful digital cards with a drag-and-drop editor',
+  icons: {
+    icon: '/logo without text.png',
+    apple: '/logo without text.png',
+  },
 };
 
 export const viewport: Viewport = {

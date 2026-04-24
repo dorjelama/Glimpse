@@ -49,7 +49,7 @@ export default function Toolbar() {
         >
           <div
             className="w-9 h-9 rounded-xl flex-shrink-0"
-            style={{ backgroundImage: 'url("/App Icon and Favicon Dark.png")', backgroundSize: '180%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
+            style={{ backgroundImage: 'url("/logo without text.png")', backgroundSize: 'contain', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }}
           />
           <span className="text-sm font-semibold text-white" style={{ fontFamily: 'Georgia, serif' }}>Glimpse</span>
         </button>

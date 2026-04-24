@@ -109,6 +109,11 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 
 
 ## Enhancements
-- Feedback feature from host and viewer
+- Feedback feature from host
 - S3 CDN
 - Separate guest module.
+- After event solutions
+- Landing page improvements
+- Email, Image, Hosting and Domains
+- QR Design with texts and branding
+- Update github readme file to describe project
