@@ -424,6 +424,9 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
             setSubmissions(prev => prev.map(s =>
               s.id === submissionId ? { ...s, reactionCounts } : s
             ));
+          } else if (event.type === 'gallery.updated') {
+            const { isOpen, endedAt } = event.payload;
+            setData(prev => prev ? { ...prev, gallery: { ...prev.gallery, isOpen, endedAt: endedAt ?? undefined } } : null);
           }
         } catch { /* ignore malformed */ }
       };

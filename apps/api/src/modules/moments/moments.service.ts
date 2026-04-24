@@ -331,15 +331,25 @@ export class MomentsService {
 
   async setGalleryOpen(galleryId: string, isOpen: boolean, ownerId: string) {
     await this.verifyGalleryOwnership(galleryId, ownerId);
-    return this.prisma.gallery.update({ where: { id: galleryId }, data: { isOpen } });
+    const updated = await this.prisma.gallery.update({ where: { id: galleryId }, data: { isOpen } });
+    this.feedEvents.publish(galleryId, {
+      type: 'gallery.updated',
+      payload: { isOpen: updated.isOpen, endedAt: updated.endedAt?.toISOString() ?? null },
+    });
+    return updated;
   }
 
   async endGallery(galleryId: string, ownerId: string) {
     await this.verifyGalleryOwnership(galleryId, ownerId);
-    return this.prisma.gallery.update({
+    const updated = await this.prisma.gallery.update({
       where: { id: galleryId },
       data: { isOpen: false, endedAt: new Date() },
     });
+    this.feedEvents.publish(galleryId, {
+      type: 'gallery.updated',
+      payload: { isOpen: false, endedAt: updated.endedAt!.toISOString() },
+    });
+    return updated;
   }
 
   async prepareExport(galleryId: string, ownerId: string) {
