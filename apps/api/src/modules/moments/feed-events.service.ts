@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs';
 export type FeedEvent =
   | { type: 'submission.approved'; payload: any }
   | { type: 'submission.deleted'; payload: { id: string } }
+  | { type: 'submission.new'; payload: Record<string, never> }
   | { type: 'reaction.changed'; payload: { submissionId: string; reactionCounts: Record<string, number> } }
   | { type: 'gallery.updated'; payload: { isOpen: boolean; endedAt: string | null } };
 

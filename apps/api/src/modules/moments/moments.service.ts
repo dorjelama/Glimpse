@@ -115,11 +115,13 @@ export class MomentsService {
       throw new BadRequestException('Upload at least one photo before submitting');
     }
     // Always write the final caption so text typed after photo upload is captured.
-    return this.prisma.gallerySubmission.update({
+    const updated = await this.prisma.gallerySubmission.update({
       where: { id: sub.id },
       data: { message: message?.trim() || null },
       include: SUBMISSION_INCLUDE,
     });
+    this.feedEvents.publish(sub.galleryId, { type: 'submission.new', payload: {} });
+    return updated;
   }
 
   async deleteSubmission(galleryId: string, submissionId: string, ownerId: string) {

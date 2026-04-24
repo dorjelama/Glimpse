@@ -57,84 +57,93 @@ function SubmissionCard({
   };
 
   return (
-    <div className={`bg-cream border rounded-2xl overflow-hidden flex flex-col ${
+    <div className={`bg-cream border rounded-2xl overflow-hidden ${
       sub.approved ? 'border-green-300' : 'border-gold/30'
     }`}>
-      <div className="h-44 bg-blush relative flex-shrink-0">
-        {featuredPhoto ? (
-          <img src={photoUrl(featuredPhoto.url)} alt="" className="w-full h-full object-cover" />
-        ) : (
-          <div className="flex items-center justify-center h-full text-ink/30 text-sm">No photo</div>
-        )}
-        {sub.approved && (
-          <div className="absolute top-2 right-2 bg-green-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-            Live
-          </div>
-        )}
-        {extraCount > 0 && (
-          <div className="absolute bottom-2 left-2 bg-ink/60 text-cream text-[10px] px-2 py-0.5 rounded-full">
-            +{extraCount} more
-          </div>
-        )}
-      </div>
+      {/* Mobile: row layout. sm+: column card */}
+      <div className="flex flex-row sm:flex-col">
 
-      <div className="p-4 flex flex-col gap-3 flex-1">
-        <div>
-          <p className="text-ink font-semibold text-sm">{sub.guestName}</p>
-          {sub.message && (
-            <p className="text-ink/50 text-xs mt-1 leading-relaxed line-clamp-2 italic">"{sub.message}"</p>
+        {/* Photo */}
+        <div className="w-20 self-stretch sm:w-full sm:h-44 bg-blush relative flex-shrink-0">
+          {featuredPhoto ? (
+            <img src={photoUrl(featuredPhoto.url)} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="flex items-center justify-center h-full text-ink/30 text-xs min-h-[5rem]">No photo</div>
+          )}
+          {sub.approved && (
+            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+              Live
+            </div>
+          )}
+          {extraCount > 0 && (
+            <div className="absolute bottom-1 left-1 sm:bottom-2 sm:left-2 bg-ink/60 text-cream text-[9px] px-1.5 py-0.5 rounded-full">
+              +{extraCount}
+            </div>
           )}
         </div>
 
-        {sub.photos.length > 1 && (
-          <div className="flex gap-1.5 flex-wrap">
-            {sub.photos.map(p => (
-              <div
-                key={p.id}
-                className={`w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
-                  p.id === sub.featuredPhotoId ? 'border-terra' : 'border-transparent'
+        {/* Content */}
+        <div className="flex-1 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 min-w-0">
+          <div className="min-w-0">
+            <p className="text-ink font-semibold text-sm truncate">{sub.guestName}</p>
+            {sub.message && (
+              <p className="text-ink/50 text-xs mt-0.5 leading-relaxed line-clamp-1 sm:line-clamp-2 italic">"{sub.message}"</p>
+            )}
+          </div>
+
+          {/* Thumbnail strip — desktop only */}
+          {sub.photos.length > 1 && (
+            <div className="hidden sm:flex gap-1.5 flex-wrap">
+              {sub.photos.map(p => (
+                <div
+                  key={p.id}
+                  className={`w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
+                    p.id === sub.featuredPhotoId ? 'border-terra' : 'border-transparent'
+                  }`}
+                >
+                  <img src={photoUrl(p.url)} alt="" className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Actions */}
+          {!confirmDelete ? (
+            <div className="flex gap-2 mt-auto">
+              <button
+                onClick={handleToggle}
+                disabled={loading || deleting}
+                className={`flex-1 py-1.5 sm:py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
+                  sub.approved
+                    ? 'bg-ink/5 hover:bg-red-50 text-ink/50 hover:text-red-600 border border-gold/20'
+                    : 'bg-green-100 hover:bg-green-200 text-green-700 border border-green-200'
                 }`}
               >
-                <img src={photoUrl(p.url)} alt="" className="w-full h-full object-cover" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2 mt-auto">
-          <button
-            onClick={handleToggle}
-            disabled={loading || deleting}
-            className={`w-full py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
-              sub.approved
-                ? 'bg-ink/5 hover:bg-red-50 text-ink/50 hover:text-red-600 border border-gold/20'
-                : 'bg-green-100 hover:bg-green-200 text-green-700 border border-green-200'
-            }`}
-          >
-            {loading ? '…' : sub.approved ? 'Remove from feed' : 'Approve for feed'}
-          </button>
-
-          {!confirmDelete ? (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              disabled={loading || deleting}
-              className="w-full py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 bg-blush hover:bg-red-50 text-ink/40 hover:text-red-500 border border-gold/20 hover:border-red-200"
-            >
-              Delete
-            </button>
+                {loading ? '…' : sub.approved ? 'Remove' : 'Approve'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(true)}
+                disabled={loading || deleting}
+                aria-label="Delete submission"
+                className="flex-shrink-0 px-3 py-1.5 sm:py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 bg-blush hover:bg-red-50 text-ink/40 hover:text-red-500 border border-gold/20 hover:border-red-200"
+              >
+                <span className="sm:hidden">✕</span>
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            </div>
           ) : (
-            <div className="flex gap-2">
+            <div className="flex gap-2 mt-auto">
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex-1 py-2 text-sm font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50 transition-colors"
+                className="flex-1 py-1.5 sm:py-2 text-xs font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50 transition-colors"
               >
-                {deleting ? 'Deleting…' : 'Confirm delete'}
+                {deleting ? '…' : 'Confirm delete'}
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                className="flex-1 py-2 text-sm rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20 transition-colors"
+                className="flex-1 py-1.5 sm:py-2 text-xs rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20 transition-colors"
               >
                 Cancel
               </button>
@@ -156,6 +165,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [bulkApproving, setBulkApproving] = useState(false);
 
   useEffect(() => {
     api.getProject(params.id)
@@ -180,6 +190,20 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
     if (!project?.gallery) return;
     await api.deleteSubmission(project.gallery.id, sub.id);
     setSubmissions(prev => prev.filter(s => s.id !== sub.id));
+  };
+
+  const handleBulkApprove = async () => {
+    if (!project?.gallery) return;
+    setBulkApproving(true);
+    try {
+      const toApprove = submissions.filter(s => !s.approved);
+      for (const sub of toApprove) {
+        const updated = await api.approveSubmission(project.gallery.id, sub.id, true);
+        setSubmissions(prev => prev.map(s => s.id === updated.id ? updated : s));
+      }
+    } finally {
+      setBulkApproving(false);
+    }
   };
 
   const handleToggleOpen = async () => {
@@ -352,10 +376,21 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
           <div className="flex flex-col gap-10">
             {pending.length > 0 && (
               <section>
-                <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest mb-4">
-                  Pending review ({pending.length})
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest">
+                    Pending review ({pending.length})
+                  </p>
+                  {pending.length > 1 && (
+                    <button
+                      onClick={handleBulkApprove}
+                      disabled={bulkApproving}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 border border-green-200 disabled:opacity-50 transition-colors"
+                    >
+                      {bulkApproving ? 'Approving…' : `Approve all ${pending.length}`}
+                    </button>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
                   {pending.map(sub => (
                     <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
                   ))}
@@ -368,7 +403,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
                 <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest mb-4">
                   Live on feed ({approved.length})
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
                   {approved.map(sub => (
                     <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
                   ))}

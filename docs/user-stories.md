@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route; V4 lazy loading via cursor pagination_
+_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route; V4 lazy loading via cursor pagination; V9 PWA manifest + home screen shortcut; H7 host moderation real-time via SSE; H8 mobile moderation + bulk approve_
 
 ---
 
@@ -39,8 +39,8 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | H4 | Share the card with guests | Published card has a URL. Publish modal shows it. | **No in-product sharing.** Host has to copy-paste the URL manually. No email, no WhatsApp share, no prominent copy button on the Event Hub. |
 | H5 | Set up a Glimpses gallery | One click, gallery created, QR code shown immediately. | Solid. |
 | H6 | Get the QR code to guests at the venue | "Download QR" exports SVG. | **No guidance on how to use it.** Hosts don't know to print it, put it on a projector slide, or embed it in signage. SVG is also an unusual format for non-technical users. |
-| H7 | Know when guests are uploading during the event | Moderation page lists submissions. Bell icon on Event Hub shows pending approval count, refreshed on page load. | **Host moderation is still pull-based.** The public feed is now real-time (SSE), but the host moderation panel has no live updates — new pending submissions require a manual page refresh. Asymmetry: guests see approvals in ~1s; hosts see new uploads only when they reload. |
-| H8 | Approve photos quickly on mobile | 3-column grid with approve button. | **Not mobile-optimized for live use.** Hover state for actions doesn't work on touch. Column grid requires scrolling. Bulk approve missing. |
+| H7 | Know when guests are uploading during the event | Moderation page subscribes to the public SSE stream. `finalise()` broadcasts `submission.new` (empty payload); panel refetches from the JWT-guarded `/manage` endpoint and updates pending list instantly. Guest self-deletes propagate via `submission.deleted`. Green "Live" dot in header confirms the connection is active. | ✅ Resolved |
+| H8 | Approve photos quickly on mobile | Responsive card: row layout on mobile (80px thumbnail + name + Approve/✕ buttons, ~80px per row, 7–8 visible at once) switches to full card on `sm+`. Grid is `flex-col` on mobile, `sm:grid-cols-2 lg:grid-cols-3` on desktop. "Approve all N" bulk button in pending section header. Thumbnail strip hidden on mobile. | ✅ Resolved |
 | H9 | Control what's on the feed (open/close/end) | Pause + End event with confirm dialog. Three states implemented. | Solid. |
 | H10 | Download photos after the event | 30-day export window + ZIP download in moderation page. | **No notification of the export window.** Host ends the event and may never return to the moderation page. 30 days pass, photos deleted, trust broken. |
 | H11 | See event-level stats at a glance | Dashboard project card shows "📸 X live" chip and amber "Y pending" chip. Stats fetched in parallel after project load. | ✅ Resolved |
@@ -84,31 +84,40 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | V6 | See the feed on a projector at the venue | Regular mobile feed page. | **No Projection Mode** (documented as future). The feed isn't designed for a large screen. Small text, portrait layout, no auto-scroll. |
 | V7 | Feel the feed is part of the event's identity | Generic dark header, amber accent. | **No brand continuity from the card.** The invitation card can be beautifully designed, but the feed has no connection to those colors, fonts, or style. |
 | V8 | Find the upload page from the feed | Feed shows a sticky floating "Share a Glimpse" button (fixed bottom, pill style, hidden when gallery is closed or ended) linking to `/g/[galleryId]/upload`. Content area adds `pb-24` so the last card isn't obscured by the button. | ✅ Resolved |
-| V9 | Open the feed directly from my phone's home screen | No PWA manifest or install prompt exists. | **No home screen shortcut.** Guests and viewers who want quick access during the event have to open the browser and navigate manually every time. A Web App Manifest + `<meta name="apple-mobile-web-app-capable">` would let iOS and Android users add the feed to their home screen as an icon. Low effort, high friction reduction at live events. |
+| V9 | Open the feed directly from my phone's home screen | Dynamic Web App Manifest served from `/g/[galleryId]/pwa-manifest` — fetches the event title from the API and returns a per-gallery manifest (`name`, `start_url: /g/[id]/feed`, `display: standalone`, terra theme color). Gallery layout (`layout.tsx`) injects `<link rel="manifest">`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: black-translucent`, `<link rel="apple-touch-icon">`, and theme-color viewport tag. Icon: `public/icon.png` (584×584, copied from existing brand asset). Manifest cached 5 min via `next: { revalidate: 300 }`. | ✅ Resolved |
 
 ### Viewer drop-off moments
 - **V5** — Viewer scrolls the feed once, has nothing to do, closes it. Repeat opens drop sharply because there's no interaction to pull them back.
-- **V9** — Guests who bookmark the feed page still have to open a browser tab; no home screen icon means extra friction at a live event where phones are busy.
+- ~~**V9**~~ — ✅ Resolved. PWA manifest + Apple meta tags let guests add the feed to their home screen.
 
 ---
 
 ## Priority gaps
 
-| Priority | Gap | Story refs | Status |
-|----------|-----|-----------|--------|
-| 1 | Host moderation is still pull-based despite public feed being real-time | H7 | Open — new pending submissions don't appear in the moderation panel without a reload. |
-| 2 | Moderation page not usable on mobile | H8 | Open — grid + hover actions still desktop-only, no bulk approve. |
-| 3 | Multiple submissions per guest not handled | G8 | Open — amplified now that pending posts are visible on the uploader's feed. |
-| 4 | No in-product card sharing | H4 | Open — host must copy-paste URL manually. |
-| 5 | No export notification after event ends | H10 | Open — 30-day window passes silently; photos deleted without warning. |
-| 6 | No product screenshot or video on landing page | P1 | Open — placeholder boxes instead of real UI. |
-| 7 | No in-app upgrade path for Glimpses | P2 | Open — free users hit a wall with no prompt. |
-| 8 | No QR code guidance for hosts | H6 | Open — SVG format, no usage instructions. |
-| 9 | ~~No pagination / lazy loading on feed~~ | V4 | ✅ Resolved — cursor pagination + IntersectionObserver auto-load. |
-| 10 | No home screen shortcut for feed | V9 | Open — no PWA manifest; high friction at live events. |
-| 11 | Guest pending deletion device-bound | G9 | Partial — token in localStorage; switching device loses the delete option. |
+### Open
+
+| Priority | Gap | Story refs | Notes |
+|----------|-----|-----------|-------|
+| 1 | Multiple submissions per guest not handled | G8 | No deduplication; amplified by pending visibility. |
+| 2 | No in-product card sharing | H4 | Host must copy-paste URL manually. |
+| 3 | No export notification after event ends | H10 | 30-day window passes silently; photos deleted without warning. |
+| 4 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI. |
+| 5 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt. |
+| 6 | No QR code guidance for hosts | H6 | SVG format unfamiliar; no instructions for print/display. |
+| 7 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
+
+### Resolved
+
+| Gap | Story refs | Resolution |
+|-----|-----------|------------|
+| No pagination / lazy loading on feed | V4 | Cursor pagination + IntersectionObserver auto-load (20/page, capped at 50). |
+| No home screen shortcut for feed | V9 | Dynamic per-gallery PWA manifest + Apple meta tags; icon from existing brand asset. |
+| Upload page as QR landing (no social proof) | G3 | QR now points to live feed; upload reachable via floating button; old QR codes auto-redirect. |
+| Host moderation pull-based | H7 | `finalise()` broadcasts `submission.new` (empty payload) on public SSE; panel refetches from `/manage` (JWT-guarded). Guest self-deletes propagate via `submission.deleted`. Green "Live" dot confirms connection. |
+| Moderation page not usable on mobile | H8 | Row layout on mobile (thumbnail + name + Approve/✕, ~80px/row). Bulk approve all pending. Grid adapts to `sm:grid-cols-2 lg:grid-cols-3`. |
 
 ## Enhancements
 - Feedback feature from host and viewer
 - S3 CDN
 - Seperate guest module.
+- Permissions
