@@ -109,15 +109,18 @@ export class MomentsService {
     });
   }
 
-  async finalise(token: string, message?: string) {
+  async finalise(token: string, message?: string, consent?: boolean) {
     const sub = await this.getSubmissionByToken(token);
     if (sub.photos.length === 0) {
       throw new BadRequestException('Upload at least one photo before submitting');
     }
-    // Always write the final caption so text typed after photo upload is captured.
+    if (!consent) {
+      throw new BadRequestException('You must consent to photo usage before posting');
+    }
+    const now = new Date();
     const updated = await this.prisma.gallerySubmission.update({
       where: { id: sub.id },
-      data: { message: message?.trim() || null },
+      data: { message: message?.trim() || null, consentGiven: true, consentAt: now },
       include: SUBMISSION_INCLUDE,
     });
     this.feedEvents.publish(sub.galleryId, { type: 'submission.new', payload: {} });

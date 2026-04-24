@@ -44,51 +44,69 @@ export default function AdminUsersPage() {
     }
   };
 
-  if (error) return <div className="p-8 text-red-400">Error: {error}</div>;
+  if (error) return <div className="p-8 text-sm" style={{ color: '#b05030' }}>Error: {error}</div>;
 
   return (
-    <div className="p-8">
-      <h1 className="text-xl font-semibold text-white mb-6">
-        Users {users !== null && <span className="text-gray-500 font-normal text-base">({users.length})</span>}
-      </h1>
+    <div className="px-6 py-8 md:px-10">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif', color: '#2d1a00' }}>
+          Users
+          {users !== null && (
+            <span className="ml-2 text-base font-normal" style={{ color: '#a08060' }}>({users.length})</span>
+          )}
+        </h1>
+        <p className="text-sm mt-1" style={{ color: '#a08060' }}>Manage registered accounts</p>
+      </div>
 
-      <div className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden">
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ backgroundColor: '#fff8f0', border: '1px solid #e8d5b0' }}
+      >
         {!users ? (
-          <div className="p-5 text-sm text-gray-500">Loading…</div>
+          <div className="p-5 text-sm" style={{ color: '#a08060' }}>Loading…</div>
         ) : users.length === 0 ? (
-          <div className="p-5 text-sm text-gray-500">No users.</div>
+          <div className="p-5 text-sm" style={{ color: '#a08060' }}>No users.</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-left text-xs text-gray-500 uppercase">
-                <th className="px-5 py-2">Name</th>
-                <th className="px-5 py-2">Email</th>
-                <th className="px-5 py-2">Role</th>
-                <th className="px-5 py-2">Events</th>
-                <th className="px-5 py-2">Joined</th>
-                <th className="px-5 py-2">Actions</th>
+              <tr style={{ borderBottom: '1px solid #e8d5b0' }}>
+                {['Name', 'Email', 'Role', 'Events', 'Joined', 'Actions'].map(h => (
+                  <th key={h} className="px-5 py-3 text-left text-[11px] uppercase tracking-wider font-semibold" style={{ color: '#b09060' }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => {
+              {users.map((u, i) => {
                 const isSelf = u.id === currentUserId;
                 return (
-                  <tr key={u.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                    <td className="px-5 py-3 text-white">{u.name}</td>
-                    <td className="px-5 py-3 text-gray-400">{u.email}</td>
+                  <tr
+                    key={u.id}
+                    style={{ borderBottom: i < users.length - 1 ? '1px solid #f0e4cc' : 'none' }}
+                  >
+                    <td className="px-5 py-3 font-medium" style={{ color: '#2d1a00' }}>{u.name}</td>
+                    <td className="px-5 py-3" style={{ color: '#8a6040' }}>{u.email}</td>
                     <td className="px-5 py-3">
                       {u.role === 'ADMIN' ? (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/20 text-purple-300 uppercase tracking-wider">
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                          style={{ backgroundColor: 'rgba(184,92,55,0.12)', color: '#B85C37', border: '1px solid rgba(184,92,55,0.25)' }}
+                        >
                           Admin
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-gray-400 uppercase tracking-wider">
+                        <span
+                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+                          style={{ backgroundColor: 'rgba(160,128,96,0.1)', color: '#a08060', border: '1px solid #e8d5b0' }}
+                        >
                           User
                         </span>
                       )}
                     </td>
-                    <td className="px-5 py-3 text-gray-400">{u._count.events}</td>
-                    <td className="px-5 py-3 text-gray-500">
+                    <td className="px-5 py-3" style={{ color: '#8a6040' }}>{u._count.events}</td>
+                    <td className="px-5 py-3" style={{ color: '#b09060' }}>
                       {new Date(u.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-5 py-3">
@@ -97,7 +115,8 @@ export default function AdminUsersPage() {
                           onClick={() => handleToggleRole(u)}
                           disabled={isSelf || loading === u.id}
                           title={isSelf ? "Can't change your own role" : undefined}
-                          className="px-2.5 py-1 text-xs rounded-md bg-white/10 hover:bg-white/20 text-gray-300 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="px-2.5 py-1 text-xs rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                          style={{ backgroundColor: 'rgba(184,92,55,0.1)', color: '#B85C37', border: '1px solid rgba(184,92,55,0.2)' }}
                         >
                           {u.role === 'ADMIN' ? 'Demote' : 'Promote'}
                         </button>
@@ -105,18 +124,19 @@ export default function AdminUsersPage() {
                           onClick={() => handleDelete(u.id)}
                           disabled={isSelf || loading === u.id}
                           title={isSelf ? "Can't delete your own account here" : undefined}
-                          className={`px-2.5 py-1 text-xs rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-                            confirmDelete === u.id
-                              ? 'bg-red-500 text-white hover:bg-red-600'
-                              : 'bg-red-500/20 text-red-300 hover:bg-red-500/40'
-                          }`}
+                          className="px-2.5 py-1 text-xs rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                          style={confirmDelete === u.id
+                            ? { backgroundColor: '#ef4444', color: '#fff', border: '1px solid #dc2626' }
+                            : { backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }
+                          }
                         >
                           {confirmDelete === u.id ? 'Confirm?' : 'Delete'}
                         </button>
                         {confirmDelete === u.id && (
                           <button
                             onClick={() => setConfirmDelete(null)}
-                            className="text-xs text-gray-500 hover:text-gray-300"
+                            className="text-xs transition-all"
+                            style={{ color: '#b09060' }}
                           >
                             Cancel
                           </button>

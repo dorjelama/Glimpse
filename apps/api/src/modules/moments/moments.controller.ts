@@ -140,9 +140,13 @@ export class MomentsController {
   }
 
   @Post('submission/:token/finalise')
-  @ApiOperation({ summary: 'Finalise and submit (validates photos + featured selected)' })
-  finalise(@Param('token') token: string, @Body('message') message?: string) {
-    return this.momentsService.finalise(token, message);
+  @ApiOperation({ summary: 'Finalise and submit (validates photos + consent required)' })
+  finalise(
+    @Param('token') token: string,
+    @Body('message') message?: string,
+    @Body('consent') consent?: boolean,
+  ) {
+    return this.momentsService.finalise(token, message, consent);
   }
 
   @Delete('submission/:token')

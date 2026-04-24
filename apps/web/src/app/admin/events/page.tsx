@@ -31,53 +31,77 @@ export default function AdminEventsPage() {
     }
   };
 
-  if (error) return <div className="p-8 text-red-400">Error: {error}</div>;
+  if (error) return <div className="p-8 text-sm" style={{ color: '#b05030' }}>Error: {error}</div>;
 
   return (
-    <div className="p-8">
-      <h1 className="text-xl font-semibold text-white mb-6">
-        Events {events !== null && <span className="text-gray-500 font-normal text-base">({events.length})</span>}
-      </h1>
+    <div className="px-6 py-8 md:px-10">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold" style={{ fontFamily: 'Georgia, serif', color: '#2d1a00' }}>
+          Events
+          {events !== null && (
+            <span className="ml-2 text-base font-normal" style={{ color: '#a08060' }}>({events.length})</span>
+          )}
+        </h1>
+        <p className="text-sm mt-1" style={{ color: '#a08060' }}>All events across the platform</p>
+      </div>
 
-      <div className="bg-neutral-900 border border-white/10 rounded-xl overflow-hidden">
+      <div
+        className="rounded-2xl overflow-hidden"
+        style={{ backgroundColor: '#fff8f0', border: '1px solid #e8d5b0' }}
+      >
         {!events ? (
-          <div className="p-5 text-sm text-gray-500">Loading…</div>
+          <div className="p-5 text-sm" style={{ color: '#a08060' }}>Loading…</div>
         ) : events.length === 0 ? (
-          <div className="p-5 text-sm text-gray-500">No events.</div>
+          <div className="p-5 text-sm" style={{ color: '#a08060' }}>No events.</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-left text-xs text-gray-500 uppercase">
-                <th className="px-5 py-2">Title</th>
-                <th className="px-5 py-2">Owner</th>
-                <th className="px-5 py-2">Status</th>
-                <th className="px-5 py-2">Updated</th>
-                <th className="px-5 py-2">Actions</th>
+              <tr style={{ borderBottom: '1px solid #e8d5b0' }}>
+                {['Title', 'Owner', 'Status', 'Updated', 'Actions'].map(h => (
+                  <th key={h} className="px-5 py-3 text-left text-[11px] uppercase tracking-wider font-semibold" style={{ color: '#b09060' }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {events.map((ev) => (
-                <tr key={ev.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="px-5 py-3 text-white max-w-[200px] truncate">{ev.title}</td>
+              {events.map((ev, i) => (
+                <tr
+                  key={ev.id}
+                  style={{ borderBottom: i < events.length - 1 ? '1px solid #f0e4cc' : 'none' }}
+                >
+                  <td className="px-5 py-3 font-medium max-w-[200px] truncate" style={{ color: '#2d1a00' }}>
+                    {ev.title}
+                  </td>
                   <td className="px-5 py-3">
                     {ev.owner ? (
-                      <span className="text-gray-400">{ev.owner.name} <span className="text-gray-600 text-xs">({ev.owner.email})</span></span>
+                      <span style={{ color: '#8a6040' }}>
+                        {ev.owner.name}{' '}
+                        <span className="text-xs" style={{ color: '#b09060' }}>({ev.owner.email})</span>
+                      </span>
                     ) : (
-                      <span className="text-gray-600 italic">No owner</span>
+                      <span className="italic" style={{ color: '#c0a070' }}>No owner</span>
                     )}
                   </td>
                   <td className="px-5 py-3">
                     {ev.status === 'published' ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-green-500/20 text-green-400 uppercase tracking-wider">
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                        style={{ backgroundColor: 'rgba(22,163,74,0.1)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}
+                      >
                         Published
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white/10 text-gray-400 uppercase tracking-wider">
+                      <span
+                        className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider"
+                        style={{ backgroundColor: 'rgba(160,128,96,0.1)', color: '#a08060', border: '1px solid #e8d5b0' }}
+                      >
                         Draft
                       </span>
                     )}
                   </td>
-                  <td className="px-5 py-3 text-gray-500">
+                  <td className="px-5 py-3" style={{ color: '#b09060' }}>
                     {new Date(ev.updatedAt).toLocaleDateString()}
                   </td>
                   <td className="px-5 py-3">
@@ -87,7 +111,8 @@ export default function AdminEventsPage() {
                           href={`${BASE_URL}/view/${ev.slug}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1 text-xs rounded-md bg-white/10 hover:bg-white/20 text-gray-300 transition-colors"
+                          className="px-2.5 py-1 text-xs rounded-lg transition-all"
+                          style={{ backgroundColor: 'rgba(184,92,55,0.1)', color: '#B85C37', border: '1px solid rgba(184,92,55,0.2)' }}
                         >
                           View
                         </a>
@@ -95,18 +120,19 @@ export default function AdminEventsPage() {
                       <button
                         onClick={() => handleDelete(ev.id)}
                         disabled={loading === ev.id}
-                        className={`px-2.5 py-1 text-xs rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
-                          confirmDelete === ev.id
-                            ? 'bg-red-500 text-white hover:bg-red-600'
-                            : 'bg-red-500/20 text-red-300 hover:bg-red-500/40'
-                        }`}
+                        className="px-2.5 py-1 text-xs rounded-lg transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                        style={confirmDelete === ev.id
+                          ? { backgroundColor: '#ef4444', color: '#fff', border: '1px solid #dc2626' }
+                          : { backgroundColor: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)' }
+                        }
                       >
                         {confirmDelete === ev.id ? 'Confirm?' : 'Delete'}
                       </button>
                       {confirmDelete === ev.id && (
                         <button
                           onClick={() => setConfirmDelete(null)}
-                          className="text-xs text-gray-500 hover:text-gray-300"
+                          className="text-xs transition-all"
+                          style={{ color: '#b09060' }}
                         >
                           Cancel
                         </button>

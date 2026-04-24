@@ -14,7 +14,13 @@ function initials(name: string): string {
     .toUpperCase();
 }
 
-export default function UserMenu({ compact = false }: { compact?: boolean }) {
+export default function UserMenu({
+  compact = false,
+  dropdownPosition = 'down',
+}: {
+  compact?: boolean;
+  dropdownPosition?: 'up' | 'down';
+}) {
   const router = useRouter();
   const { user, logout } = useAuthStore();
   const [open, setOpen] = useState(false);
@@ -36,6 +42,10 @@ export default function UserMenu({ compact = false }: { compact?: boolean }) {
   };
 
   if (!user) return null;
+
+  const dropdownClass = dropdownPosition === 'up'
+    ? 'absolute left-0 bottom-full mb-1.5 w-52'
+    : 'absolute right-0 top-full mt-1.5 w-52';
 
   return (
     <div ref={menuRef} className="relative">
@@ -60,17 +70,26 @@ export default function UserMenu({ compact = false }: { compact?: boolean }) {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 w-52 bg-neutral-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
-          <div className="px-4 py-3 border-b border-white/10">
-            <p className="text-sm font-medium text-white truncate">{user.name}</p>
-            <p className="text-xs text-gray-500 truncate mt-0.5">{user.email}</p>
+        <div
+          className={`${dropdownClass} rounded-2xl shadow-xl overflow-hidden z-50`}
+          style={{ backgroundColor: '#fdf6e8', border: '1px solid #e8d5b0' }}
+        >
+          {/* User info */}
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid #e8d5b0' }}>
+            <p className="text-sm font-semibold truncate" style={{ color: '#2d1a00' }}>{user.name}</p>
+            <p className="text-xs truncate mt-0.5" style={{ color: '#a08060' }}>{user.email}</p>
           </div>
-          <div className="p-1">
+
+          {/* Links */}
+          <div className="p-1.5 flex flex-col gap-0.5">
             {user.role === 'ADMIN' && (
               <Link
                 href="/admin"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-purple-300 hover:bg-purple-500/10 hover:text-purple-200 transition-colors"
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors"
+                style={{ color: '#B85C37' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(184,92,55,0.08)')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M12 2L2 7l10 5 10-5-10-5z" />
@@ -83,7 +102,10 @@ export default function UserMenu({ compact = false }: { compact?: boolean }) {
             <Link
               href="/settings"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-white/10 hover:text-white transition-colors"
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors"
+              style={{ color: '#5c3d1e' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(92,61,30,0.06)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="12" cy="12" r="3" />
@@ -93,7 +115,10 @@ export default function UserMenu({ compact = false }: { compact?: boolean }) {
             </Link>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-colors"
+              style={{ color: '#5c3d1e' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'rgba(239,68,68,0.06)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />

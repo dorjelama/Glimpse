@@ -18,47 +18,63 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user || user.role !== 'ADMIN') return null;
 
   const navLinks = [
-    { href: '/admin',        label: 'Dashboard' },
-    { href: '/admin/users',  label: 'Users' },
-    { href: '/admin/events', label: 'Events' },
+    { href: '/admin',        label: 'Dashboard', icon: '◈' },
+    { href: '/admin/users',  label: 'Users',     icon: '◎' },
+    { href: '/admin/events', label: 'Events',    icon: '◇' },
   ];
 
   return (
-    <div className="flex h-screen bg-neutral-950 text-white overflow-hidden">
+    <div className="flex h-screen overflow-hidden" style={{ background: 'linear-gradient(160deg,#fdf6e8 0%,#f5e6cc 100%)' }}>
+
       {/* Sidebar */}
-      <aside className="w-52 flex-shrink-0 bg-neutral-900 border-r border-white/10 flex flex-col">
-        <div className="px-4 py-5 border-b border-white/10">
-          <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">Glimpse Admin</span>
+      <aside
+        className="w-52 flex-shrink-0 flex flex-col"
+        style={{ backgroundColor: '#B85C37', borderRight: '2px solid #9e4e2f' }}
+      >
+        {/* Brand */}
+        <div className="px-5 py-5" style={{ borderBottom: '1px solid rgba(158,78,47,0.6)' }}>
+          <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: 'rgba(246,235,221,0.5)' }}>
+            Glimpse
+          </p>
+          <p className="text-sm font-bold" style={{ fontFamily: 'Georgia, serif', color: '#F6EBDD' }}>
+            Admin Studio
+          </p>
         </div>
-        <nav className="flex-1 px-2 py-3 flex flex-col gap-1">
-          {navLinks.map(({ href, label }) => {
+
+        {/* Nav */}
+        <nav className="flex-1 px-3 py-4 flex flex-col gap-1">
+          {navLinks.map(({ href, label, icon }) => {
             const active = pathname === href;
             return (
               <Link
                 key={href}
                 href={href}
-                className={`px-3 py-2 rounded-lg text-sm transition-colors ${
-                  active
-                    ? 'bg-accent/20 text-purple-300 font-medium'
-                    : 'text-gray-400 hover:text-white hover:bg-white/5'
-                }`}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm transition-all"
+                style={active
+                  ? { backgroundColor: 'rgba(246,235,221,0.18)', color: '#F6EBDD', fontWeight: 600 }
+                  : { color: 'rgba(246,235,221,0.6)' }
+                }
               >
+                <span className="text-base leading-none">{icon}</span>
                 {label}
               </Link>
             );
           })}
         </nav>
-        <div className="px-2 py-3 border-t border-white/10">
+
+        {/* Back */}
+        <div className="px-3 py-4" style={{ borderTop: '1px solid rgba(158,78,47,0.6)' }}>
           <Link
-            href="/"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
+            href="/dashboard"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all"
+            style={{ color: 'rgba(246,235,221,0.45)' }}
           >
             ← Back to App
           </Link>
         </div>
       </aside>
 
-      {/* Main content */}
+      {/* Main */}
       <main className="flex-1 overflow-auto">
         {children}
       </main>

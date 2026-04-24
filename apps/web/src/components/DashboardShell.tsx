@@ -101,7 +101,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           </button>
 
           <div className="px-1 py-1">
-            <UserMenu compact />
+            <UserMenu compact dropdownPosition="up" />
           </div>
         </div>
       </aside>

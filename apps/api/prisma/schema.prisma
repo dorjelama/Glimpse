@@ -87,6 +87,8 @@ model GallerySubmission {
   reactions       SubmissionReaction[]
   featuredPhotoId String?
   approved        Boolean              @default(false)
+  consentGiven    Boolean              @default(false)
+  consentAt       DateTime?
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 

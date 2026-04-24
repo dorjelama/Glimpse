@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route; V4 lazy loading via cursor pagination; V9 PWA manifest + home screen shortcut; H7 host moderation real-time via SSE; H8 mobile moderation + bulk approve; H6 QR guidance (PNG + copy link + usage hint); G8 per-device submission cap (3)_
+_Last updated: 2026-04-25 — G10 consent; QR branding + PNG download; admin panel themed; UserMenu dropdown fix; H8 mobile moderation; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation_
 
 ---
 
@@ -65,12 +65,12 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | G7 | See my photo appear on the feed | Thank-you screen has a "See the live feed →" button linking to `/g/[galleryId]/feed`. | ✅ Resolved |
 | G8 | Upload again later | Upload page reads `glimpse-token-map:${galleryId}` from localStorage to count prior submissions. Cap is 3 per device per gallery. Under the cap: `DoneScreen` shows "Share another moment →" and mounts a fresh `MomentForm` via `key` increment. At the cap: a `LimitScreen` replaces the form with a link to the feed. Count is incremented in state on each `onDone()`. | ✅ Resolved |
 | G9 | Remove my photo if I change my mind | Uploader can delete their own **pending** submission from the feed via a Delete button (token-authenticated, no login needed). Removal propagates via SSE to all viewers instantly. | **Partially resolved.** Approved submissions cannot be self-deleted — that remains host-only. Pending deletion also only works on the same device/browser (token stored in localStorage; clearing storage or switching device loses the ability). |
-| G10 | Know how my photo may be used | No consent mechanism exists. Guests upload with no terms shown and no indication of how their images may be shared or used. | **No photo usage consent at upload.** No consent checkbox, no terms copy, no consent record stored. Platform has no proof of permission. Potential right-of-publicity and GDPR exposure depending on jurisdiction. Applies to both the guest (informed choice) and the host (legal cover). |
+| G10 | Know how my photo may be used | Consent checkbox above the Post button: "I consent to my photos being displayed on the event feed and shared with guests by the host." Custom amber checkbox, `canPost` blocks submission until checked. `finalise()` API requires `consent: true` — server throws 400 if missing. Schema stores `consentGiven Boolean` + `consentAt DateTime?` on `GallerySubmission` (migration: `add_consent_to_submissions`). | ✅ Resolved |
 
 ### Guest drop-off moments
 - ~~**G7**~~ — ✅ Resolved. "See the live feed →" closes the social loop after posting.
 - **G9** — Partial. Guest can delete their own pending post but loses that ability on a different device or after clearing storage.
-- **G10** — Open. Guests upload with no awareness of how images are used. No consent record means the host has no legal cover if a guest objects later.
+- ~~**G10**~~ — ✅ Resolved. Consent checkbox required before posting; `consentGiven` + `consentAt` stored on the submission for audit trail.
 
 ---
 
@@ -100,13 +100,24 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 
 | Priority | Gap | Story refs | Notes |
 |----------|-----|-----------|-------|
-| 1 | No photo usage consent at upload | G10 | No consent checkbox, no terms, no stored record. Legal exposure for host and platform. |
-| 2 | No in-product card sharing | H4 | Host must copy-paste URL manually. |
-| 3 | No export notification after event ends | H10 | 30-day window passes silently; photos deleted without warning. |
-| 4 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI. |
-| 5 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt. |
-| 6 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
+| 1 | No in-product card sharing | H4 | Host must copy-paste URL manually. No email, WhatsApp, or copy button. |
+| 2 | No export notification after event ends | H10 | 30-day window passes silently; photos deleted without warning. |
+| 3 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI; hurts conversion. |
+| 4 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt to upgrade. |
+| 5 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
 
+### Resolved
+
+| Gap | Story refs | Resolution |
+|-----|-----------|------------|
+| No photo usage consent at upload | G10 | Consent checkbox required before posting; `consentGiven` + `consentAt` stored on submission. |
+| No pagination / lazy loading on feed | V4 | Cursor pagination + IntersectionObserver auto-load (20/page, capped at 50). |
+| No home screen shortcut for feed | V9 | Dynamic per-gallery PWA manifest + Apple meta tags; icon from existing brand asset. |
+| Upload page as QR landing (no social proof) | G3 | QR now points to live feed; upload reachable via floating button; old QR codes auto-redirect. |
+| Host moderation pull-based | H7 | `finalise()` broadcasts `submission.new` via SSE; moderation panel refetches pending list instantly. |
+| Moderation page not usable on mobile | H8 | Row layout on mobile (~80px/row). Bulk approve all pending. Responsive grid. |
+| No QR code guidance for hosts | H6 | PNG download (branded canvas card), copy link, usage hint. |
+| Multiple submissions per guest not handled | G8 | 3-submission cap per device via localStorage token map; `LimitScreen` at cap. |
 
 ## Enhancements
 - Feedback feature from host
@@ -116,4 +127,3 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 - Landing page improvements
 - Email, Image, Hosting and Domains
 - QR Design with texts and branding
-- Update github readme file to describe project

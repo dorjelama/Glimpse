@@ -47,10 +47,10 @@ function CardFeatureTile({ project }: { project: GlimpseProject }) {
   const firstPage = card.pages[0];
 
   return (
-    <div className="bg-cream border border-gold/30 rounded-2xl overflow-hidden flex flex-col">
+    <div className="bg-cream border border-gold/30 rounded-2xl overflow-hidden flex flex-col hover:border-terra/40 hover:shadow-md hover:shadow-terra/10 transition-all duration-200">
       {/* Preview */}
       <div
-        className="h-40 flex items-center justify-center border-b border-gold/20"
+        className="h-52 flex items-center justify-center border-b border-gold/20"
         style={{ backgroundColor: firstPage?.bgColor || '#F9CDB5' }}
       >
         {firstPage?.bgImage ? (
@@ -126,31 +126,78 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
     }
   };
 
-  const handleDownloadPNG = () => {
+  const handleDownloadPNG = (title: string, feedUrl: string) => {
     const svg = qrRef.current?.querySelector('svg');
     if (!svg) return;
-    const padding = 32;
-    const qrSize = 400;
-    const size = qrSize + padding * 2;
-    const svgData = new XMLSerializer().serializeToString(svg);
+
+    const W = 560;
+    const qrSize = 300;
+    const qrPad = 28;
+    const qrCardW = qrSize + qrPad * 2;
+    const qrCardX = (W - qrCardW) / 2;
+    const qrCardY = 130;
+    const H = qrCardY + qrCardW + 110;
+
     const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
+    canvas.width = W;
+    canvas.height = H;
     const ctx = canvas.getContext('2d')!;
+
+    // Background
+    ctx.fillStyle = '#B85C37';
+    ctx.fillRect(0, 0, W, H);
+
+    // Subtle top stripe
+    ctx.fillStyle = 'rgba(0,0,0,0.08)';
+    ctx.fillRect(0, 0, W, 100);
+
+    // "Glimpses" wordmark
+    ctx.fillStyle = '#F6EBDD';
+    ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Glimpses', W / 2, 52);
+
+    // Event title
+    const maxTitleW = W - 80;
+    ctx.font = '17px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillStyle = 'rgba(246,235,221,0.75)';
+    let t = title;
+    while (t.length > 0 && ctx.measureText(t).width > maxTitleW) t = t.slice(0, -1);
+    if (t !== title) t += '…';
+    ctx.fillText(t, W / 2, 80);
+
+    // White QR card
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, size, size);
+    ctx.beginPath();
+    const r = 16;
+    ctx.roundRect(qrCardX, qrCardY, qrCardW, qrCardW, r);
+    ctx.fill();
+
+    // Draw QR SVG onto canvas
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(svgBlob);
     const img = new Image();
-    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const svgUrl = URL.createObjectURL(blob);
     img.onload = () => {
-      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      ctx.drawImage(img, qrCardX + qrPad, qrCardY + qrPad, qrSize, qrSize);
       URL.revokeObjectURL(svgUrl);
+
+      // CTA text
+      ctx.fillStyle = 'rgba(246,235,221,0.9)';
+      ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, sans-serif';
+      ctx.fillText('📸  Scan to share your moment', W / 2, qrCardY + qrCardW + 44);
+
+      // URL
+      ctx.fillStyle = 'rgba(246,235,221,0.45)';
+      ctx.font = '11px monospace';
+      ctx.fillText(feedUrl, W / 2, H - 22);
+
       canvas.toBlob((pngBlob) => {
         if (!pngBlob) return;
         const pngUrl = URL.createObjectURL(pngBlob);
         const a = document.createElement('a');
         a.href = pngUrl;
-        a.download = `${project.title}-glimpses-qr.png`;
+        a.download = `${title}-glimpses-qr.png`;
         a.click();
         URL.revokeObjectURL(pngUrl);
       }, 'image/png');
@@ -170,10 +217,25 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
     const uploadUrl = `${window.location.origin}/g/${project.gallery.id}/feed`;
 
     return (
-      <div className="bg-cream border border-gold/30 rounded-2xl overflow-hidden flex flex-col">
-        {/* QR preview */}
-        <div className="h-40 flex items-center justify-center border-b border-gold/20 bg-white p-4" ref={qrRef}>
-          <QRCode value={uploadUrl} size={120} />
+      <div className="bg-cream border border-gold/30 rounded-2xl overflow-hidden flex flex-col hover:border-terra/40 hover:shadow-md hover:shadow-terra/10 transition-all duration-200">
+        {/* QR branded card — fixed h-52 to match Card tile preview height */}
+        <div
+          ref={qrRef}
+          className="h-52 flex flex-col items-center justify-center gap-2 border-b border-[#9e4e2f]"
+          style={{ background: 'linear-gradient(160deg, #c4663e 0%, #B85C37 60%, #9e4e2f 100%)' }}
+        >
+          <div className="text-center leading-tight">
+            <p className="text-[#F6EBDD] font-bold text-sm tracking-tight">Glimpses</p>
+            <p className="text-[10px] truncate max-w-[180px]" style={{ color: 'rgba(246,235,221,0.6)' }}>
+              {project.title}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl p-2.5 shadow-md">
+            <QRCode value={uploadUrl} size={88} />
+          </div>
+          <p className="text-[10px]" style={{ color: 'rgba(246,235,221,0.65)' }}>
+            📸 Scan to share your moment
+          </p>
         </div>
 
         <div className="p-5 flex flex-col gap-4 flex-1">
@@ -216,7 +278,7 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
 
           <div className="flex flex-wrap gap-2 mt-auto">
             <button
-              onClick={handleDownloadPNG}
+              onClick={() => handleDownloadPNG(project.title, uploadUrl)}
               className="px-3 py-2 bg-gold/20 hover:bg-gold/30 text-ink/70 text-sm font-medium rounded-xl transition-colors border border-gold/30"
             >
               ↓ PNG

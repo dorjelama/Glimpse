@@ -17,16 +17,18 @@ function galleryStatus(gallery: { isOpen: boolean; endedAt?: string }) {
   return 'open';
 }
 
-function StatusBadge({ status }: { status: 'open' | 'closed' | 'ended' }) {
-  const styles = {
-    open: 'bg-green-100 text-green-700',
-    closed: 'bg-amber-100 text-amber-700',
-    ended: 'bg-blush text-ink/50 border border-gold/20',
-  };
-  const labels = { open: 'Open', closed: 'Closed', ended: 'Ended' };
+function StatusPill({ status }: { status: 'open' | 'closed' | 'ended' }) {
+  const cfg = {
+    open:   { bg: 'rgba(134,239,172,0.18)', text: '#86efac', border: 'rgba(134,239,172,0.35)', label: 'Open' },
+    closed: { bg: 'rgba(252,211,77,0.18)',  text: '#fcd34d', border: 'rgba(252,211,77,0.35)',  label: 'Closed' },
+    ended:  { bg: 'rgba(246,235,221,0.12)', text: 'rgba(246,235,221,0.5)', border: 'rgba(246,235,221,0.2)', label: 'Ended' },
+  }[status];
   return (
-    <span className={`inline-flex text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wide ${styles[status]}`}>
-      {labels[status]}
+    <span
+      className="inline-flex text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-widest"
+      style={{ backgroundColor: cfg.bg, color: cfg.text, border: `1px solid ${cfg.border}` }}
+    >
+      {cfg.label}
     </span>
   );
 }
@@ -56,27 +58,48 @@ function SubmissionCard({
     try { await onDelete(sub); } finally { setDeleting(false); setConfirmDelete(false); }
   };
 
+  const cardBg   = sub.approved ? '#f6fef8' : '#fffcf5';
+  const cardBorder = sub.approved ? '#bbf7d0' : '#f0d9a8';
+
   return (
-    <div className={`bg-cream border rounded-2xl overflow-hidden ${
-      sub.approved ? 'border-green-300' : 'border-gold/30'
-    }`}>
-      {/* Mobile: row layout. sm+: column card */}
+    <div
+      className="rounded-2xl overflow-hidden shadow-sm"
+      style={{ backgroundColor: cardBg, border: `1px solid ${cardBorder}` }}
+    >
       <div className="flex flex-row sm:flex-col">
 
         {/* Photo */}
-        <div className="w-20 self-stretch sm:w-full sm:h-44 bg-blush relative flex-shrink-0">
+        <div className="w-20 self-stretch sm:w-full sm:h-44 relative flex-shrink-0" style={{ backgroundColor: '#e8d5b0' }}>
           {featuredPhoto ? (
             <img src={photoUrl(featuredPhoto.url)} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="flex items-center justify-center h-full text-ink/30 text-xs min-h-[5rem]">No photo</div>
+            <div className="flex items-center justify-center h-full min-h-[5rem] text-xs" style={{ color: '#b09060' }}>
+              No photo
+            </div>
           )}
+
+          {/* Status overlay */}
           {sub.approved && (
-            <div className="absolute top-1 right-1 sm:top-2 sm:right-2 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full">
+            <div
+              className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 text-[9px] font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: '#16a34a', color: '#fff' }}
+            >
               Live
             </div>
           )}
+          {!sub.approved && (
+            <div
+              className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 text-[9px] font-bold px-2 py-0.5 rounded-full hidden sm:block"
+              style={{ backgroundColor: '#92400e', color: '#fef3c7' }}
+            >
+              Pending
+            </div>
+          )}
           {extraCount > 0 && (
-            <div className="absolute bottom-1 left-1 sm:bottom-2 sm:left-2 bg-ink/60 text-cream text-[9px] px-1.5 py-0.5 rounded-full">
+            <div
+              className="absolute bottom-1.5 left-1.5 sm:bottom-2 sm:left-2 text-[9px] px-1.5 py-0.5 rounded-full"
+              style={{ backgroundColor: 'rgba(30,18,6,0.65)', color: '#F6EBDD' }}
+            >
               +{extraCount}
             </div>
           )}
@@ -85,9 +108,11 @@ function SubmissionCard({
         {/* Content */}
         <div className="flex-1 p-3 sm:p-4 flex flex-col gap-2 sm:gap-3 min-w-0">
           <div className="min-w-0">
-            <p className="text-ink font-semibold text-sm truncate">{sub.guestName}</p>
+            <p className="font-semibold text-sm truncate" style={{ color: '#2d1a00' }}>{sub.guestName}</p>
             {sub.message && (
-              <p className="text-ink/50 text-xs mt-0.5 leading-relaxed line-clamp-1 sm:line-clamp-2 italic">"{sub.message}"</p>
+              <p className="text-xs mt-0.5 leading-relaxed line-clamp-1 sm:line-clamp-2 italic" style={{ color: '#8a6040' }}>
+                "{sub.message}"
+              </p>
             )}
           </div>
 
@@ -97,9 +122,8 @@ function SubmissionCard({
               {sub.photos.map(p => (
                 <div
                   key={p.id}
-                  className={`w-9 h-9 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
-                    p.id === sub.featuredPhotoId ? 'border-terra' : 'border-transparent'
-                  }`}
+                  className="w-9 h-9 rounded-lg overflow-hidden flex-shrink-0"
+                  style={{ border: p.id === sub.featuredPhotoId ? '2px solid #B85C37' : '2px solid transparent' }}
                 >
                   <img src={photoUrl(p.url)} alt="" className="w-full h-full object-cover" />
                 </div>
@@ -113,11 +137,11 @@ function SubmissionCard({
               <button
                 onClick={handleToggle}
                 disabled={loading || deleting}
-                className={`flex-1 py-1.5 sm:py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
-                  sub.approved
-                    ? 'bg-ink/5 hover:bg-red-50 text-ink/50 hover:text-red-600 border border-gold/20'
-                    : 'bg-green-100 hover:bg-green-200 text-green-700 border border-green-200'
-                }`}
+                className="flex-1 py-1.5 sm:py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                style={sub.approved
+                  ? { backgroundColor: 'transparent', color: '#9a6040', border: '1px solid #e0c8a0' }
+                  : { backgroundColor: '#B85C37', color: '#F6EBDD', border: '1px solid #9e4e2f' }
+                }
               >
                 {loading ? '…' : sub.approved ? 'Remove' : 'Approve'}
               </button>
@@ -125,7 +149,8 @@ function SubmissionCard({
                 onClick={() => setConfirmDelete(true)}
                 disabled={loading || deleting}
                 aria-label="Delete submission"
-                className="flex-shrink-0 px-3 py-1.5 sm:py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 bg-blush hover:bg-red-50 text-ink/40 hover:text-red-500 border border-gold/20 hover:border-red-200"
+                className="flex-shrink-0 px-3 py-1.5 sm:py-2 text-sm rounded-xl transition-all disabled:opacity-50"
+                style={{ backgroundColor: 'transparent', color: '#c0a070', border: '1px solid #e8d5b0' }}
               >
                 <span className="sm:hidden">✕</span>
                 <span className="hidden sm:inline">Delete</span>
@@ -136,14 +161,16 @@ function SubmissionCard({
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex-1 py-1.5 sm:py-2 text-xs font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50 transition-colors"
+                className="flex-1 py-1.5 sm:py-2 text-xs font-semibold rounded-xl transition-all disabled:opacity-50"
+                style={{ backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5' }}
               >
                 {deleting ? '…' : 'Confirm delete'}
               </button>
               <button
                 onClick={() => setConfirmDelete(false)}
                 disabled={deleting}
-                className="flex-1 py-1.5 sm:py-2 text-xs rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20 transition-colors"
+                className="flex-1 py-1.5 sm:py-2 text-xs rounded-xl transition-all"
+                style={{ backgroundColor: 'transparent', color: '#a08060', border: '1px solid #e8d5b0' }}
               >
                 Cancel
               </button>
@@ -249,8 +276,8 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   if (loading) {
     return (
       <DashboardShell>
-        <div className="min-h-full bg-cream flex items-center justify-center">
-          <p className="text-ink/40 text-sm animate-pulse">Loading…</p>
+        <div className="min-h-full flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#fdf6e8,#f5e6cc)' }}>
+          <p className="text-sm animate-pulse" style={{ color: '#b09070' }}>Loading…</p>
         </div>
       </DashboardShell>
     );
@@ -259,8 +286,8 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   if (!project || !project.gallery) {
     return (
       <DashboardShell>
-        <div className="min-h-full bg-cream px-8 py-8">
-          <p className="text-ink/40 text-sm">Gallery not found.</p>
+        <div className="min-h-full px-8 py-8" style={{ background: 'linear-gradient(160deg,#fdf6e8,#f5e6cc)' }}>
+          <p className="text-sm" style={{ color: '#b07050' }}>Gallery not found.</p>
         </div>
       </DashboardShell>
     );
@@ -278,140 +305,198 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
 
   return (
     <DashboardShell>
-      <div className="min-h-full bg-cream px-4 py-6 md:px-8 md:py-8 max-w-4xl">
+      <div className="min-h-full" style={{ background: 'linear-gradient(160deg, #fdf6e8 0%, #f5e6cc 100%)' }}>
 
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between mb-8 gap-4">
-          <div>
-            <button
-              onClick={() => router.push(`/events/${params.id}`)}
-              className="text-xs text-ink/40 hover:text-ink mb-2 block transition-colors"
-            >
-              ← {project.title}
-            </button>
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>Glimpses</h1>
-              <StatusBadge status={status} />
-            </div>
-            <p className="text-sm text-ink/40 mt-1">
-              {submissions.length} submission{submissions.length !== 1 ? 's' : ''} · {approved.length} live
-            </p>
-          </div>
+        {/* ── Terra header ─────────────────────────────────────── */}
+        <div style={{ backgroundColor: '#B85C37', borderBottom: '2px solid #9e4e2f' }} className="px-4 py-5 md:px-8">
+          <button
+            onClick={() => router.push(`/events/${params.id}`)}
+            className="text-xs mb-3 block transition-opacity hover:opacity-80"
+            style={{ color: 'rgba(246,235,221,0.6)' }}
+          >
+            ← {project.title}
+          </button>
 
-          {/* Gallery controls */}
-          {status !== 'ended' && (
-            <div className="flex gap-2 flex-shrink-0 md:mt-7 w-full md:w-auto">
-              <button
-                onClick={handleToggleOpen}
-                disabled={togglingOpen}
-                className={`flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 border ${
-                  status === 'open'
-                    ? 'bg-red-50 hover:bg-red-100 text-red-600 border-red-200'
-                    : 'bg-green-100 hover:bg-green-200 text-green-700 border-green-200'
-                }`}
-              >
-                {status === 'open' ? 'Pause submissions' : 'Resume submissions'}
-              </button>
-
-              {!confirmEnd ? (
-                <button
-                  onClick={() => setConfirmEnd(true)}
-                  className="flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-xl transition-colors border bg-blush hover:bg-gold/20 text-ink/50 hover:text-ink border-gold/30"
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            {/* Title + stats */}
+            <div>
+              <div className="flex items-center gap-3">
+                <h1
+                  className="text-xl font-bold"
+                  style={{ fontFamily: 'Georgia, serif', color: '#F6EBDD' }}
                 >
-                  End event
+                  Glimpses
+                </h1>
+                <StatusPill status={status} />
+              </div>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <span className="text-[11px]" style={{ color: 'rgba(246,235,221,0.55)' }}>
+                  {submissions.length} total
+                </span>
+                <span style={{ color: 'rgba(246,235,221,0.25)' }}>·</span>
+                <span className="text-[11px] font-medium" style={{ color: '#86efac' }}>
+                  {approved.length} live
+                </span>
+                {pending.length > 0 && (
+                  <>
+                    <span style={{ color: 'rgba(246,235,221,0.25)' }}>·</span>
+                    <span className="text-[11px] font-medium" style={{ color: '#fcd34d' }}>
+                      {pending.length} pending
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Gallery controls */}
+            {status !== 'ended' && (
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={handleToggleOpen}
+                  disabled={togglingOpen}
+                  className="flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-xl transition-all disabled:opacity-50"
+                  style={status === 'open'
+                    ? { backgroundColor: 'rgba(254,242,242,0.15)', color: '#fca5a5', border: '1px solid rgba(252,165,165,0.4)' }
+                    : { backgroundColor: 'rgba(240,253,244,0.15)', color: '#86efac', border: '1px solid rgba(134,239,172,0.4)' }
+                  }
+                >
+                  {status === 'open' ? 'Pause' : 'Resume'}
                 </button>
-              ) : (
-                <div className="flex-1 md:flex-none flex gap-2 items-center">
-                  <span className="hidden md:inline text-xs text-ink/50">Are you sure?</span>
+
+                {!confirmEnd ? (
                   <button
-                    onClick={handleEndEvent}
-                    disabled={ending}
-                    className="flex-1 md:flex-none px-3 py-2 text-xs font-semibold rounded-xl bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
+                    onClick={() => setConfirmEnd(true)}
+                    className="flex-1 md:flex-none px-4 py-2 text-sm font-medium rounded-xl transition-all"
+                    style={{ backgroundColor: 'rgba(246,235,221,0.12)', color: 'rgba(246,235,221,0.65)', border: '1px solid rgba(246,235,221,0.2)' }}
                   >
-                    {ending ? 'Ending…' : 'Yes, end'}
+                    End event
                   </button>
-                  <button
-                    onClick={() => setConfirmEnd(false)}
-                    className="flex-1 md:flex-none px-3 py-2 text-xs rounded-xl bg-blush hover:bg-gold/20 text-ink/50 border border-gold/20"
+                ) : (
+                  <div className="flex gap-2 items-center">
+                    <button
+                      onClick={handleEndEvent}
+                      disabled={ending}
+                      className="px-3 py-2 text-xs font-semibold rounded-xl disabled:opacity-50 transition-all"
+                      style={{ backgroundColor: 'rgba(254,242,242,0.2)', color: '#fca5a5', border: '1px solid rgba(252,165,165,0.4)' }}
+                    >
+                      {ending ? 'Ending…' : 'Yes, end'}
+                    </button>
+                    <button
+                      onClick={() => setConfirmEnd(false)}
+                      className="px-3 py-2 text-xs rounded-xl transition-all"
+                      style={{ backgroundColor: 'rgba(246,235,221,0.1)', color: 'rgba(246,235,221,0.55)', border: '1px solid rgba(246,235,221,0.15)' }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Content ──────────────────────────────────────────── */}
+        <div className="px-4 py-6 md:px-8 md:py-8 max-w-4xl">
+
+          {/* Export banner */}
+          {status === 'ended' && (
+            <div
+              className="mb-8 rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+              style={{ backgroundColor: '#fef9f0', border: '1px solid #e8c97a' }}
+            >
+              <div>
+                <p className="text-sm font-semibold" style={{ color: '#7c5c1e' }}>Download your Glimpses</p>
+                {exportExpired ? (
+                  <p className="text-xs mt-0.5" style={{ color: '#a08040' }}>Export window has expired · photos will be removed shortly</p>
+                ) : (
+                  <p className="text-xs mt-0.5" style={{ color: '#a08040' }}>
+                    ZIP of all approved photos · {exportWindowDays} day{exportWindowDays !== 1 ? 's' : ''} remaining
+                  </p>
+                )}
+                {downloadError && <p className="text-xs mt-1 text-red-500">{downloadError}</p>}
+              </div>
+              {!exportExpired && (
+                <button
+                  onClick={handleDownload}
+                  disabled={downloading}
+                  className="flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                  style={{ backgroundColor: '#B85C37', color: '#F6EBDD', border: '1px solid #9e4e2f' }}
+                >
+                  {downloading ? 'Preparing…' : 'Download ZIP'}
+                </button>
+              )}
+            </div>
+          )}
+
+          {submissions.length === 0 ? (
+            <div className="text-center py-24">
+              <div className="text-4xl mb-3 opacity-30">📸</div>
+              <p className="text-sm font-medium" style={{ color: '#a08060' }}>No submissions yet</p>
+              <p className="text-xs mt-1" style={{ color: '#c0a070' }}>Share the QR code with guests to get started.</p>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-10">
+
+              {/* ── Pending ── */}
+              {pending.length > 0 && (
+                <section>
+                  <div
+                    className="flex items-center justify-between px-4 py-3 rounded-2xl mb-4"
+                    style={{ backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderLeft: '3px solid #f59e0b' }}
                   >
-                    Cancel
-                  </button>
-                </div>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#92400e' }}>
+                        Pending Review
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: '#b45309' }}>
+                        {pending.length} waiting for your approval
+                      </p>
+                    </div>
+                    {pending.length > 1 && (
+                      <button
+                        onClick={handleBulkApprove}
+                        disabled={bulkApproving}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+                        style={{ backgroundColor: '#B85C37', color: '#F6EBDD', border: '1px solid #9e4e2f' }}
+                      >
+                        {bulkApproving ? 'Approving…' : `Approve all ${pending.length}`}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
+                    {pending.map(sub => (
+                      <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* ── Live ── */}
+              {approved.length > 0 && (
+                <section>
+                  <div
+                    className="flex items-center justify-between px-4 py-3 rounded-2xl mb-4"
+                    style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderLeft: '3px solid #22c55e' }}
+                  >
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#14532d' }}>
+                        Live on Feed
+                      </p>
+                      <p className="text-[11px] mt-0.5" style={{ color: '#166534' }}>
+                        {approved.length} photo{approved.length !== 1 ? 's' : ''} visible to guests
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
+                    {approved.map(sub => (
+                      <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
+                    ))}
+                  </div>
+                </section>
               )}
             </div>
           )}
         </div>
-
-        {/* Export banner */}
-        {status === 'ended' && (
-          <div className="mb-6 rounded-2xl border border-gold/30 bg-blush px-5 py-4 flex items-center justify-between gap-4">
-            <div>
-              <p className="text-sm font-semibold text-ink">Download your Glimpses</p>
-              {exportExpired ? (
-                <p className="text-xs text-ink/40 mt-0.5">Export window has expired · photos will be removed shortly</p>
-              ) : (
-                <p className="text-xs text-ink/50 mt-0.5">
-                  ZIP of all approved photos · {exportWindowDays} day{exportWindowDays !== 1 ? 's' : ''} remaining
-                </p>
-              )}
-              {downloadError && <p className="text-xs text-red-500 mt-1">{downloadError}</p>}
-            </div>
-            {!exportExpired && (
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 bg-terra hover:bg-terra/90 text-white"
-              >
-                {downloading ? 'Preparing…' : 'Download ZIP'}
-              </button>
-            )}
-          </div>
-        )}
-
-        {submissions.length === 0 ? (
-          <div className="text-center py-20 text-ink/40 text-sm">
-            No submissions yet. Share the QR code with guests to get started.
-          </div>
-        ) : (
-          <div className="flex flex-col gap-10">
-            {pending.length > 0 && (
-              <section>
-                <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest">
-                    Pending review ({pending.length})
-                  </p>
-                  {pending.length > 1 && (
-                    <button
-                      onClick={handleBulkApprove}
-                      disabled={bulkApproving}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 border border-green-200 disabled:opacity-50 transition-colors"
-                    >
-                      {bulkApproving ? 'Approving…' : `Approve all ${pending.length}`}
-                    </button>
-                  )}
-                </div>
-                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
-                  {pending.map(sub => (
-                    <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {approved.length > 0 && (
-              <section>
-                <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest mb-4">
-                  Live on feed ({approved.length})
-                </p>
-                <div className="flex flex-col gap-2 sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
-                  {approved.map(sub => (
-                    <SubmissionCard key={sub.id} sub={sub} onToggle={handleToggleApprove} onDelete={handleDelete} />
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
-        )}
       </div>
     </DashboardShell>
   );

@@ -62,7 +62,7 @@ function ProjectCard({
     >
       {/* Preview thumbnail */}
       <div
-        className="h-36 flex items-center justify-center border-b border-gold/20 overflow-hidden"
+        className="h-52 flex items-center justify-center border-b border-gold/20 overflow-hidden"
         style={{ backgroundColor: firstPage?.bgColor || '#F9CDB5' }}
       >
         {firstPage?.bgImage ? (
@@ -127,7 +127,7 @@ function ProjectCard({
 function SkeletonCard() {
   return (
     <div className="bg-blush/50 border border-gold/20 rounded-2xl overflow-hidden animate-pulse">
-      <div className="h-36 bg-gold/10" />
+      <div className="h-52 bg-gold/10" />
       <div className="p-4 space-y-2">
         <div className="h-3.5 bg-ink/10 rounded w-3/4" />
         <div className="h-3 bg-ink/5 rounded w-1/2" />
@@ -295,7 +295,7 @@ export default function DashboardPage() {
     <DashboardShell>
       <div className="min-h-full bg-cream px-4 py-6 md:px-8 md:py-8">
 
-        {/* Header */}
+        {/* Header — full width so buttons stay at the right edge */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>Events</h1>
@@ -319,64 +319,69 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {error && (
-          <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-            {error}
-          </div>
-        )}
+        {/* Constrained content */}
+        <div className="max-w-4xl">
 
-        {/* Section label */}
-        {!loading && projects.length > 0 && (
-          <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest mb-4">
-            {projects.length} Event{projects.length !== 1 ? 's' : ''}
-          </p>
-        )}
+          {error && (
+            <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+              {error}
+            </div>
+          )}
 
-        {/* Skeleton */}
-        {loading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        )}
-
-        {/* Grid */}
-        {!loading && projects.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {projects.map(p => (
-              <ProjectCard key={p.id} project={p} onDelete={handleDelete} stats={galleryStats[p.id]} />
-            ))}
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && projects.length === 0 && !error && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="text-5xl mb-5 opacity-10 select-none text-ink">✦</div>
-            <p className="text-ink font-semibold text-lg mb-2" style={{ fontFamily: 'Georgia, serif' }}>No events yet</p>
-            <p className="text-ink/40 text-sm mb-8 max-w-xs leading-relaxed">
-              Each event gets a Card you design and a Glimpses feed your guests post to live.
+          {/* Section label */}
+          {!loading && projects.length > 0 && (
+            <p className="text-xs font-semibold text-ink/30 uppercase tracking-widest mb-4">
+              {projects.length} Event{projects.length !== 1 ? 's' : ''}
             </p>
-            <button
-              onClick={() => setShowModal(true)}
-              className="px-6 py-3 bg-terra hover:bg-terra/90 text-white font-semibold rounded-xl transition-colors mb-10 shadow-sm"
-            >
-              + New Event
-            </button>
+          )}
 
-            <div className="grid grid-cols-2 gap-3 w-full max-w-sm text-left">
-              <div className="bg-blush border border-gold/20 rounded-xl p-4">
-                <p className="text-base mb-1">✦</p>
-                <p className="text-ink text-xs font-semibold mb-1">Card</p>
-                <p className="text-ink/40 text-[11px] leading-relaxed">Design an invitation. Publish to a shareable link.</p>
-              </div>
-              <div className="bg-blush border border-gold/20 rounded-xl p-4">
-                <p className="text-base mb-1">📸</p>
-                <p className="text-ink text-xs font-semibold mb-1">Glimpses</p>
-                <p className="text-ink/40 text-[11px] leading-relaxed">Guests upload live photos. You curate the feed.</p>
+          {/* Skeleton */}
+          {loading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
+            </div>
+          )}
+
+          {/* Grid */}
+          {!loading && projects.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {projects.map(p => (
+                <ProjectCard key={p.id} project={p} onDelete={handleDelete} stats={galleryStats[p.id]} />
+              ))}
+            </div>
+          )}
+
+          {/* Empty state */}
+          {!loading && projects.length === 0 && !error && (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="text-5xl mb-5 opacity-10 select-none text-ink">✦</div>
+              <p className="text-ink font-semibold text-lg mb-2" style={{ fontFamily: 'Georgia, serif' }}>No events yet</p>
+              <p className="text-ink/40 text-sm mb-8 max-w-xs leading-relaxed">
+                Each event gets a Card you design and a Glimpses feed your guests post to live.
+              </p>
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-6 py-3 bg-terra hover:bg-terra/90 text-white font-semibold rounded-xl transition-colors mb-10 shadow-sm"
+              >
+                + New Event
+              </button>
+
+              <div className="grid grid-cols-2 gap-3 w-full max-w-sm text-left">
+                <div className="bg-blush border border-gold/20 rounded-xl p-4">
+                  <p className="text-base mb-1">✦</p>
+                  <p className="text-ink text-xs font-semibold mb-1">Card</p>
+                  <p className="text-ink/40 text-[11px] leading-relaxed">Design an invitation. Publish to a shareable link.</p>
+                </div>
+                <div className="bg-blush border border-gold/20 rounded-xl p-4">
+                  <p className="text-base mb-1">📸</p>
+                  <p className="text-ink text-xs font-semibold mb-1">Glimpses</p>
+                  <p className="text-ink/40 text-[11px] leading-relaxed">Guests upload live photos. You curate the feed.</p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+
+        </div>{/* end max-w-4xl */}
       </div>
 
       {showWelcome && (

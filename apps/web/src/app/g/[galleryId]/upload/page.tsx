@@ -117,9 +117,10 @@ function MomentForm({
   const [uploading, setUploading] = useState(false);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const canPost = name.trim().length > 0 && photos.length > 0 && !posting;
+  const canPost = name.trim().length > 0 && photos.length > 0 && consent && !posting;
 
   const ensureSubmission = async (): Promise<GallerySubmission> => {
     if (submission) return submission;
@@ -179,7 +180,7 @@ function MomentForm({
     setError(null);
     try {
       const sub = await ensureSubmission();
-      await api.finaliseSubmission(sub.token, caption.trim() || undefined);
+      await api.finaliseSubmission(sub.token, caption.trim() || undefined, true);
       onDone();
     } catch (e: any) {
       setError(e.message ?? 'Something went wrong');
@@ -296,6 +297,34 @@ function MomentForm({
         </div>
 
         {error && <p className="text-red-400 text-xs">{error}</p>}
+
+        {/* Consent */}
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <div className="relative flex-shrink-0 mt-0.5">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={e => setConsent(e.target.checked)}
+              className="sr-only"
+            />
+            <div
+              className="w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors"
+              style={{
+                backgroundColor: consent ? '#f59e0b' : 'transparent',
+                borderColor: consent ? '#f59e0b' : 'rgba(255,255,255,0.2)',
+              }}
+            >
+              {consent && (
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+                  <polyline points="2 6 5 9 10 3" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </div>
+          </div>
+          <span className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+            I consent to my photos being displayed on the event feed and shared with guests by the host.
+          </span>
+        </label>
 
         {/* Post button */}
         <button

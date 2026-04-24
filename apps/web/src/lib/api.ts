@@ -121,8 +121,8 @@ export const api = {
   setFeaturedPhoto: (token: string, photoId: string) =>
     request<GallerySubmission>(`/gallery/submission/${token}/featured`, { method: 'PATCH', body: JSON.stringify({ photoId }) }),
 
-  finaliseSubmission: (token: string, message?: string) =>
-    request<GallerySubmission>(`/gallery/submission/${token}/finalise`, { method: 'POST', body: JSON.stringify({ message }) }),
+  finaliseSubmission: (token: string, message?: string, consent?: boolean) =>
+    request<GallerySubmission>(`/gallery/submission/${token}/finalise`, { method: 'POST', body: JSON.stringify({ message, consent }) }),
 
   toggleReaction: (submissionId: string, sessionId: string, emoji: string) =>
     request<{ reactionCounts: Record<string, number>; myReactions: string[] }>(
