@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route_
+_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route; V4 lazy loading via cursor pagination_
 
 ---
 
@@ -79,7 +79,7 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | V1 | Open the feed on my phone and see live glimpses | `/g/[galleryId]/feed` renders approved posts as a timeline. Initial fetch + live SSE stream over `/gallery/:id/feed/stream`. Manual refresh button in header. | ✅ Resolved — timeline + real-time. |
 | V2 | See new photos appear without refreshing | SSE pushes `submission.approved` / `submission.deleted` / `reaction.changed` events (~1s latency). "New" badge + amber spine dot for fresh posts. Falls back to 30s polling if SSE fails 3× or unavailable. | ✅ Resolved |
 | V3 | Know the event is active or over | Open/Closed indicator in header. Post-event banner when `endedAt` is set. | Solid. |
-| V4 | Navigate a feed with 100+ posts | Infinite scroll down the page. | **No pagination or lazy loading.** 100+ posts with images will be slow and memory-heavy on mobile. |
+| V4 | Navigate a feed with 100+ posts | Cursor-based pagination: initial load fetches 20 posts, IntersectionObserver sentinel 300px above the fold triggers `loadMore` automatically as the user scrolls. Backend accepts `?cursor=<id>&limit=N` (capped at 50). Overfetch-by-1 technique detects `hasMore`. Own pending submissions always included on the first page only. Polling fallback prepends new items without losing paginated state. | ✅ Resolved |
 | V5 | React to a post | Reaction bar with 6 emojis (❤️ 🎉 😂 😮 👏 🥰). Counts synced across devices via DB + SSE broadcast. Per-device state via persistent session ID. Optimistic UI, server-reconciled. Counts aggregated in SQL (`groupBy`), `sessionId` indexed. Rate-limited 30/min per session+IP. | ✅ Resolved |
 | V6 | See the feed on a projector at the venue | Regular mobile feed page. | **No Projection Mode** (documented as future). The feed isn't designed for a large screen. Small text, portrait layout, no auto-scroll. |
 | V7 | Feel the feed is part of the event's identity | Generic dark header, amber accent. | **No brand continuity from the card.** The invitation card can be beautifully designed, but the feed has no connection to those colors, fonts, or style. |
@@ -104,7 +104,7 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | 6 | No product screenshot or video on landing page | P1 | Open — placeholder boxes instead of real UI. |
 | 7 | No in-app upgrade path for Glimpses | P2 | Open — free users hit a wall with no prompt. |
 | 8 | No QR code guidance for hosts | H6 | Open — SVG format, no usage instructions. |
-| 9 | No pagination / lazy loading on feed | V4 | Open — 100+ posts will be slow on mobile. |
+| 9 | ~~No pagination / lazy loading on feed~~ | V4 | ✅ Resolved — cursor pagination + IntersectionObserver auto-load. |
 | 10 | No home screen shortcut for feed | V9 | Open — no PWA manifest; high friction at live events. |
 | 11 | Guest pending deletion device-bound | G9 | Partial — token in localStorage; switching device loses the delete option. |
 

@@ -132,20 +132,41 @@ export class MomentsService {
 
   // ── Public live feed ─────────────────────────────────────────────────────
 
-  async getFeed(galleryId: string, sessionId?: string, tokens?: string[]) {
+  async getFeed(galleryId: string, sessionId?: string, tokens?: string[], cursor?: string, limit = 20) {
     const gallery = await this.prisma.gallery.findUnique({
       where: { id: galleryId },
       include: { project: { select: { title: true } } },
     });
     if (!gallery) throw new NotFoundException('Gallery not found');
 
+    // Resolve cursor to a timestamp for stable keyset pagination
+    let cursorDate: Date | undefined;
+    if (cursor) {
+      const cursorSub = await this.prisma.gallerySubmission.findUnique({
+        where: { id: cursor },
+        select: { updatedAt: true },
+      });
+      if (cursorSub) cursorDate = cursorSub.updatedAt;
+    }
+
+    // Overfetch by 1 to detect whether a next page exists
     const approved = await this.prisma.gallerySubmission.findMany({
-      where: { galleryId, approved: true },
+      where: {
+        galleryId,
+        approved: true,
+        ...(cursorDate ? { updatedAt: { lt: cursorDate } } : {}),
+      },
       include: { photos: { orderBy: { createdAt: 'asc' as const } } },
       orderBy: { updatedAt: 'desc' as const },
+      take: limit + 1,
     });
 
-    const ownPending = tokens && tokens.length > 0
+    const hasMore = approved.length > limit;
+    const page = hasMore ? approved.slice(0, limit) : approved;
+    const nextCursor = hasMore ? page[page.length - 1].id : null;
+
+    // Own pending submissions only on the first page
+    const ownPending = !cursor && tokens && tokens.length > 0
       ? await this.prisma.gallerySubmission.findMany({
           where: { galleryId, approved: false, token: { in: tokens } },
           include: { photos: { orderBy: { createdAt: 'asc' as const } } },
@@ -153,12 +174,13 @@ export class MomentsService {
         })
       : [];
 
-    const counts = await this.aggregateCountsByGallery(galleryId);
+    const allIds = [...ownPending.map(s => s.id), ...page.map(s => s.id)];
+    const counts = await this.aggregateCounts(allIds);
 
     const mineMap = new Map<string, string[]>();
-    if (sessionId) {
+    if (sessionId && allIds.length > 0) {
       const mineRows = await this.prisma.submissionReaction.findMany({
-        where: { sessionId, submission: { galleryId } },
+        where: { sessionId, submissionId: { in: allIds } },
         select: { submissionId: true, emoji: true },
       });
       for (const r of mineRows) {
@@ -168,18 +190,31 @@ export class MomentsService {
       }
     }
 
-    const merged = [...ownPending, ...approved].sort(
-      (a, b) => b.updatedAt.getTime() - a.updatedAt.getTime(),
-    );
-
-    const mapped = merged.map(sub => ({
+    const combined = [...ownPending, ...page];
+    const mapped = combined.map(sub => ({
       ...sub,
       pending: !sub.approved,
       reactionCounts: counts.get(sub.id) ?? {},
       myReactions: mineMap.get(sub.id) ?? [],
     }));
 
-    return { gallery, submissions: mapped };
+    return { gallery, submissions: mapped, nextCursor };
+  }
+
+  private async aggregateCounts(submissionIds: string[]) {
+    if (submissionIds.length === 0) return new Map<string, Record<string, number>>();
+    const grouped = await this.prisma.submissionReaction.groupBy({
+      by: ['submissionId', 'emoji'],
+      where: { submissionId: { in: submissionIds } },
+      _count: { _all: true },
+    });
+    const counts = new Map<string, Record<string, number>>();
+    for (const g of grouped) {
+      const byEmoji = counts.get(g.submissionId) ?? {};
+      byEmoji[g.emoji] = g._count._all;
+      counts.set(g.submissionId, byEmoji);
+    }
+    return counts;
   }
 
   private async aggregateCountsByGallery(galleryId: string) {

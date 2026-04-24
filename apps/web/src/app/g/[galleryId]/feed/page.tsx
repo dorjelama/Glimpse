@@ -60,6 +60,7 @@ interface FeedSubmission {
 interface FeedData {
   gallery: { id: string; isOpen: boolean; endedAt?: string; project: { title: string } };
   submissions: FeedSubmission[];
+  nextCursor: string | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -286,8 +287,13 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const seenRef = useRef<Set<string>>(new Set());
   const firstLoad = useRef(true);
+  const loadingMoreRef = useRef(false);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const fetchFeed = useCallback(async () => {
     try {
@@ -300,6 +306,8 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
       const json: FeedData = await res.json();
 
       setData(json);
+      setNextCursor(json.nextCursor);
+      setHasMore(!!json.nextCursor);
       const incoming = json.submissions;
 
       if (firstLoad.current) {
@@ -307,10 +315,11 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
         setSubmissions(incoming);
         firstLoad.current = false;
       } else {
+        // Polling fallback: prepend any new items, keep paginated state
         const newOnes = incoming.filter(s => !seenRef.current.has(s.id));
         if (newOnes.length > 0) {
           newOnes.forEach(s => seenRef.current.add(s.id));
-          setSubmissions(incoming);
+          setSubmissions(prev => [...newOnes, ...prev]);
           const ids = new Set(newOnes.map(s => s.id));
           setFreshIds(prev => new Set([...prev, ...ids]));
           setTimeout(() => {
@@ -328,6 +337,28 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
       setLoading(false);
     }
   }, [params.galleryId]);
+
+  const loadMore = useCallback(async () => {
+    if (!nextCursor || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    try {
+      const sessionId = getSessionId();
+      const qs = new URLSearchParams({ sessionId, cursor: nextCursor });
+      const res = await fetch(`${API_URL}/gallery/${params.galleryId}/feed?${qs}`);
+      if (!res.ok) return;
+      const json: FeedData = await res.json();
+      const incoming = json.submissions;
+      incoming.forEach(s => seenRef.current.add(s.id));
+      setSubmissions(prev => [...prev, ...incoming]);
+      setNextCursor(json.nextCursor);
+      setHasMore(!!json.nextCursor);
+    } catch { /* ignore — user can scroll back to retry */ }
+    finally {
+      loadingMoreRef.current = false;
+      setLoadingMore(false);
+    }
+  }, [nextCursor, params.galleryId]);
 
   const markFresh = useCallback((id: string) => {
     setFreshIds(prev => new Set(prev).add(id));
@@ -417,6 +448,18 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
       if (pollId) clearInterval(pollId);
     };
   }, [fetchFeed, markFresh, params.galleryId]);
+
+  // IntersectionObserver: trigger loadMore when sentinel enters viewport
+  useEffect(() => {
+    const el = loaderRef.current;
+    if (!el || !hasMore) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) loadMore(); },
+      { rootMargin: '300px' },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasMore, loadMore]);
 
   // ── Shell ──────────────────────────────────────────────────────────────────
 
@@ -568,11 +611,22 @@ export default function FeedPage({ params }: { params: { galleryId: string } }) 
           </div>
         )}
 
-        {/* Footer */}
+        {/* Sentinel + footer */}
         {submissions.length > 0 && (
-          <p className="text-center text-[11px] py-6" style={{ color: '#c8a878' }}>
-            · {submissions.length} glimpse{submissions.length !== 1 ? 's' : ''} shared ·
-          </p>
+          <>
+            {/* IntersectionObserver target — sits 300px below viewport before triggering */}
+            <div ref={loaderRef} />
+            {loadingMore && (
+              <p className="text-center text-[11px] py-4 animate-pulse" style={{ color: '#c8a878' }}>
+                Loading more…
+              </p>
+            )}
+            {!hasMore && (
+              <p className="text-center text-[11px] py-6" style={{ color: '#c8a878' }}>
+                · {submissions.length} glimpse{submissions.length !== 1 ? 's' : ''} shared ·
+              </p>
+            )}
+          </>
         )}
       </main>
 

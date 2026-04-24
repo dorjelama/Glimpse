@@ -158,9 +158,12 @@ export class MomentsController {
     @Param('galleryId') galleryId: string,
     @Query('sessionId') sessionId?: string,
     @Query('tokens') tokens?: string,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limitStr?: string,
   ) {
     const tokenList = tokens ? tokens.split(',').map(t => t.trim()).filter(Boolean).slice(0, 20) : undefined;
-    return this.momentsService.getFeed(galleryId, sessionId, tokenList);
+    const limit = Math.min(parseInt(limitStr ?? '20', 10) || 20, 50);
+    return this.momentsService.getFeed(galleryId, sessionId, tokenList, cursor, limit);
   }
 
   @Sse(':galleryId/feed/stream')
