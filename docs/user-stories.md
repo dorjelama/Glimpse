@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route; V4 lazy loading via cursor pagination; V9 PWA manifest + home screen shortcut; H7 host moderation real-time via SSE; H8 mobile moderation + bulk approve_
+_Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; upload moved to /upload route; V4 lazy loading via cursor pagination; V9 PWA manifest + home screen shortcut; H7 host moderation real-time via SSE; H8 mobile moderation + bulk approve; H6 QR guidance (PNG + copy link + usage hint); G8 per-device submission cap (3)_
 
 ---
 
@@ -38,7 +38,7 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | H3 | Build and publish an invitation card | Full canvas editor works. Publish generates a slug URL. Template picker modal on first open offers 4 starting layouts (Elegant Dark, Cream Classic, Modern Bold, Blush Soft) or blank canvas. | ✅ Resolved |
 | H4 | Share the card with guests | Published card has a URL. Publish modal shows it. | **No in-product sharing.** Host has to copy-paste the URL manually. No email, no WhatsApp share, no prominent copy button on the Event Hub. |
 | H5 | Set up a Glimpses gallery | One click, gallery created, QR code shown immediately. | Solid. |
-| H6 | Get the QR code to guests at the venue | "Download QR" exports SVG. | **No guidance on how to use it.** Hosts don't know to print it, put it on a projector slide, or embed it in signage. SVG is also an unusual format for non-technical users. |
+| H6 | Get the QR code to guests at the venue | "↓ PNG" downloads a 464×464 white-padded PNG via canvas (universal format — works in presentations, print, WhatsApp). "Copy link" copies the feed URL to clipboard with a 2s "✓ Copied!" confirmation. Usage hint below the URL: "Print for tables · Share in group chat · Project on screen". | ✅ Resolved |
 | H7 | Know when guests are uploading during the event | Moderation page subscribes to the public SSE stream. `finalise()` broadcasts `submission.new` (empty payload); panel refetches from the JWT-guarded `/manage` endpoint and updates pending list instantly. Guest self-deletes propagate via `submission.deleted`. Green "Live" dot in header confirms the connection is active. | ✅ Resolved |
 | H8 | Approve photos quickly on mobile | Responsive card: row layout on mobile (80px thumbnail + name + Approve/✕ buttons, ~80px per row, 7–8 visible at once) switches to full card on `sm+`. Grid is `flex-col` on mobile, `sm:grid-cols-2 lg:grid-cols-3` on desktop. "Approve all N" bulk button in pending section header. Thumbnail strip hidden on mobile. | ✅ Resolved |
 | H9 | Control what's on the feed (open/close/end) | Pause + End event with confirm dialog. Three states implemented. | Solid. |
@@ -48,7 +48,7 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 ### Host drop-off moments
 - ~~**H1 → H2**~~ — ✅ Resolved. Welcome modal now explains both products before the user creates anything.
 - ~~**H2**~~ — ✅ Resolved. Creation modal now surfaces date alongside title.
-- **H5 → H6** — Host sets up Glimpses, has a QR code, but doesn't know how to get it in front of guests. The product stops here; everything after depends on external effort by the host.
+- ~~**H5 → H6**~~ — ✅ Resolved. PNG download + copy link + usage hint ("Print for tables · Share in group chat · Project on screen") close the guidance gap.
 
 ---
 
@@ -63,7 +63,7 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | G5 | Upload a HEIC photo from my iPhone | HEIC/HEIF accepted and auto-converted to JPEG on the server via Sharp (libvips). | ✅ Resolved |
 | G6 | Know my photo was received | Thank-you screen: "Your glimpse is live — pending review." | Solid. |
 | G7 | See my photo appear on the feed | Thank-you screen has a "See the live feed →" button linking to `/g/[galleryId]/feed`. | ✅ Resolved |
-| G8 | Upload again later | Guest can visit the upload page again, enters name again, creates a new submission. | **Multiple submissions per guest not handled.** No deduplication, no session persistence. A guest could post 5 times. With pending visibility now live, the uploader sees all 5 pending cards on the feed — amplifying the clutter and making the gap more visible. |
+| G8 | Upload again later | Upload page reads `glimpse-token-map:${galleryId}` from localStorage to count prior submissions. Cap is 3 per device per gallery. Under the cap: `DoneScreen` shows "Share another moment →" and mounts a fresh `MomentForm` via `key` increment. At the cap: a `LimitScreen` replaces the form with a link to the feed. Count is incremented in state on each `onDone()`. | ✅ Resolved |
 | G9 | Remove my photo if I change my mind | Uploader can delete their own **pending** submission from the feed via a Delete button (token-authenticated, no login needed). Removal propagates via SSE to all viewers instantly. | **Partially resolved.** Approved submissions cannot be self-deleted — that remains host-only. Pending deletion also only works on the same device/browser (token stored in localStorage; clearing storage or switching device loses the ability). |
 
 ### Guest drop-off moments
@@ -98,13 +98,11 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 
 | Priority | Gap | Story refs | Notes |
 |----------|-----|-----------|-------|
-| 1 | Multiple submissions per guest not handled | G8 | No deduplication; amplified by pending visibility. |
-| 2 | No in-product card sharing | H4 | Host must copy-paste URL manually. |
-| 3 | No export notification after event ends | H10 | 30-day window passes silently; photos deleted without warning. |
-| 4 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI. |
-| 5 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt. |
-| 6 | No QR code guidance for hosts | H6 | SVG format unfamiliar; no instructions for print/display. |
-| 7 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
+| 1 | No in-product card sharing | H4 | Host must copy-paste URL manually. |
+| 2 | No export notification after event ends | H10 | 30-day window passes silently; photos deleted without warning. |
+| 3 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI. |
+| 4 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt. |
+| 5 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
 
 ### Resolved
 
@@ -115,6 +113,8 @@ _Last updated: 2026-04-25 — QR → feed-first entry; floating upload button; u
 | Upload page as QR landing (no social proof) | G3 | QR now points to live feed; upload reachable via floating button; old QR codes auto-redirect. |
 | Host moderation pull-based | H7 | `finalise()` broadcasts `submission.new` (empty payload) on public SSE; panel refetches from `/manage` (JWT-guarded). Guest self-deletes propagate via `submission.deleted`. Green "Live" dot confirms connection. |
 | Moderation page not usable on mobile | H8 | Row layout on mobile (thumbnail + name + Approve/✕, ~80px/row). Bulk approve all pending. Grid adapts to `sm:grid-cols-2 lg:grid-cols-3`. |
+| No QR code guidance for hosts | H6 | PNG download via canvas (464×464, white padding). Copy link with 2s confirmation. Usage hint: "Print for tables · Share in group chat · Project on screen". |
+| Multiple submissions per guest not handled | G8 | 3-submission cap per device per gallery via localStorage token map. `DoneScreen` offers "Share another" under cap; `LimitScreen` replaces form at cap. |
 
 ## Enhancements
 - Feedback feature from host and viewer

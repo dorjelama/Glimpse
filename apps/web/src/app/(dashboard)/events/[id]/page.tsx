@@ -106,6 +106,7 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
   const router = useRouter();
   const [setting, setSetting] = useState(false);
   const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -125,16 +126,44 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
     }
   };
 
-  const handleDownloadQR = () => {
+  const handleDownloadPNG = () => {
     const svg = qrRef.current?.querySelector('svg');
     if (!svg) return;
-    const blob = new Blob([svg.outerHTML], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${project.title}-glimpses-qr.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const padding = 32;
+    const qrSize = 400;
+    const size = qrSize + padding * 2;
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    const img = new Image();
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const svgUrl = URL.createObjectURL(blob);
+    img.onload = () => {
+      ctx.drawImage(img, padding, padding, qrSize, qrSize);
+      URL.revokeObjectURL(svgUrl);
+      canvas.toBlob((pngBlob) => {
+        if (!pngBlob) return;
+        const pngUrl = URL.createObjectURL(pngBlob);
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = `${project.title}-glimpses-qr.png`;
+        a.click();
+        URL.revokeObjectURL(pngUrl);
+      }, 'image/png');
+    };
+    img.src = svgUrl;
+  };
+
+  const handleCopyLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* ignore — clipboard may be blocked */ }
   };
 
   if (project.gallery) {
@@ -181,12 +210,22 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
 
           <p className="text-ink/40 text-xs font-mono break-all select-all">{uploadUrl}</p>
 
-          <div className="flex gap-2 mt-auto">
+          <p className="text-ink/30 text-[11px]">
+            Print for tables · Share in group chat · Project on screen
+          </p>
+
+          <div className="flex flex-wrap gap-2 mt-auto">
             <button
-              onClick={handleDownloadQR}
-              className="px-4 py-2 bg-gold/20 hover:bg-gold/30 text-ink/70 text-sm font-medium rounded-xl transition-colors border border-gold/30"
+              onClick={handleDownloadPNG}
+              className="px-3 py-2 bg-gold/20 hover:bg-gold/30 text-ink/70 text-sm font-medium rounded-xl transition-colors border border-gold/30"
             >
-              Download QR
+              ↓ PNG
+            </button>
+            <button
+              onClick={() => handleCopyLink(uploadUrl)}
+              className="px-3 py-2 bg-gold/20 hover:bg-gold/30 text-ink/70 text-sm font-medium rounded-xl transition-colors border border-gold/30 min-w-[90px]"
+            >
+              {copied ? '✓ Copied!' : 'Copy link'}
             </button>
             <button
               onClick={() => router.push(`/events/${project.id}/glimpses`)}
@@ -196,7 +235,7 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
             </button>
             <button
               onClick={() => window.open(`/g/${project.gallery!.id}/feed`, '_blank')}
-              className="px-4 py-2 bg-blush hover:bg-gold/20 text-ink text-sm font-medium rounded-xl transition-colors border border-gold/30"
+              className="px-3 py-2 bg-blush hover:bg-gold/20 text-ink text-sm font-medium rounded-xl transition-colors border border-gold/30"
               title="Open live feed"
             >
               Feed →

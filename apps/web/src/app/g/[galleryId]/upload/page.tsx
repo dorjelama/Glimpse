@@ -5,6 +5,7 @@ import { api, type GalleryPhoto, type GallerySubmission } from '@/lib/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
 const MAX_PHOTOS = 3;
+const MAX_SUBMISSIONS = 3;
 
 function photoUrl(url: string) {
   return url.startsWith('http') ? url : `${API_BASE}${url}`;
@@ -34,7 +35,11 @@ function ClosedScreen({ ended, eventTitle }: { ended: boolean; eventTitle: strin
 
 // ─── Thank-you screen ────────────────────────────────────────────────────────
 
-function DoneScreen({ eventTitle, galleryId }: { eventTitle: string; galleryId: string }) {
+function DoneScreen({ eventTitle, galleryId, onShareAnother }: {
+  eventTitle: string;
+  galleryId: string;
+  onShareAnother?: () => void;
+}) {
   return (
     <Shell eventTitle={eventTitle}>
       <div className="flex flex-col items-center text-center gap-5 py-10">
@@ -47,6 +52,39 @@ function DoneScreen({ eventTitle, galleryId }: { eventTitle: string; galleryId: 
           <p className="text-white font-semibold text-lg mb-1">Your moment is live</p>
           <p className="text-gray-400 text-sm leading-relaxed">
             Pending host approval — it'll appear on the feed shortly.
+          </p>
+        </div>
+        <a
+          href={`/g/${galleryId}/feed`}
+          className="mt-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+          style={{ backgroundColor: '#fef3c7', color: '#92400e' }}
+        >
+          See the live feed →
+        </a>
+        {onShareAnother && (
+          <button
+            onClick={onShareAnother}
+            className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
+          >
+            Share another moment →
+          </button>
+        )}
+      </div>
+    </Shell>
+  );
+}
+
+function LimitScreen({ eventTitle, galleryId }: { eventTitle: string; galleryId: string }) {
+  return (
+    <Shell eventTitle={eventTitle}>
+      <div className="flex flex-col items-center text-center gap-4 py-10">
+        <span className="text-4xl">📸</span>
+        <div>
+          <p className="text-white font-semibold text-base mb-1">
+            You've shared {MAX_SUBMISSIONS} moments
+          </p>
+          <p className="text-gray-400 text-sm leading-relaxed">
+            That's the limit for this event. Head to the feed to see your photos.
           </p>
         </div>
         <a
@@ -279,6 +317,8 @@ export default function GuestUploadPage({ params }: { params: { galleryId: strin
   const [isOpen, setIsOpen] = useState(true);
   const [ended, setEnded] = useState(false);
   const [done, setDone] = useState(false);
+  const [submissionCount, setSubmissionCount] = useState(0);
+  const [formKey, setFormKey] = useState(0);
   const [initError, setInitError] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
 
@@ -288,10 +328,21 @@ export default function GuestUploadPage({ params }: { params: { galleryId: strin
         setEventTitle(g.project.title);
         setIsOpen(g.isOpen);
         setEnded(!!g.endedAt);
+        try {
+          const map: Record<string, string> = JSON.parse(
+            localStorage.getItem(`glimpse-token-map:${params.galleryId}`) || '{}'
+          );
+          setSubmissionCount(Object.keys(map).length);
+        } catch { /* ignore storage errors */ }
       })
       .catch(() => setInitError('Gallery not found.'))
       .finally(() => setReady(true));
   }, [params.galleryId]);
+
+  const handleShareAnother = () => {
+    setDone(false);
+    setFormKey(k => k + 1);
+  };
 
   if (!ready) {
     return (
@@ -309,14 +360,25 @@ export default function GuestUploadPage({ params }: { params: { galleryId: strin
     );
   }
 
-  if (done) return <DoneScreen eventTitle={eventTitle} galleryId={params.galleryId} />;
+  if (done) return (
+    <DoneScreen
+      eventTitle={eventTitle}
+      galleryId={params.galleryId}
+      onShareAnother={submissionCount < MAX_SUBMISSIONS ? handleShareAnother : undefined}
+    />
+  );
   if (!isOpen) return <ClosedScreen ended={ended} eventTitle={eventTitle} />;
+  if (submissionCount >= MAX_SUBMISSIONS) return <LimitScreen eventTitle={eventTitle} galleryId={params.galleryId} />;
 
   return (
     <MomentForm
+      key={formKey}
       eventTitle={eventTitle}
       galleryId={params.galleryId}
-      onDone={() => setDone(true)}
+      onDone={() => {
+        setDone(true);
+        setSubmissionCount(prev => prev + 1);
+      }}
     />
   );
 }
