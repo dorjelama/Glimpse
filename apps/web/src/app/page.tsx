@@ -483,6 +483,12 @@ export default function LandingPage() {
               <Link href="/auth/register" className="transition-colors hover:text-cream">
                 Register
               </Link>
+              <Link href="/terms" className="transition-colors hover:text-cream">
+                Terms
+              </Link>
+              <Link href="/privacy" className="transition-colors hover:text-cream">
+                Privacy
+              </Link>
             </nav>
           </div>
           <p className="mt-8 text-center text-xs text-cream/25">© {new Date().getFullYear()} Elegant Decorations Nepal Pvt. Ltd. All rights reserved.</p>

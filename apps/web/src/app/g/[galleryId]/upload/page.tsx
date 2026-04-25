@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { api, type GalleryPhoto, type GallerySubmission } from '@/lib/api';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
@@ -322,7 +323,11 @@ function MomentForm({
             </div>
           </div>
           <span className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
-            I consent to my photos being displayed on the event feed and shared with guests by the host.
+            I consent to my photos being displayed on the event feed and shared with guests by the host. See our{' '}
+            <Link href="/privacy" className="underline underline-offset-2 hover:opacity-80" style={{ color: 'rgba(255,255,255,0.7)' }}>
+              Privacy Policy
+            </Link>
+            .
           </span>
         </label>
 

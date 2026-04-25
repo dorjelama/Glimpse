@@ -10,11 +10,11 @@ Mark each item `[x]` when complete. Leave a note or PR reference next to anythin
 
 > Cannot ship without these. Collecting user data and photos without a privacy policy is a legal liability.
 
-- [ ] Create `/privacy` page — Privacy Policy (data collected, retention, deletion rights, contact)
-- [ ] Create `/terms` page — Terms of Service (acceptable use, IP ownership, liability)
-- [ ] Wire the consent checkbox in the guest upload form ([upload/page.tsx](../apps/web/src/app/g/%5BgalleryId%5D/upload/page.tsx)) to link to `/privacy`
+- [x] Create `/privacy` page — Privacy Policy (data collected, retention, deletion rights, contact)
+- [x] Create `/terms` page — Terms of Service (acceptable use, IP ownership, liability)
+- [x] Wire the consent checkbox in the guest upload form ([upload/page.tsx](../apps/web/src/app/g/%5BgalleryId%5D/upload/page.tsx)) to link to `/privacy`
 - [ ] Add cookie consent banner on the landing page (GDPR/CCPA requirement for EU/CA visitors)
-- [ ] Ensure the footer on the landing page links to `/terms` and `/privacy`
+- [x] Ensure the footer on the landing page links to `/terms` and `/privacy`
 
 ---
 
