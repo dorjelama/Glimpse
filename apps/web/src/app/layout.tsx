@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import StatusBar from '@/components/StatusBar';
 import NavigationProgress from '@/components/NavigationProgress';
+import CookieBanner from '@/components/CookieBanner';
 
 export const metadata: Metadata = {
   title: 'Glimpse',
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <NavigationProgress />
         {children}
+        <CookieBanner />
         <StatusBar />
       </body>
     </html>

@@ -13,7 +13,8 @@ Mark each item `[x]` when complete. Leave a note or PR reference next to anythin
 - [x] Create `/privacy` page — Privacy Policy (data collected, retention, deletion rights, contact)
 - [x] Create `/terms` page — Terms of Service (acceptable use, IP ownership, liability)
 - [x] Wire the consent checkbox in the guest upload form ([upload/page.tsx](../apps/web/src/app/g/%5BgalleryId%5D/upload/page.tsx)) to link to `/privacy`
-- [ ] Add cookie consent banner on the landing page (GDPR/CCPA requirement for EU/CA visitors)
+- [x] Wire the consent checkbox in the guest upload form ([upload/page.tsx](../apps/web/src/app/g/%5BgalleryId%5D/upload/page.tsx)) to link to `/privacy`
+- [x] Add cookie consent banner on the landing page (GDPR/CCPA requirement for EU/CA visitors)
 - [x] Ensure the footer on the landing page links to `/terms` and `/privacy`
 
 ---
