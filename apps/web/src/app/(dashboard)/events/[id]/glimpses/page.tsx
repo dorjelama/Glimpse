@@ -193,6 +193,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [bulkApproving, setBulkApproving] = useState(false);
+  const [galleryCopied, setGalleryCopied] = useState(false);
 
   useEffect(() => {
     api.getProject(params.id)
@@ -398,32 +399,63 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
         {/* ── Content ──────────────────────────────────────────── */}
         <div className="px-4 py-6 md:px-8 md:py-8 max-w-4xl">
 
-          {/* Export banner */}
+          {/* Export + share banner */}
           {status === 'ended' && (
-            <div
-              className="mb-8 rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
-              style={{ backgroundColor: '#fef9f0', border: '1px solid #e8c97a' }}
-            >
-              <div>
-                <p className="text-sm font-semibold" style={{ color: '#7c5c1e' }}>Download your Glimpses</p>
-                {exportExpired ? (
-                  <p className="text-xs mt-0.5" style={{ color: '#a08040' }}>Export window has expired · photos will be removed shortly</p>
-                ) : (
-                  <p className="text-xs mt-0.5" style={{ color: '#a08040' }}>
-                    ZIP of all approved photos · {exportWindowDays} day{exportWindowDays !== 1 ? 's' : ''} remaining
-                  </p>
+            <div className="mb-8 flex flex-col gap-3">
+              {/* Download */}
+              <div
+                className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+                style={{ backgroundColor: '#fef9f0', border: '1px solid #e8c97a' }}
+              >
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: '#7c5c1e' }}>Download your Glimpses</p>
+                  {exportExpired ? (
+                    <p className="text-xs mt-0.5" style={{ color: '#a08040' }}>Export window has expired · photos will be removed shortly</p>
+                  ) : (
+                    <p className="text-xs mt-0.5" style={{ color: '#a08040' }}>
+                      ZIP of all approved photos · {exportWindowDays} day{exportWindowDays !== 1 ? 's' : ''} remaining
+                    </p>
+                  )}
+                  {downloadError && <p className="text-xs mt-1 text-red-500">{downloadError}</p>}
+                </div>
+                {!exportExpired && (
+                  <button
+                    onClick={handleDownload}
+                    disabled={downloading}
+                    className="flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
+                    style={{ backgroundColor: '#B85C37', color: '#F6EBDD', border: '1px solid #9e4e2f' }}
+                  >
+                    {downloading ? 'Preparing…' : 'Download ZIP'}
+                  </button>
                 )}
-                {downloadError && <p className="text-xs mt-1 text-red-500">{downloadError}</p>}
               </div>
+
+              {/* Share final gallery */}
               {!exportExpired && (
-                <button
-                  onClick={handleDownload}
-                  disabled={downloading}
-                  className="flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-xl transition-all disabled:opacity-50"
-                  style={{ backgroundColor: '#B85C37', color: '#F6EBDD', border: '1px solid #9e4e2f' }}
+                <div
+                  className="rounded-2xl px-5 py-4 flex items-center justify-between gap-4"
+                  style={{ backgroundColor: '#f5f0fa', border: '1px solid #d4bdf5' }}
                 >
-                  {downloading ? 'Preparing…' : 'Download ZIP'}
-                </button>
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: '#5b3a8a' }}>Share the final gallery</p>
+                    <p className="text-xs mt-0.5" style={{ color: '#8a6ab0' }}>
+                      A read-only photo gallery your guests can revisit
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/g/${gallery.id}/gallery`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        setGalleryCopied(true);
+                        setTimeout(() => setGalleryCopied(false), 2000);
+                      });
+                    }}
+                    className="flex-shrink-0 px-4 py-2 text-sm font-semibold rounded-xl transition-all"
+                    style={{ backgroundColor: '#7c3aed', color: '#fff', border: '1px solid #6d28d9' }}
+                  >
+                    {galleryCopied ? '✓ Copied!' : 'Copy link'}
+                  </button>
+                </div>
               )}
             </div>
           )}

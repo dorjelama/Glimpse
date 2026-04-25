@@ -532,10 +532,19 @@ export default function FeedClient({ params }: { params: { galleryId: string } }
       {data.gallery.endedAt && (
         <div className="max-w-lg mx-auto px-4 pt-4">
           <div
-            className="rounded-xl px-4 py-3 text-center text-[12px]"
-            style={{ backgroundColor: '#f5ebe0', border: '1px solid #e8d9bd', color: '#8a6840' }}
+            className="rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+            style={{ backgroundColor: '#f5ebe0', border: '1px solid #e8d9bd' }}
           >
-            This event has ended · {new Date(data.gallery.endedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })} · Thank you for sharing your Glimpses
+            <p className="text-[12px] text-center sm:text-left" style={{ color: '#8a6840' }}>
+              This event has ended · {new Date(data.gallery.endedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+            </p>
+            <a
+              href={`/g/${params.galleryId}/gallery`}
+              className="text-[12px] font-semibold text-center whitespace-nowrap transition-colors hover:opacity-80"
+              style={{ color: '#B85C37' }}
+            >
+              View final gallery →
+            </a>
           </div>
         </div>
       )}

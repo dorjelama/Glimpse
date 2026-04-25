@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-25 — G10 consent; QR branding + PNG download; admin panel themed; H8 mobile moderation; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H12/H13/H14/V10 post-event stories added_
+_Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H8 mobile moderation; H4 card sharing; V3 real-time status; H13 export reminder cron; H14 final gallery page; V10 feed post-event CTA_
 
 ---
 
@@ -46,14 +46,14 @@ _Last updated: 2026-04-25 — G10 consent; QR branding + PNG download; admin pan
 | H11 | See event-level stats at a glance | Dashboard project card shows "📸 X live" chip and amber "Y pending" chip. Stats fetched in parallel after project load. | ✅ Resolved |
 | H12 | See a post-event summary | No summary UI exists. Host sees only the export banner after ending the event. | **Post-event stats missing.** Free tier shows submission count only. Pro+ shows approved count, most-reacted photo, and unique guest names. Stats are the "look what you got" moment that drives repeat event creation and upgrade intent. |
 | H13 | Get a reminder before my photos are deleted | `ReminderService` runs a daily cron (`EVERY_DAY_AT_9AM`). Queries all ended galleries still within their 30-day window. Sends a 7-day warning when `daysElapsed >= 23` and `reminder7DaySentAt IS NULL`; sends a 24-hour warning when `daysElapsed >= 29` and `reminder24HrSentAt IS NULL`. Both flags persisted on `Gallery` to prevent duplicates. `MailService.sendExportReminder()` sends via SES in prod; logs to console in dev (no credentials). Migration `20260425000000_add_gallery_reminder_tracking` adds `reminder7DaySentAt` and `reminder24HrSentAt` nullable columns. | ✅ Resolved |
-| H14 | Share a curated final gallery with guests | No post-event share flow exists. The live feed stays viewable with a banner but there is no dedicated shareable gallery page. | **No final gallery link.** Pro: host generates a read-only gallery link that inherits the 30-day export window (same deletion job, no new storage lifecycle). Business: watermark removed. Free: no gallery. Every guest who views the final gallery is a potential future host — watermark reads "Powered by Glimpse — create yours free". |
+| H14 | Share a curated final gallery with guests | New `/g/[galleryId]/gallery` page: columns-2 masonry grid of all approved photos with caption overlay on hover. Header shows event title + ended date. Footer watermark "Powered by Glimpse · Create your own event →" links to `/`. Expired after `endedAt + 30 days` — shows "archive window closed" message. Moderation page post-event section adds a "Share the final gallery" banner with a "Copy link" button (2s confirmation). | ✅ Resolved |
 
 ### Host drop-off moments
 - ~~**H1 → H2**~~ — ✅ Resolved. Welcome modal now explains both products before the user creates anything.
 - ~~**H2**~~ — ✅ Resolved. Creation modal now surfaces date alongside title.
 - ~~**H5 → H6**~~ — ✅ Resolved. PNG download + copy link + usage hint ("Print for tables · Share in group chat · Project on screen") close the guidance gap.
-- **H10 → H13** — Host ends the event, sees the export banner, but receives no follow-up. If they don't return within 30 days the photos are deleted silently — trust broken.
-- **H14** — Host has no way to share the curated gallery with guests after the event ends. The social loop closes when the event closes; there's no "memories" moment to send back.
+- ~~**H10 → H13**~~ — ✅ Resolved. Daily cron sends 7-day and 24-hour warning emails before the export window closes.
+- ~~**H14**~~ — ✅ Resolved. Final gallery page at `/g/[galleryId]/gallery` + "Share the final gallery" copy-link button in the moderation page.
 
 ---
 
@@ -92,12 +92,12 @@ _Last updated: 2026-04-25 — G10 consent; QR branding + PNG download; admin pan
 | V7 | Feel the feed is part of the event's identity | Generic dark header, amber accent. | **No brand continuity from the card.** The invitation card can be beautifully designed, but the feed has no connection to those colors, fonts, or style. |
 | V8 | Find the upload page from the feed | Feed shows a sticky floating "Share a Glimpse" button (fixed bottom, pill style, hidden when gallery is closed or ended) linking to `/g/[galleryId]/upload`. Content area adds `pb-24` so the last card isn't obscured by the button. | ✅ Resolved |
 | V9 | Open the feed directly from my phone's home screen | Dynamic Web App Manifest served from `/g/[galleryId]/pwa-manifest` — fetches the event title from the API and returns a per-gallery manifest (`name`, `start_url: /g/[id]/feed`, `display: standalone`, terra theme color). Gallery layout (`layout.tsx`) injects `<link rel="manifest">`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style: black-translucent`, `<link rel="apple-touch-icon">`, and theme-color viewport tag. Icon: `public/icon.png` (584×584, copied from existing brand asset). Manifest cached 5 min via `next: { revalidate: 300 }`. | ✅ Resolved |
-| V10 | Return to the event memories after it ends | Feed shows a "This event has ended" banner with no CTA. Guests have no persistent link back to the curated gallery. | **No re-engagement path for viewers.** Blocked by H14. Once the host creates a final gallery, the post-event banner should surface a "View the final gallery →" link. Without H14 this story cannot be shipped. |
+| V10 | Return to the event memories after it ends | Feed's post-event banner now shows a "View final gallery →" link alongside the ended date, pointing to `/g/[galleryId]/gallery`. The gallery page shows all approved photos in a masonry grid with caption overlays and a Glimpse acquisition watermark in the footer. | ✅ Resolved |
 
 ### Viewer drop-off moments
 - **V5** — Viewer scrolls the feed once, has nothing to do, closes it. Repeat opens drop sharply because there's no interaction to pull them back.
 - ~~**V9**~~ — ✅ Resolved. PWA manifest + Apple meta tags let guests add the feed to their home screen.
-- **V10** — Event ends, guest revisits the feed link, sees "This event has ended" with no next step. No gallery link, no memories moment, no acquisition hook.
+- ~~**V10**~~ — ✅ Resolved. Feed post-event banner now links to the final gallery page.
 
 ---
 
@@ -107,11 +107,10 @@ _Last updated: 2026-04-25 — G10 consent; QR branding + PNG download; admin pan
 
 | Priority | Gap | Story refs | Notes |
 |----------|-----|-----------|-------|
-| 1 | No final gallery share link | H14, V10 | Viral acquisition surface. Pro gated; Business removes watermark. Gallery inherits export window expiry — no new storage lifecycle. |
-| 2 | No post-event summary | H12 | Free: submission count only. Pro+: approved count, most-reacted photo, unique guest names. Conversion lever for repeat events. |
-| 3 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI; hurts conversion. |
-| 4 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt to upgrade. |
-| 5 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
+| 1 | No post-event summary | H12 | Free: submission count only. Pro+: approved count, most-reacted photo, unique guest names. Conversion lever for repeat events. |
+| 2 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI; hurts conversion. |
+| 3 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt to upgrade. |
+| 4 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
 
 ### Resolved
 
@@ -126,6 +125,7 @@ _Last updated: 2026-04-25 — G10 consent; QR branding + PNG download; admin pan
 | No QR code guidance for hosts | H6 | PNG download (branded canvas card), copy link, usage hint. |
 | No in-product card sharing | H4 | "Share" button on Card tile → email modal → SES send. HTML email includes card link, feed link, iOS/Android home-screen tutorial. Dev: console fallback. |
 | No export-expiry notification | H10, H13 | `ReminderService` daily cron at 9 AM. 7-day warning at day 23; 24-hour warning at day 29. Flags `reminder7DaySentAt` / `reminder24HrSentAt` on Gallery prevent duplicates. `MailService.sendExportReminder()` — SES in prod, console in dev. |
+| No final gallery share link | H14, V10 | `/g/[galleryId]/gallery` — masonry grid, caption overlays, expired-window check, Glimpse watermark footer. Moderation page adds "Share the final gallery" banner with copy-link button. Feed post-event banner adds "View final gallery →" CTA. |
 | Multiple submissions per guest not handled | G8 | 3-submission cap per device via localStorage token map; `LimitScreen` at cap. |
 
 ## Enhancements
@@ -133,6 +133,5 @@ _Last updated: 2026-04-25 — G10 consent; QR branding + PNG download; admin pan
 - S3 / Cloudflare R2 CDN
 - Separate guest module
 - Landing page improvements (screenshots, social proof, annual pricing)
-- Email infrastructure (AWS SES — needed for H13)
 - Custom domain hosting for event pages
 - QR design with custom text and branding
