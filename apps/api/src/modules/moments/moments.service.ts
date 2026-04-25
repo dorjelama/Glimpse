@@ -5,8 +5,10 @@ import {
   BadRequestException,
   GoneException,
 } from '@nestjs/common';
-import { join, extname } from 'path';
+import { extname } from 'path';
+import { Readable } from 'stream';
 import { PrismaService } from '../../prisma/prisma.service';
+import { StorageService } from '../storage/storage.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { FeedEventsService } from './feed-events.service';
 
@@ -23,6 +25,7 @@ export class MomentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly feedEvents: FeedEventsService,
+    private readonly storage: StorageService,
   ) {}
 
   async getGallery(galleryId: string) {
@@ -88,6 +91,9 @@ export class MomentsService {
 
     await this.prisma.galleryPhoto.delete({ where: { id: photoId } });
 
+    const key = this.storage.extractKey(photo.url);
+    if (key) this.storage.delete(key).catch(() => {});
+
     if (sub.featuredPhotoId === photoId) {
       const remaining = sub.photos.filter((p) => p.id !== photoId);
       await this.prisma.gallerySubmission.update({
@@ -129,9 +135,22 @@ export class MomentsService {
 
   async deleteSubmission(galleryId: string, submissionId: string, ownerId: string) {
     await this.verifyGalleryOwnership(galleryId, ownerId);
-    const sub = await this.prisma.gallerySubmission.findUnique({ where: { id: submissionId } });
+    const sub = await this.prisma.gallerySubmission.findUnique({
+      where: { id: submissionId },
+      include: { photos: true },
+    });
     if (!sub || sub.galleryId !== galleryId) throw new NotFoundException('Submission not found');
+
     await this.prisma.gallerySubmission.delete({ where: { id: submissionId } });
+
+    // Delete R2 objects after DB cascade (silently skip legacy /uploads/ paths)
+    await Promise.all(
+      sub.photos.map(({ url }) => {
+        const key = this.storage.extractKey(url);
+        return key ? this.storage.delete(key).catch(() => {}) : Promise.resolve();
+      }),
+    );
+
     this.feedEvents.publish(galleryId, { type: 'submission.deleted', payload: { id: submissionId } });
   }
 
@@ -379,15 +398,14 @@ export class MomentsService {
       orderBy: { createdAt: 'asc' as const },
     });
 
-    const uploadsDir = join(process.cwd(), 'uploads');
-    const photoFiles: { filepath: string; archiveName: string }[] = [];
+    const photoFiles: { url: string; archiveName: string }[] = [];
 
     for (const sub of submissions) {
       const safeName = sub.guestName.replace(/[^a-z0-9]/gi, '_').slice(0, 30);
       for (const photo of sub.photos) {
-        const filename = photo.url.replace('/uploads/', '');
+        const filename = photo.url.split('/').pop() ?? photo.id;
         photoFiles.push({
-          filepath: join(uploadsDir, filename),
+          url: photo.url,
           archiveName: `${safeName}_${photo.id.slice(-6)}${extname(filename)}`,
         });
       }
@@ -399,5 +417,11 @@ export class MomentsService {
       .slice(0, 40);
 
     return { filename: `${slugTitle}-moments.zip`, photoFiles, daysRemaining: Math.ceil((cutoff.getTime() - Date.now()) / 86_400_000) };
+  }
+
+  async getPhotoStream(url: string): Promise<Readable> {
+    const key = this.storage.extractKey(url);
+    if (!key) throw new Error(`Cannot stream non-R2 URL: ${url}`);
+    return this.storage.getReadStream(key);
   }
 }

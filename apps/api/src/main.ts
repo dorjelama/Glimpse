@@ -11,6 +11,7 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(PinoLogger));
+  // TODO: Remove once all legacy /uploads/ URLs in DB are migrated to R2 (or 30-day export window expires)
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   app.use(
@@ -21,7 +22,13 @@ async function bootstrap() {
           // Swagger UI requires inline scripts and styles
           scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", 'data:', 'blob:'],
+          imgSrc: [
+            "'self'",
+            'data:',
+            'blob:',
+            `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev`,
+            ...(process.env.R2_PUBLIC_DOMAIN ? [`https://${process.env.R2_PUBLIC_DOMAIN}`] : []),
+          ],
           fontSrc: ["'self'", 'data:'],
           connectSrc: ["'self'"],
           objectSrc: ["'none'"],

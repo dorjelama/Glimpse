@@ -5,6 +5,7 @@ import { useEditorStore } from '../store/editorStore';
 import { useCanvas } from '../hooks/useCanvas';
 import { useDrag } from '../hooks/useDrag';
 import { useResize } from '../hooks/useResize';
+import { api } from '@/lib/api';
 import type { CanvasElement } from '@/lib/api';
 import type { ResizeHandle } from '../types';
 import TextElement from './elements/TextElement';
@@ -79,9 +80,22 @@ function ElementWrapper({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const url = URL.createObjectURL(file);
-      updateElement(element.id, { src: url, alt: file.name });
+
+      // Show immediately via blob URL for instant preview
+      const blobUrl = URL.createObjectURL(file);
+      updateElement(element.id, { src: blobUrl, alt: file.name });
       e.target.value = '';
+
+      const eventId = useEditorStore.getState().event?.id;
+      if (!eventId) return;
+
+      try {
+        const { url } = await api.uploadImage(eventId, file);
+        updateElement(element.id, { src: url });
+        URL.revokeObjectURL(blobUrl);
+      } catch {
+        // Upload failed — blob URL stays for this session but won't persist on refresh
+      }
     },
     [element.id, updateElement],
   );

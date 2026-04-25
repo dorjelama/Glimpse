@@ -4,6 +4,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { PrismaModule } from './prisma/prisma.module';
+import { StorageModule } from './modules/storage/storage.module';
 import { HealthModule } from './modules/health/health.module';
 import { EventsModule } from './modules/events/events.module';
 import { ElementsModule } from './modules/elements/elements.module';
@@ -34,6 +35,7 @@ import { MomentsModule } from './modules/moments/moments.module';
     ]),
     SentryModule.forRoot(),
     PrismaModule,      // @Global — PrismaService available everywhere
+    StorageModule,     // @Global — StorageService available everywhere
     HealthModule,
     EventsModule,
     ElementsModule,

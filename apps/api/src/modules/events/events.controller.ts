@@ -11,6 +11,9 @@ import {
   UseGuards,
   Req,
   ForbiddenException,
+  BadRequestException,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -19,11 +22,21 @@ import {
   ApiParam,
   ApiBody,
   ApiBearerAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
+import { extname } from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import * as sharp from 'sharp';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { StorageService } from '../storage/storage.service';
+
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif', 'image/gif', 'image/svg+xml'];
+const HEIC_TYPES = new Set(['image/heic', 'image/heif']);
 
 const EVENT_EXAMPLE = {
   id: 'evt_a1b2c3d4e5f6',
@@ -48,7 +61,10 @@ const PUBLISHED_EVENT_EXAMPLE = {
 @UseGuards(JwtAuthGuard)
 @Controller('events')
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly storageService: StorageService,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a blank invitation event' })
@@ -160,5 +176,41 @@ export class EventsController {
     const event = await this.eventsService.findOne(id);
     if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
     return this.eventsService.unpublish(id);
+  }
+
+  @Post(':id/upload')
+  @ApiOperation({ summary: 'Upload an image for use in the card editor' })
+  @ApiConsumes('multipart/form-data')
+  @ApiParam({ name: 'id', example: 'evt_a1b2c3d4e5f6', description: 'Event ID' })
+  @ApiResponse({ status: 201, description: 'Image uploaded.', schema: { example: { url: 'https://...' } } })
+  @ApiResponse({ status: 400, description: 'No file or unsupported type.' })
+  @ApiResponse({ status: 403, description: 'Access denied.' })
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }))
+  async uploadImage(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any,
+  ): Promise<{ url: string }> {
+    const event = await this.eventsService.findOne(id);
+    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+
+    if (!file) throw new BadRequestException('No file uploaded');
+    if (!ALLOWED_TYPES.includes(file.mimetype)) {
+      throw new BadRequestException('Only JPEG, PNG, WebP, HEIC, GIF, or SVG images are allowed');
+    }
+
+    let buffer = file.buffer;
+    let ext = extname(file.originalname).toLowerCase() || '.jpg';
+    let contentType = file.mimetype;
+
+    if (HEIC_TYPES.has(file.mimetype)) {
+      buffer = await sharp(buffer).rotate().jpeg({ quality: 90 }).toBuffer();
+      ext = '.jpg';
+      contentType = 'image/jpeg';
+    }
+
+    const key = `cards/${id}/${uuidv4()}${ext}`;
+    const url = await this.storageService.upload(key, buffer, contentType);
+    return { url };
   }
 }

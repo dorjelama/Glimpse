@@ -17,14 +17,15 @@ import {
   MessageEvent,
 } from '@nestjs/common';
 import { Observable, interval, merge, map } from 'rxjs';
-import { existsSync, unlink } from 'fs';
+import { existsSync } from 'fs';
 import archiver from 'archiver';
 import { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { extname, join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import * as sharp from 'sharp';
+import { StorageService } from '../storage/storage.service';
 import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { MomentsService } from './moments.service';
@@ -59,19 +60,13 @@ setInterval(() => {
   }
 }, 5 * 60_000).unref?.();
 
-const storage = diskStorage({
-  destination: join(process.cwd(), 'uploads'),
-  filename: (_req, file, cb) => {
-    cb(null, `${uuidv4()}${extname(file.originalname)}`);
-  },
-});
-
 @ApiTags('Moments')
 @Controller('gallery')
 export class MomentsController {
   constructor(
     private readonly momentsService: MomentsService,
     private readonly feedEvents: FeedEventsService,
+    private readonly storageService: StorageService,
   ) {}
 
   @Get(':galleryId')
@@ -100,7 +95,7 @@ export class MomentsController {
   @Post('submission/:token/photos')
   @ApiOperation({ summary: 'Upload a photo to a submission' })
   @ApiConsumes('multipart/form-data')
-  @UseInterceptors(FileInterceptor('file', { storage }))
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }))
   async uploadPhoto(
     @Param('token') token: string,
     @UploadedFile() file: Express.Multer.File,
@@ -110,17 +105,20 @@ export class MomentsController {
       throw new BadRequestException('Only JPEG, PNG, WebP, or HEIC images are allowed');
     }
 
-    let filename = file.filename;
+    const sub = await this.momentsService.getSubmissionByToken(token);
+
+    let buffer = file.buffer;
+    let ext = extname(file.originalname).toLowerCase() || '.jpg';
+    let contentType = file.mimetype;
 
     if (HEIC_TYPES.has(file.mimetype)) {
-      const jpegName = `${uuidv4()}.jpg`;
-      const jpegPath = join(process.cwd(), 'uploads', jpegName);
-      await sharp(file.path).rotate().jpeg({ quality: 90 }).toFile(jpegPath);
-      unlink(file.path, () => {});
-      filename = jpegName;
+      buffer = await sharp(buffer).rotate().jpeg({ quality: 90 }).toBuffer();
+      ext = '.jpg';
+      contentType = 'image/jpeg';
     }
 
-    const url = `/uploads/${filename}`;
+    const key = `moments/${sub.id}/${uuidv4()}${ext}`;
+    const url = await this.storageService.upload(key, buffer, contentType);
     return this.momentsService.addPhoto(token, url);
   }
 
@@ -280,11 +278,24 @@ export class MomentsController {
     archive.on('error', () => res.end());
     archive.pipe(res);
 
-    for (const { filepath, archiveName } of photoFiles) {
-      if (existsSync(filepath)) {
-        archive.file(filepath, { name: archiveName });
-      }
-    }
+    await Promise.all(
+      photoFiles.map(async ({ url, archiveName }) => {
+        if (url.startsWith('https://')) {
+          try {
+            const stream = await this.momentsService.getPhotoStream(url);
+            archive.append(stream, { name: archiveName });
+          } catch {
+            // skip missing R2 objects
+          }
+        } else {
+          // Legacy: url is a /uploads/filename path
+          const filepath = join(process.cwd(), url);
+          if (existsSync(filepath)) {
+            archive.file(filepath, { name: archiveName });
+          }
+        }
+      }),
+    );
 
     await archive.finalize();
   }
