@@ -11,8 +11,10 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(PinoLogger));
-  // TODO: Remove once all legacy /uploads/ URLs in DB are migrated to R2 (or 30-day export window expires)
-  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
+  // Serve local uploads in dev (no R2). In production this is a no-op — files live in R2.
+  if (!process.env.R2_ACCOUNT_ID) {
+    app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
+  }
 
   app.use(
     helmet({
