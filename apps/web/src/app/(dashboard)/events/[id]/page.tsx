@@ -16,8 +16,140 @@ function formatDate(dateStr?: string) {
   });
 }
 
+function ShareCardModal({
+  card,
+  galleryFeedUrl,
+  onClose,
+}: {
+  card: { id: string; slug?: string };
+  galleryFeedUrl?: string;
+  onClose: () => void;
+}) {
+  const [emailsRaw, setEmailsRaw] = useState('');
+  const [message, setMessage] = useState('');
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSend = async () => {
+    const emails = emailsRaw
+      .split(/[\n,;]+/)
+      .map(e => e.trim())
+      .filter(e => e.includes('@'));
+
+    if (emails.length === 0) {
+      setError('Enter at least one valid email address.');
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      const result = await api.shareCard(card.id, {
+        emails,
+        message: message.trim() || undefined,
+        galleryFeedUrl,
+      });
+      setSent(result.sent);
+    } catch (e: any) {
+      setError(e.message ?? 'Failed to send. Try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-cream border border-gold/30 rounded-2xl shadow-xl w-full max-w-md p-6 flex flex-col gap-4"
+        onClick={e => e.stopPropagation()}
+      >
+        {sent !== null ? (
+          /* Success state */
+          <div className="flex flex-col items-center text-center gap-4 py-4">
+            <div className="w-14 h-14 rounded-full bg-green-100 border border-green-200 flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-ink font-semibold text-base">Invitations sent!</p>
+              <p className="text-ink/50 text-sm mt-1">{sent} recipient{sent !== 1 ? 's' : ''} will receive the invitation by email.</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="px-5 py-2 bg-terra hover:bg-terra/90 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <>
+            <div>
+              <h2 className="text-ink font-semibold text-base" style={{ fontFamily: 'Georgia, serif' }}>
+                Share invitation
+              </h2>
+              <p className="text-ink/50 text-sm mt-1">
+                Guests will receive an email with a link to view the card and the live photo feed.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-ink/60">
+                Email addresses <span className="text-ink/30">(comma or line separated)</span>
+              </label>
+              <textarea
+                autoFocus
+                rows={3}
+                value={emailsRaw}
+                onChange={e => setEmailsRaw(e.target.value)}
+                placeholder="jane@example.com, john@example.com"
+                className="w-full bg-blush text-ink text-sm rounded-xl px-4 py-3 border border-gold/40 focus:outline-none focus:border-terra placeholder:text-ink/30 transition-colors resize-none"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-ink/60">
+                Personal message <span className="text-ink/30">(optional)</span>
+              </label>
+              <textarea
+                rows={3}
+                value={message}
+                onChange={e => setMessage(e.target.value)}
+                placeholder="Can't wait to celebrate with you!"
+                className="w-full bg-blush text-ink text-sm rounded-xl px-4 py-3 border border-gold/40 focus:outline-none focus:border-terra placeholder:text-ink/30 transition-colors resize-none"
+              />
+            </div>
+
+            {error && <p className="text-red-500 text-xs">{error}</p>}
+
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-ink/40 hover:text-ink transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={sending || !emailsRaw.trim()}
+                className="px-5 py-2 bg-terra hover:bg-terra/90 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                {sending ? 'Sending…' : 'Send invitations'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function CardFeatureTile({ project }: { project: GlimpseProject }) {
   const router = useRouter();
+  const [showShare, setShowShare] = useState(false);
   const card = project.events[0];
 
   if (!card) {
@@ -83,13 +215,25 @@ function CardFeatureTile({ project }: { project: GlimpseProject }) {
           )}
         </div>
 
-        <div className="flex gap-2 mt-auto">
+        <div className="flex gap-2 mt-auto flex-wrap">
           <button
             onClick={() => router.push(`/editor/${card.id}`)}
             className="flex-1 py-2 bg-terra hover:bg-terra/90 text-white text-sm font-semibold rounded-xl transition-colors text-center"
           >
             Edit Card
           </button>
+          {card.status === 'published' && (
+            <button
+              onClick={() => setShowShare(true)}
+              className="px-4 py-2 bg-blush hover:bg-gold/20 text-ink text-sm font-medium rounded-xl transition-colors border border-gold/30 flex items-center gap-1.5"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+              Share
+            </button>
+          )}
           <button
             onClick={() => router.push(`/preview/${card.id}`)}
             className="px-4 py-2 bg-blush hover:bg-gold/20 text-ink text-sm rounded-xl transition-colors border border-gold/30"
@@ -98,6 +242,16 @@ function CardFeatureTile({ project }: { project: GlimpseProject }) {
           </button>
         </div>
       </div>
+
+      {showShare && (
+        <ShareCardModal
+          card={card}
+          galleryFeedUrl={project.gallery
+            ? `${window.location.origin}/g/${project.gallery.id}/feed`
+            : undefined}
+          onClose={() => setShowShare(false)}
+        />
+      )}
     </div>
   );
 }

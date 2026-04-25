@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Param, Delete, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import { Controller, Post, Get, Param, Delete, Body, UseGuards, Req, ForbiddenException, BadRequestException } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -9,6 +9,7 @@ import {
 import { PublishService } from './publish.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EventsService } from '../events/events.service';
+import { MailService } from '../mail/mail.service';
 
 const EVENT_EXAMPLE = {
   id: 'evt_a1b2c3d4e5f6',
@@ -27,6 +28,7 @@ export class PublishController {
   constructor(
     private readonly publishService: PublishService,
     private readonly eventsService: EventsService,
+    private readonly mailService: MailService,
   ) {}
 
   @Post(':id')
@@ -100,5 +102,45 @@ export class PublishController {
   @ApiResponse({ status: 404, description: 'Invitation not found or not published.' })
   getBySlug(@Param('slug') slug: string) {
     return this.publishService.getPublishedBySlug(slug);
+  }
+
+  @Post(':id/share')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Send card invitation emails via SES (host only)' })
+  @ApiParam({ name: 'id', description: 'Event ID' })
+  async shareCard(
+    @Param('id') id: string,
+    @Body('emails') emails: string[],
+    @Body('message') message: string | undefined,
+    @Body('galleryFeedUrl') galleryFeedUrl: string | undefined,
+    @Req() req: any,
+  ) {
+    if (!Array.isArray(emails) || emails.length === 0) {
+      throw new BadRequestException('Provide at least one email address');
+    }
+    if (emails.length > 50) {
+      throw new BadRequestException('Maximum 50 recipients per send');
+    }
+
+    const event = await this.eventsService.findOne(id);
+    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    if (event.status !== 'published' || !event.slug) {
+      throw new BadRequestException('Publish the card before sharing it');
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const cardUrl = `${frontendUrl}/view/${event.slug}`;
+
+    await this.mailService.sendCardInvitation({
+      to: emails,
+      eventTitle: event.title,
+      cardUrl,
+      galleryFeedUrl: galleryFeedUrl || frontendUrl,
+      senderName: req.user.name || 'Your host',
+      message,
+    });
+
+    return { sent: emails.length };
   }
 }

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { PrismaModule } from './prisma/prisma.module';
@@ -14,6 +15,7 @@ import { GuestsModule } from './modules/guests/guests.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { MomentsModule } from './modules/moments/moments.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -34,6 +36,7 @@ import { MomentsModule } from './modules/moments/moments.module';
       },
     ]),
     SentryModule.forRoot(),
+    ScheduleModule.forRoot(),
     PrismaModule,      // @Global — PrismaService available everywhere
     StorageModule,     // @Global — StorageService available everywhere
     HealthModule,
@@ -45,6 +48,7 @@ import { MomentsModule } from './modules/moments/moments.module';
     AdminModule,
     ProjectsModule,
     MomentsModule,
+    MailModule,
   ],
   providers: [
     {

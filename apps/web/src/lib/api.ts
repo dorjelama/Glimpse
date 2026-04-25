@@ -72,6 +72,9 @@ export const api = {
   getPublished: (slug: string) =>
     request<GlimpseEvent>(`/publish/view/${slug}`),
 
+  shareCard: (eventId: string, body: { emails: string[]; message?: string; galleryFeedUrl?: string }) =>
+    request<{ sent: number }>(`/publish/${eventId}/share`, { method: 'POST', body: JSON.stringify(body) }),
+
   // Guests
   listGuests: (eventId: string) =>
     request<Guest[]>(`/events/${eventId}/guests`),

@@ -64,14 +64,16 @@ model Project {
 }
 
 model Gallery {
-  id          String              @id @default(cuid())
-  projectId   String              @unique
-  project     Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  isOpen      Boolean             @default(true)
-  endedAt     DateTime?
-  submissions GallerySubmission[]
-  createdAt   DateTime            @default(now())
-  updatedAt   DateTime            @updatedAt
+  id                  String              @id @default(cuid())
+  projectId           String              @unique
+  project             Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  isOpen              Boolean             @default(true)
+  endedAt             DateTime?
+  reminder7DaySentAt  DateTime?
+  reminder24HrSentAt  DateTime?
+  submissions         GallerySubmission[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   @@map("galleries")
 }
