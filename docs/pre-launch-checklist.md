@@ -35,19 +35,10 @@ Mark each item `[x]` when complete. Leave a note or PR reference next to anythin
 
 ## 3. Environment & Configuration
 
-- [ ] Create `apps/api/.env.example` documenting every required variable:
-  ```
-  DATABASE_URL=
-  PORT=3001
-  JWT_SECRET=          # min 64 hex chars — generate with: openssl rand -hex 32
-  FRONTEND_URL=
-  ADMIN_EMAIL=         # email of the first admin user
-  NODE_ENV=production
-  ```
-- [ ] Create `apps/web/.env.local.example`:
-  ```
-  NEXT_PUBLIC_API_URL=   # e.g. https://api.yourdomain.com/api
-  ```
+> Full env var reference and manual setup steps: [docs/ENVIRONMENT.md](ENVIRONMENT.md)
+
+- [x] Create `apps/api/.env.example` documenting every required variable
+- [x] Create `apps/web/.env.local.example`
 - [ ] Replace hardcoded `192.168.1.68` in `apps/web/.env.local` with the production API URL
 - [ ] Set `NODE_ENV=production` in all production runtime environments (container env, hosting platform)
 
@@ -69,10 +60,10 @@ Mark each item `[x]` when complete. Leave a note or PR reference next to anythin
 
 ## 5. Observability
 
-- [ ] **Add `GET /api/health`** liveness endpoint — returns `{ status: 'ok', timestamp: '<ISO>' }` with HTTP 200; no auth required
-- [ ] **Add `GET /api/ready`** readiness endpoint — checks DB connectivity (`SELECT 1`) and returns `{ status: 'ready' }` or 503 if the DB is unreachable
-- [ ] **Integrate structured logging** (Pino recommended for NestJS) — replace all `console.log` calls; emit JSON logs in production for aggregation (Datadog, Logtail, CloudWatch, etc.)
-- [ ] **Wire up error tracking** — add Sentry (or equivalent) to both the API and web app so runtime exceptions surface with stack traces and context
+- [x] **Add `GET /api/health`** liveness endpoint — returns `{ status: 'ok', timestamp: '<ISO>' }` with HTTP 200; no auth required
+- [x] **Add `GET /api/ready`** readiness endpoint — checks DB connectivity (`SELECT 1`) and returns `{ status: 'ready' }` or 503 if the DB is unreachable
+- [x] **Integrate structured logging** (Pino recommended for NestJS) — replace all `console.log` calls; emit JSON logs in production for aggregation (Datadog, Logtail, CloudWatch, etc.)
+- [x] **Wire up error tracking** — add Sentry (or equivalent) to both the API and web app so runtime exceptions surface with stack traces and context
 
 ---
 

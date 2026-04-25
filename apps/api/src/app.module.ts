@@ -1,6 +1,10 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
+import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
 import { PrismaModule } from './prisma/prisma.module';
+import { HealthModule } from './modules/health/health.module';
 import { EventsModule } from './modules/events/events.module';
 import { ElementsModule } from './modules/elements/elements.module';
 import { PublishModule } from './modules/publish/publish.module';
@@ -12,6 +16,15 @@ import { MomentsModule } from './modules/moments/moments.module';
 
 @Module({
   imports: [
+    LoggerModule.forRoot({
+      pinoHttp: {
+        level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+        transport: process.env.NODE_ENV !== 'production'
+          ? { target: 'pino-pretty', options: { singleLine: true } }
+          : undefined,
+        redact: ['req.headers.authorization'], // Never log JWT tokens
+      },
+    }),
     ThrottlerModule.forRoot([
       {
         name: 'auth',
@@ -19,7 +32,9 @@ import { MomentsModule } from './modules/moments/moments.module';
         limit: 5,
       },
     ]),
+    SentryModule.forRoot(),
     PrismaModule,      // @Global — PrismaService available everywhere
+    HealthModule,
     EventsModule,
     ElementsModule,
     PublishModule,
@@ -28,6 +43,12 @@ import { MomentsModule } from './modules/moments/moments.module';
     AdminModule,
     ProjectsModule,
     MomentsModule,
+  ],
+  providers: [
+    {
+      provide: APP_FILTER,
+      useClass: SentryGlobalFilter,
+    },
   ],
 })
 export class AppModule {}
