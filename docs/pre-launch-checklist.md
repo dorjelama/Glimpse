@@ -26,8 +26,8 @@ Mark each item `[x]` when complete. Leave a note or PR reference next to anythin
 - [ ] **Remove hardcoded JWT secret fallbacks** in [jwt.strategy.ts](../apps/api/src/modules/auth/jwt.strategy.ts) and [auth.module.ts](../apps/api/src/modules/auth/auth.module.ts). The app must throw on startup if `JWT_SECRET` is not set — never silently use a default.
 - [ ] **Generate a strong production JWT secret**: `openssl rand -hex 32` — store in secrets manager, not in `.env`
 - [ ] **Remove hardcoded dev IP** `192.168.1.68` from the CORS allowlist in [main.ts](../apps/api/src/main.ts). Either delete it or gate it behind `NODE_ENV !== 'production'`
-- [ ] **Add auth rate limiting** — install `@nestjs/throttler` and apply a limit to `POST /auth/login` and `POST /auth/register` (recommended: 5 attempts per 15 min per IP)
-- [ ] **Add Helmet middleware** ([main.ts](../apps/api/src/main.ts)) for security headers: `Content-Security-Policy`, `X-Frame-Options`, `Strict-Transport-Security`, `X-Content-Type-Options`
+- [x] **Add auth rate limiting** — install `@nestjs/throttler` and apply a limit to `POST /auth/login` and `POST /auth/register` (recommended: 5 attempts per 15 min per IP)
+- [x] **Add Helmet middleware** ([main.ts](../apps/api/src/main.ts)) for security headers: `Content-Security-Policy`, `X-Frame-Options`, `Strict-Transport-Security`, `X-Content-Type-Options`
 - [ ] **Lock down Next.js image domains** ([next.config.js](../apps/web/next.config.js)): remove `http://localhost` pattern and replace the wildcard `https://**` with the actual production API/CDN hostname
 - [ ] **Verify `.env` files are gitignored** — check `apps/api/.env` and `apps/web/.env.local` are not tracked; rotate any secrets that were previously committed
 
@@ -78,10 +78,10 @@ Mark each item `[x]` when complete. Leave a note or PR reference next to anythin
 
 ## 6. Frontend UX
 
-- [ ] **Add `apps/web/src/app/error.tsx`** — global error boundary; shows a friendly "Something went wrong" page instead of the default Next.js crash screen
-- [ ] **Add `apps/web/src/app/not-found.tsx`** — custom 404 page; dead links (especially shared card URLs that have been unpublished) should land here gracefully
-- [ ] **Add `og:image`** to the public card view ([view/[slug]/page.tsx](../apps/web/src/app/view/%5Bslug%5D/page.tsx)) — a card without a preview image looks broken when shared on WhatsApp, iMessage, or social
-- [ ] **Add `og:image`, `og:url`, and `twitter:image`** to the gallery feed page ([g/[galleryId]/feed/page.tsx](../apps/web/src/app/g/%5BgalleryId%5D/feed/page.tsx))
+- [x] **Add `apps/web/src/app/error.tsx`** — global error boundary; shows a friendly "Something went wrong" page instead of the default Next.js crash screen
+- [x] **Add `apps/web/src/app/not-found.tsx`** — custom 404 page; dead links (especially shared card URLs that have been unpublished) should land here gracefully
+- [x] **Add `og:image`** to the public card view ([view/[slug]/page.tsx](../apps/web/src/app/view/%5Bslug%5D/page.tsx)) — a card without a preview image looks broken when shared on WhatsApp, iMessage, or social
+- [x] **Add `og:image`, `og:url`, and `twitter:image`** to the gallery feed page ([g/[galleryId]/feed/page.tsx](../apps/web/src/app/g/%5BgalleryId%5D/feed/page.tsx))
 
 ---
 

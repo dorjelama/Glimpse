@@ -6,6 +6,7 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/login.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -17,6 +18,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Register a new user account' })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
@@ -31,11 +33,13 @@ export class AuthController {
   })
   @ApiResponse({ status: 409, description: 'Email already registered.' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields.' })
+  @ApiResponse({ status: 429, description: 'Too many requests — try again in 15 minutes.' })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Post('login')
+  @UseGuards(ThrottlerGuard)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({
@@ -50,6 +54,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 401, description: 'Invalid email or password.' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields.' })
+  @ApiResponse({ status: 429, description: 'Too many requests — try again in 15 minutes.' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }

@@ -3,11 +3,38 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          // Swagger UI requires inline scripts and styles
+          scriptSrc: ["'self'", "'unsafe-inline'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", 'data:', 'blob:'],
+          fontSrc: ["'self'", 'data:'],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameSrc: ["'none'"],
+        },
+      },
+      // Allow the frontend (different origin/port) to load images from /uploads
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      // COEP can break non-CORP third-party resources; leave disabled
+      crossOriginEmbedderPolicy: false,
+      hsts: {
+        maxAge: 31536000, // 1 year
+        includeSubDomains: true,
+      },
+    }),
+  );
 
   app.enableCors({
     origin: [

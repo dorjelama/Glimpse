@@ -19,11 +19,19 @@ async function fetchProject(slug: string) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const project = await fetchProject(params.slug);
+  const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+
   if (!project) {
-    return { title: 'Invitation — Glimpse' };
+    return {
+      title: 'Invitation — Glimpse',
+      openGraph: { images: [{ url: '/og-default.png', width: 1200, height: 630 }] },
+    };
   }
+
   const title = `${project.title} — You're invited!`;
   const description = `Open your invitation to ${project.title}`;
+  const url = `${base}/view/${params.slug}`;
+
   return {
     title,
     description,
@@ -31,11 +39,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: 'website',
+      url,
+      images: [{ url: '/og-default.png', width: 1200, height: 630, alt: title }],
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title,
       description,
+      images: ['/og-default.png'],
     },
   };
 }

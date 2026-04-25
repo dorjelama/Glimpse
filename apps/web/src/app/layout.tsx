@@ -5,6 +5,7 @@ import NavigationProgress from '@/components/NavigationProgress';
 import CookieBanner from '@/components/CookieBanner';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'),
   title: 'Glimpse',
   description: 'Create beautiful digital cards with a drag-and-drop editor',
   icons: {
