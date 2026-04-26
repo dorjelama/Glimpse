@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { api, type GallerySubmission, type GlimpseProject } from '@/lib/api';
+import { api, type GallerySubmission, type GlimpseProject, type GallerySummary } from '@/lib/api';
 import DashboardShell from '@/components/DashboardShell';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
@@ -194,6 +194,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [bulkApproving, setBulkApproving] = useState(false);
   const [galleryCopied, setGalleryCopied] = useState(false);
+  const [summary, setSummary] = useState<GallerySummary | null>(null);
 
   useEffect(() => {
     api.getProject(params.id)
@@ -202,6 +203,9 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
         if (p.gallery) {
           const subs = await api.listSubmissions(p.gallery.id);
           setSubmissions(subs);
+          if (p.gallery.endedAt) {
+            api.getGallerySummary(p.gallery.id).then(setSummary).catch(() => {});
+          }
         }
       })
       .catch(() => router.push('/dashboard'))
@@ -398,6 +402,54 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
 
         {/* ── Content ──────────────────────────────────────────── */}
         <div className="px-4 py-6 md:px-8 md:py-8 max-w-4xl">
+
+          {/* Post-event summary */}
+          {status === 'ended' && summary && (
+            <div className="mb-6 rounded-2xl overflow-hidden" style={{ border: '1px solid rgba(246,235,221,0.15)', backgroundColor: 'rgba(246,235,221,0.04)' }}>
+              <div className="px-5 py-3 border-b" style={{ borderColor: 'rgba(246,235,221,0.1)' }}>
+                <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(246,235,221,0.4)' }}>Event summary</p>
+              </div>
+              <div className="p-5 flex flex-col gap-5">
+                {/* Stat tiles */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Total submitted', value: summary.totalSubmissions },
+                    { label: 'Approved', value: summary.approvedCount },
+                    { label: 'Unique guests', value: summary.uniqueGuests },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-xl px-3 py-3 text-center" style={{ backgroundColor: 'rgba(246,235,221,0.06)', border: '1px solid rgba(246,235,221,0.1)' }}>
+                      <p className="text-2xl font-bold" style={{ color: '#F6EBDD' }}>{value}</p>
+                      <p className="text-[10px] mt-0.5 font-medium uppercase tracking-wide" style={{ color: 'rgba(246,235,221,0.4)' }}>{label}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Most-loved moment */}
+                {summary.topSubmission && summary.topSubmission.totalReactions > 0 && (
+                  <div className="flex items-center gap-4 rounded-xl px-4 py-3" style={{ backgroundColor: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.2)' }}>
+                    {summary.topSubmission.featuredPhotoUrl && (
+                      <img
+                        src={summary.topSubmission.featuredPhotoUrl.startsWith('http') ? summary.topSubmission.featuredPhotoUrl : `${API_BASE}${summary.topSubmission.featuredPhotoUrl}`}
+                        alt=""
+                        className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#f59e0b' }}>Most loved</p>
+                      <p className="text-sm font-semibold truncate" style={{ color: '#F6EBDD' }}>{summary.topSubmission.guestName}</p>
+                      {summary.topSubmission.message && (
+                        <p className="text-xs truncate mt-0.5" style={{ color: 'rgba(246,235,221,0.5)' }}>"{summary.topSubmission.message}"</p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0 text-center">
+                      <p className="text-lg font-bold" style={{ color: '#f59e0b' }}>{summary.topSubmission.totalReactions}</p>
+                      <p className="text-[10px]" style={{ color: 'rgba(245,158,11,0.6)' }}>reactions</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Export + share banner */}
           {status === 'ended' && (

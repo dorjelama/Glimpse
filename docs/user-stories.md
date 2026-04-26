@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H8 mobile moderation; H4 card sharing; V3 real-time status; H13 export reminder cron; H14 final gallery page; V10 feed post-event CTA_
+_Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H8 mobile moderation; H4 card sharing; V3 real-time status; H13 export reminder cron; H14 final gallery page; V10 feed post-event CTA; H12 post-event summary_
 
 ---
 
@@ -44,7 +44,7 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 | H9 | Control what's on the feed (open/close/end) | Pause + End event with confirm dialog. Three states implemented. | Solid. |
 | H10 | Download photos after the event | 30-day export window + ZIP download in moderation page. | **No notification of the export window.** Host ends the event and may never return to the moderation page. 30 days pass, photos deleted, trust broken. |
 | H11 | See event-level stats at a glance | Dashboard project card shows "📸 X live" chip and amber "Y pending" chip. Stats fetched in parallel after project load. | ✅ Resolved |
-| H12 | See a post-event summary | No summary UI exists. Host sees only the export banner after ending the event. | **Post-event stats missing.** Free tier shows submission count only. Pro+ shows approved count, most-reacted photo, and unique guest names. Stats are the "look what you got" moment that drives repeat event creation and upgrade intent. |
+| H12 | See a post-event summary | Summary section appears above the export banners when the event has ended. Three stat tiles: total submitted, approved, unique guests. "Most loved" tile shows the top-reacted submission's thumbnail, guest name, caption, and total reaction count. Data from `GET /gallery/:id/summary` (JWT-guarded): uses Prisma `groupBy` on `SubmissionReaction` to find the top submission in one query. Loaded in parallel with `listSubmissions` on mount. | ✅ Resolved |
 | H13 | Get a reminder before my photos are deleted | `ReminderService` runs a daily cron (`EVERY_DAY_AT_9AM`). Queries all ended galleries still within their 30-day window. Sends a 7-day warning when `daysElapsed >= 23` and `reminder7DaySentAt IS NULL`; sends a 24-hour warning when `daysElapsed >= 29` and `reminder24HrSentAt IS NULL`. Both flags persisted on `Gallery` to prevent duplicates. `MailService.sendExportReminder()` sends via SES in prod; logs to console in dev (no credentials). Migration `20260425000000_add_gallery_reminder_tracking` adds `reminder7DaySentAt` and `reminder24HrSentAt` nullable columns. | ✅ Resolved |
 | H14 | Share a curated final gallery with guests | New `/g/[galleryId]/gallery` page: columns-2 masonry grid of all approved photos with caption overlay on hover. Header shows event title + ended date. Footer watermark "Powered by Glimpse · Create your own event →" links to `/`. Expired after `endedAt + 30 days` — shows "archive window closed" message. Moderation page post-event section adds a "Share the final gallery" banner with a "Copy link" button (2s confirmation). | ✅ Resolved |
 
@@ -107,10 +107,9 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 
 | Priority | Gap | Story refs | Notes |
 |----------|-----|-----------|-------|
-| 1 | No post-event summary | H12 | Free: submission count only. Pro+: approved count, most-reacted photo, unique guest names. Conversion lever for repeat events. |
-| 2 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI; hurts conversion. |
-| 3 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt to upgrade. |
-| 4 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
+| 1 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI; hurts conversion. |
+| 2 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt to upgrade. |
+| 3 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
 
 ### Resolved
 
@@ -126,6 +125,7 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 | No in-product card sharing | H4 | "Share" button on Card tile → email modal → SES send. HTML email includes card link, feed link, iOS/Android home-screen tutorial. Dev: console fallback. |
 | No export-expiry notification | H10, H13 | `ReminderService` daily cron at 9 AM. 7-day warning at day 23; 24-hour warning at day 29. Flags `reminder7DaySentAt` / `reminder24HrSentAt` on Gallery prevent duplicates. `MailService.sendExportReminder()` — SES in prod, console in dev. |
 | No final gallery share link | H14, V10 | `/g/[galleryId]/gallery` — masonry grid, caption overlays, expired-window check, Glimpse watermark footer. Moderation page adds "Share the final gallery" banner with copy-link button. Feed post-event banner adds "View final gallery →" CTA. |
+| No post-event summary | H12 | `GET /gallery/:id/summary` returns totalSubmissions, approvedCount, uniqueGuests, topSubmission (via `groupBy` on reactions). Summary section in moderation page: 3 stat tiles + most-loved moment card with thumbnail and reaction count. |
 | Multiple submissions per guest not handled | G8 | 3-submission cap per device via localStorage token map; `LimitScreen` at cap. |
 
 ## Enhancements
@@ -134,4 +134,3 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 - Separate guest module
 - Landing page improvements (screenshots, social proof, annual pricing)
 - Custom domain hosting for event pages
-- QR design with custom text and branding

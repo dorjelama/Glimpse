@@ -328,6 +328,52 @@ export class MomentsService {
     });
   }
 
+  async getGallerySummary(galleryId: string, ownerId: string) {
+    await this.verifyGalleryOwnership(galleryId, ownerId);
+
+    const [totalSubmissions, approvedCount, guestRows, topReaction] = await Promise.all([
+      this.prisma.gallerySubmission.count({ where: { galleryId } }),
+      this.prisma.gallerySubmission.count({ where: { galleryId, approved: true } }),
+      this.prisma.gallerySubmission.findMany({
+        where: { galleryId },
+        select: { guestName: true },
+        distinct: ['guestName'],
+      }),
+      this.prisma.submissionReaction.groupBy({
+        by: ['submissionId'],
+        where: { submission: { galleryId, approved: true } },
+        _count: { emoji: true },
+        orderBy: { _count: { emoji: 'desc' } },
+        take: 1,
+      }),
+    ]);
+
+    let topSubmission = null;
+    if (topReaction.length > 0) {
+      const sub = await this.prisma.gallerySubmission.findUnique({
+        where: { id: topReaction[0].submissionId },
+        include: { photos: { orderBy: { createdAt: 'asc' as const } } },
+      });
+      if (sub) {
+        const featured = sub.photos.find(p => p.id === sub.featuredPhotoId) ?? sub.photos[0];
+        topSubmission = {
+          id: sub.id,
+          guestName: sub.guestName,
+          message: sub.message ?? undefined,
+          featuredPhotoUrl: featured?.url ?? null,
+          totalReactions: topReaction[0]._count.emoji,
+        };
+      }
+    }
+
+    return {
+      totalSubmissions,
+      approvedCount,
+      uniqueGuests: guestRows.length,
+      topSubmission,
+    };
+  }
+
   async setApproved(galleryId: string, submissionId: string, approved: boolean, ownerId: string) {
     await this.verifyGalleryOwnership(galleryId, ownerId);
     const sub = await this.prisma.gallerySubmission.findUnique({ where: { id: submissionId } });

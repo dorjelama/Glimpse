@@ -137,6 +137,9 @@ export const api = {
   listSubmissions: (galleryId: string) =>
     request<GallerySubmission[]>(`/gallery/${galleryId}/manage`),
 
+  getGallerySummary: (galleryId: string) =>
+    request<GallerySummary>(`/gallery/${galleryId}/summary`),
+
   approveSubmission: (galleryId: string, submissionId: string, approved: boolean) =>
     request<GallerySubmission>(`/gallery/${galleryId}/submissions/${submissionId}/approve`, {
       method: 'PATCH',
@@ -303,6 +306,19 @@ export interface GalleryInfo {
   isOpen: boolean;
   endedAt?: string;
   project: { title: string };
+}
+
+export interface GallerySummary {
+  totalSubmissions: number;
+  approvedCount: number;
+  uniqueGuests: number;
+  topSubmission: {
+    id: string;
+    guestName: string;
+    message?: string;
+    featuredPhotoUrl: string | null;
+    totalReactions: number;
+  } | null;
 }
 
 export interface GlimpseProject {

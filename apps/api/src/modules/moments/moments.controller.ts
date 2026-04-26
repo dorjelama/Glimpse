@@ -208,6 +208,15 @@ export class MomentsController {
     return this.momentsService.listSubmissions(galleryId, req.user.userId);
   }
 
+  @Get(':galleryId/summary')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Post-event summary stats for a gallery (host only)' })
+  @ApiParam({ name: 'galleryId' })
+  getGallerySummary(@Param('galleryId') galleryId: string, @Req() req: any) {
+    return this.momentsService.getGallerySummary(galleryId, req.user.userId);
+  }
+
   @Patch(':galleryId/submissions/:id/approve')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT')
