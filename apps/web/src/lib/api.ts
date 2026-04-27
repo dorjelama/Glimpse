@@ -82,6 +82,9 @@ export const api = {
   addGuest: (eventId: string, body: { name: string; email?: string }) =>
     request<Guest>(`/events/${eventId}/guests`, { method: 'POST', body: JSON.stringify(body) }),
 
+  updateGuest: (eventId: string, guestId: string, body: { name?: string; email?: string }) =>
+    request<Guest>(`/events/${eventId}/guests/${guestId}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
   deleteGuest: (eventId: string, guestId: string) =>
     request<void>(`/events/${eventId}/guests/${guestId}`, { method: 'DELETE' }),
 

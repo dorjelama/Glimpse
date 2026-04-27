@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -13,6 +14,7 @@ import {
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { GuestsService } from './guests.service';
 import { CreateGuestDto } from './dto/create-guest.dto';
+import { UpdateGuestDto } from './dto/update-guest.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('Guests')
@@ -34,6 +36,19 @@ export class GuestsController {
   @ApiOperation({ summary: 'Add a guest to an event' })
   create(@Param('eventId') eventId: string, @Body() dto: CreateGuestDto, @Req() _req: any) {
     return this.guestsService.create(eventId, dto);
+  }
+
+  @Patch('events/:eventId/guests/:guestId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT')
+  @ApiOperation({ summary: 'Update a guest name or email' })
+  update(
+    @Param('eventId') eventId: string,
+    @Param('guestId') guestId: string,
+    @Body() dto: UpdateGuestDto,
+    @Req() _req: any,
+  ) {
+    return this.guestsService.update(eventId, guestId, dto);
   }
 
   @Delete('events/:eventId/guests/:guestId')

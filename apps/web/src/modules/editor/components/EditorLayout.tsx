@@ -11,7 +11,6 @@ import MobileBottomBar, { type MobileSheet } from './MobileBottomBar';
 import BottomSheet from './BottomSheet';
 import PagesPanel from './PagesPanel';
 import LayersPanel from './LayersPanel';
-import GuestsPanel from './GuestsPanel';
 // Element type buttons rendered inside the "Add" bottom sheet
 import type { ElementType } from '../types';
 import TemplatePickerModal from './TemplatePickerModal';
@@ -155,10 +154,6 @@ export default function EditorLayout({ eventId }: Props) {
         <LayersPanel />
       </BottomSheet>
 
-      {/* Guests */}
-      <BottomSheet open={activeSheet === 'guests'} onClose={closeSheet} title="Guests" height="80vh">
-        <GuestsPanel />
-      </BottomSheet>
     </div>
   );
 }

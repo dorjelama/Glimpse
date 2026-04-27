@@ -485,6 +485,70 @@ function GlimpsesFeatureTile({ project }: { project: GlimpseProject }) {
   );
 }
 
+function GuestsFeatureTile({ project }: { project: GlimpseProject }) {
+  const router = useRouter();
+  const card = project.events[0];
+  const [guestCount, setGuestCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!card) return;
+    api.listGuests(card.id)
+      .then((gs) => setGuestCount(gs.length))
+      .catch(() => {});
+  }, [card?.id]);
+
+  return (
+    <div className="bg-cream border border-gold/30 rounded-2xl overflow-hidden flex flex-col hover:border-terra/40 hover:shadow-md hover:shadow-terra/10 transition-all duration-200">
+      {/* Header visual */}
+      <div className="h-52 flex flex-col items-center justify-center gap-3 border-b border-gold/20 bg-blush/60">
+        <div className="w-14 h-14 rounded-full bg-terra/10 border border-terra/20 flex items-center justify-center">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B85C37" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+            <path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+        </div>
+        {guestCount !== null && (
+          <p className="text-3xl font-bold text-terra" style={{ fontFamily: 'Georgia, serif' }}>
+            {guestCount}
+          </p>
+        )}
+        <p className="text-xs text-ink/40">
+          {guestCount === null ? 'Guest list' : guestCount === 1 ? '1 guest' : `${guestCount} guests`}
+        </p>
+      </div>
+
+      {/* Info */}
+      <div className="p-5 flex flex-col gap-4 flex-1">
+        <div>
+          <p className="text-ink font-semibold text-sm">Guests</p>
+          <p className="text-ink/40 text-xs mt-0.5">
+            {card ? 'Manage personalised invite links for each guest.' : 'Create a card first to manage guests.'}
+          </p>
+        </div>
+        <div className="mt-auto">
+          {card ? (
+            <button
+              onClick={() => router.push(`/events/${project.id}/guests`)}
+              className="w-full py-2 bg-terra hover:bg-terra/90 text-white text-sm font-semibold rounded-xl transition-colors"
+            >
+              Manage Guests
+            </button>
+          ) : (
+            <button
+              disabled
+              className="w-full py-2 bg-terra/20 text-terra/40 text-sm font-semibold rounded-xl cursor-not-allowed"
+            >
+              Manage Guests
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EventHubPage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [project, setProject] = useState<GlimpseProject | null>(null);
@@ -565,6 +629,7 @@ export default function EventHubPage({ params }: { params: { id: string } }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <CardFeatureTile project={project} />
             <GlimpsesFeatureTile project={project} />
+            <GuestsFeatureTile project={project} />
           </div>
         </div>
       </div>

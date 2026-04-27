@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateGuestDto } from './dto/create-guest.dto';
+import { UpdateGuestDto } from './dto/update-guest.dto';
 
 export interface Guest {
   id: string;
@@ -49,6 +50,22 @@ export class GuestsService {
       },
     });
     return toGuest(guest);
+  }
+
+  async update(eventId: string, guestId: string, dto: UpdateGuestDto): Promise<Guest> {
+    const guest = await this.prisma.guest.findFirst({
+      where: { id: guestId, eventId },
+    });
+    if (!guest) throw new NotFoundException(`Guest ${guestId} not found`);
+
+    const updated = await this.prisma.guest.update({
+      where: { id: guestId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.email !== undefined && { email: dto.email || null }),
+      },
+    });
+    return toGuest(updated);
   }
 
   async remove(eventId: string, guestId: string): Promise<void> {

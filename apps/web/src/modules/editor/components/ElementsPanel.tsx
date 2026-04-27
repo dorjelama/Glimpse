@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useEditorStore } from '../store/editorStore';
 import type { ElementType } from '../types';
 import PagesPanel from './PagesPanel';
-import GuestsPanel from './GuestsPanel';
 import LayersPanel from './LayersPanel';
 
 const ELEMENT_TYPES: { type: ElementType; label: string; icon: string; desc: string }[] = [
@@ -16,7 +15,7 @@ const ELEMENT_TYPES: { type: ElementType; label: string; icon: string; desc: str
   { type: 'countdown', label: 'Countdown',  icon: '⏱', desc: 'Live countdown to a target date' },
 ];
 
-type Tab = 'pages' | 'elements' | 'layers' | 'guests';
+type Tab = 'pages' | 'elements' | 'layers';
 
 export default function ElementsPanel() {
   const addElement    = useEditorStore((s) => s.addElement);
@@ -39,7 +38,6 @@ export default function ElementsPanel() {
     { id: 'pages',    label: pageCount > 0 ? `Pages (${currentPageIdx + 1}/${pageCount})` : 'Pages' },
     { id: 'elements', label: 'Add' },
     { id: 'layers',   label: 'Layers' },
-    { id: 'guests',   label: 'Guests' },
   ];
 
   return (
@@ -62,7 +60,6 @@ export default function ElementsPanel() {
       </div>
 
       {activeTab === 'pages'    && <PagesPanel />}
-      {activeTab === 'guests'   && <GuestsPanel />}
       {activeTab === 'layers'   && <LayersPanel />}
 
       {activeTab === 'elements' && (
