@@ -62,9 +62,9 @@ export class PublishController {
 
     const user = await this.prisma.user.findUnique({
       where: { id: req.user.userId },
-      select: { emailVerified: true },
+      select: { emailVerified: true, role: true },
     });
-    if (user && !user.emailVerified) {
+    if (user && !user.emailVerified && user.role !== 'ADMIN') {
       throw new ForbiddenException('Please verify your email address before publishing.');
     }
 

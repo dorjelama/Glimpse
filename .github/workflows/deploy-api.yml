@@ -27,4 +27,4 @@ jobs:
             npx prisma generate
             npx prisma migrate deploy
             pnpm build
-            pm2 restart glimpse-api
+            cd ~/Glimpse && pm2 restart ecosystem.config.js

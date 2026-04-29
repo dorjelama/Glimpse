@@ -139,7 +139,7 @@ export class AuthService {
     if (adminEmail && user.email === adminEmail && user.role !== 'ADMIN') {
       return this.prisma.user.update({
         where: { id: user.id },
-        data: { role: 'ADMIN' },
+        data: { role: 'ADMIN', emailVerified: true, emailVerificationToken: null },
       });
     }
     return user;
