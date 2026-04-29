@@ -102,7 +102,7 @@ export class EventsController {
   @ApiResponse({ status: 403, description: 'Access denied.' })
   async findOne(@Param('id') id: string, @Req() req: any) {
     const event = await this.eventsService.findOne(id);
-    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    if (event.ownerId !== req.user.userId) throw new ForbiddenException();
     return event;
   }
 
@@ -124,7 +124,7 @@ export class EventsController {
   @ApiResponse({ status: 403, description: 'Access denied.' })
   async update(@Param('id') id: string, @Body() dto: UpdateEventDto, @Req() req: any) {
     const event = await this.eventsService.findOne(id);
-    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    if (event.ownerId !== req.user.userId) throw new ForbiddenException();
     return this.eventsService.update(id, dto);
   }
 
@@ -137,7 +137,7 @@ export class EventsController {
   @ApiResponse({ status: 403, description: 'Access denied.' })
   async remove(@Param('id') id: string, @Req() req: any) {
     const event = await this.eventsService.findOne(id);
-    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    if (event.ownerId !== req.user.userId) throw new ForbiddenException();
     return this.eventsService.remove(id);
   }
 
@@ -158,7 +158,7 @@ export class EventsController {
   @ApiResponse({ status: 403, description: 'Access denied.' })
   async publish(@Param('id') id: string, @Req() req: any) {
     const event = await this.eventsService.findOne(id);
-    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    if (event.ownerId !== req.user.userId) throw new ForbiddenException();
     return this.eventsService.publish(id);
   }
 
@@ -174,7 +174,7 @@ export class EventsController {
   @ApiResponse({ status: 403, description: 'Access denied.' })
   async unpublish(@Param('id') id: string, @Req() req: any) {
     const event = await this.eventsService.findOne(id);
-    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    if (event.ownerId !== req.user.userId) throw new ForbiddenException();
     return this.eventsService.unpublish(id);
   }
 
@@ -192,7 +192,7 @@ export class EventsController {
     @Req() req: any,
   ): Promise<{ url: string }> {
     const event = await this.eventsService.findOne(id);
-    if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+    if (event.ownerId !== req.user.userId) throw new ForbiddenException();
 
     if (!file) throw new BadRequestException('No file uploaded');
     if (!ALLOWED_TYPES.includes(file.mimetype)) {
@@ -207,6 +207,9 @@ export class EventsController {
       buffer = await sharp(buffer).rotate().jpeg({ quality: 90 }).toBuffer();
       ext = '.jpg';
       contentType = 'image/jpeg';
+    } else if (file.mimetype !== 'image/svg+xml') {
+      try { await sharp(buffer).metadata(); }
+      catch { throw new BadRequestException('Invalid or corrupt image file'); }
     }
 
     const key = `cards/${id}/${uuidv4()}${ext}`;

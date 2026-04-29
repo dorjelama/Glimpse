@@ -14,8 +14,8 @@ export interface AuthUser {
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
-  login(credentials: { email: string; password: string }): Promise<void>;
-  register(credentials: { name: string; email: string; password: string }): Promise<void>;
+  login(credentials: { email: string; password: string; cfTurnstileToken?: string }): Promise<void>;
+  register(credentials: { name: string; email: string; password: string; cfTurnstileToken?: string }): Promise<void>;
   logout(): void;
   updateUser(dto: { name?: string; currentPassword?: string; newPassword?: string }): Promise<AuthUser>;
   deleteAccount(): Promise<void>;
@@ -37,11 +37,11 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
 
-      async login({ email, password }) {
+      async login({ email, password, cfTurnstileToken }) {
         const res = await fetch(`${BASE}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ email, password, ...(cfTurnstileToken ? { cfTurnstileToken } : {}) }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -52,11 +52,11 @@ export const useAuthStore = create<AuthState>()(
         setTokenCookie(token);
       },
 
-      async register({ name, email, password }) {
+      async register({ name, email, password, cfTurnstileToken }) {
         const res = await fetch(`${BASE}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, email, password }),
+          body: JSON.stringify({ name, email, password, ...(cfTurnstileToken ? { cfTurnstileToken } : {}) }),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));

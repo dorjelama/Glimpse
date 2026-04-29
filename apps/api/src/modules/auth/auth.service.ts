@@ -18,7 +18,7 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already registered');
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, 12);
     let user = await this.prisma.user.create({
       data: { email: dto.email, passwordHash, name: dto.name },
     });
@@ -58,7 +58,7 @@ export class AuthService {
       }
       const valid = await bcrypt.compare(dto.currentPassword, user.passwordHash);
       if (!valid) throw new UnauthorizedException('Current password is incorrect');
-      data.passwordHash = await bcrypt.hash(dto.newPassword, 10);
+      data.passwordHash = await bcrypt.hash(dto.newPassword, 12);
     }
 
     const updated = await this.prisma.user.update({ where: { id: userId }, data });

@@ -3,13 +3,17 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { useAuthStore } from '@/lib/authStore';
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, token } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(TURNSTILE_SITE_KEY ? null : 'skip');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,10 +26,11 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      await login({ email, password });
+      await login({ email, password, cfTurnstileToken: turnstileToken ?? undefined });
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.message ?? 'Login failed');
+      setTurnstileToken(TURNSTILE_SITE_KEY ? null : 'skip');
     } finally {
       setLoading(false);
     }
@@ -67,9 +72,18 @@ export default function LoginPage() {
           />
         </div>
 
+        {TURNSTILE_SITE_KEY && (
+          <Turnstile
+            siteKey={TURNSTILE_SITE_KEY}
+            onSuccess={setTurnstileToken}
+            onError={() => setTurnstileToken(null)}
+            onExpire={() => setTurnstileToken(null)}
+          />
+        )}
+
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || !turnstileToken}
           className="mt-2 w-full py-3 bg-terra hover:bg-terra/90 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
         >
           {loading ? 'Signing in…' : 'Sign in'}

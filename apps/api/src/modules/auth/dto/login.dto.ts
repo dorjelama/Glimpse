@@ -1,5 +1,5 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString, IsOptional, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class RegisterDto {
   @ApiProperty({ example: 'alice@example.com', description: 'Unique email address' })
@@ -14,6 +14,11 @@ export class RegisterDto {
   @ApiProperty({ example: 'Alice', description: 'Display name' })
   @IsString()
   name: string;
+
+  @ApiPropertyOptional({ description: 'Cloudflare Turnstile challenge token' })
+  @IsOptional()
+  @IsString()
+  cfTurnstileToken?: string;
 }
 
 export class LoginDto {
@@ -24,4 +29,9 @@ export class LoginDto {
   @ApiProperty({ example: 'supersecret', description: 'Account password' })
   @IsString()
   password: string;
+
+  @ApiPropertyOptional({ description: 'Cloudflare Turnstile challenge token' })
+  @IsOptional()
+  @IsString()
+  cfTurnstileToken?: string;
 }

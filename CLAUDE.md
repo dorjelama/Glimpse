@@ -68,6 +68,9 @@ cd ../.. && pnpm dev                           # run both apps
 Every module folder has its own CLAUDE.md. Always update it when adding features. Always update it when debugging as well.
 Keep interviewing until we've covered everything.
 
+## Design system rule
+The visual design system lives at [Design.md](Design.md) at the repo root. **Always read it before doing any UI work** — colors, typography, components, the editorial-vs-workshop zone split, do's and don'ts. New screens, new components, restyles, and any Tailwind-class additions must conform to it. If a UI task requires a token or pattern not in Design.md, propose the addition (and update Design.md) rather than introducing ad-hoc styles.
+
 ## Business guardrails (always active)
 
 A business advisor agent is configured at `.claude/agents/business-advisor.md`. Invoke it for any product or feature discussion. Beyond that, apply these rules in every session without being asked:

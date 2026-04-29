@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Read(//c/Users/someo/OneDrive/PREV/ FILES/Documents/Personal/ Workspace/Glimpse/apps/api/src/modules/auth/**)",
+      "Read(//c/Users/someo/OneDrive/PREV/ FILES/Documents/Personal/ Workspace/Glimpse/apps/api/src/modules/auth/guards/**)"
     ]
   }
 }

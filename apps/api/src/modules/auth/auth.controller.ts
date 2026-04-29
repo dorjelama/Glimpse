@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Patch, Delete, UseGuards, Request, HttpCode } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, Delete, UseGuards, Request, Req, HttpCode } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -8,6 +8,7 @@ import {
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
+import { TurnstileService } from './turnstile.service';
 import { RegisterDto, LoginDto } from './dto/login.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -15,7 +16,10 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly turnstile: TurnstileService,
+  ) {}
 
   @Post('register')
   @UseGuards(ThrottlerGuard)
@@ -34,7 +38,8 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'Email already registered.' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields.' })
   @ApiResponse({ status: 429, description: 'Too many requests — try again in 15 minutes.' })
-  register(@Body() dto: RegisterDto) {
+  async register(@Body() dto: RegisterDto, @Req() req: any) {
+    await this.turnstile.verify(dto.cfTurnstileToken, req.ip);
     return this.authService.register(dto);
   }
 
@@ -55,7 +60,8 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid email or password.' })
   @ApiResponse({ status: 400, description: 'Validation error — missing or invalid fields.' })
   @ApiResponse({ status: 429, description: 'Too many requests — try again in 15 minutes.' })
-  login(@Body() dto: LoginDto) {
+  async login(@Body() dto: LoginDto, @Req() req: any) {
+    await this.turnstile.verify(dto.cfTurnstileToken, req.ip);
     return this.authService.login(dto);
   }
 

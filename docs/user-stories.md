@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H8 mobile moderation; H4 card sharing; V3 real-time status; H13 export reminder cron; H14 final gallery page; V10 feed post-event CTA; H12 post-event summary_
+_Last updated: 2026-04-28 — G11 email invitation receive; G10 consent; H10 export download resolved via H13; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H8 mobile moderation; H4 card sharing; V3 real-time status; H13 export reminder cron; H14 final gallery page; V10 feed post-event CTA; H12 post-event summary; H15–H20 + G12 guest list module_
 
 ---
 
@@ -42,18 +42,25 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 | H7 | Know when guests are uploading during the event | Moderation page subscribes to the public SSE stream. `finalise()` broadcasts `submission.new` (empty payload); panel refetches from the JWT-guarded `/manage` endpoint and updates pending list instantly. Guest self-deletes propagate via `submission.deleted`. Green "Live" dot in header confirms the connection is active. | ✅ Resolved |
 | H8 | Approve photos quickly on mobile | Responsive card: row layout on mobile (80px thumbnail + name + Approve/✕ buttons, ~80px per row, 7–8 visible at once) switches to full card on `sm+`. Grid is `flex-col` on mobile, `sm:grid-cols-2 lg:grid-cols-3` on desktop. "Approve all N" bulk button in pending section header. Thumbnail strip hidden on mobile. | ✅ Resolved |
 | H9 | Control what's on the feed (open/close/end) | Pause + End event with confirm dialog. Three states implemented. | Solid. |
-| H10 | Download photos after the event | 30-day export window + ZIP download in moderation page. | **No notification of the export window.** Host ends the event and may never return to the moderation page. 30 days pass, photos deleted, trust broken. |
+| H10 | Download photos after the event | 30-day export window + ZIP download in moderation page. Reminder emails sent automatically by `ReminderService` (H13) — 7-day warning at day 23, 24-hour warning at day 29. | ✅ Resolved via H13 |
 | H11 | See event-level stats at a glance | Dashboard project card shows "📸 X live" chip and amber "Y pending" chip. Stats fetched in parallel after project load. | ✅ Resolved |
 | H12 | See a post-event summary | Summary section appears above the export banners when the event has ended. Three stat tiles: total submitted, approved, unique guests. "Most loved" tile shows the top-reacted submission's thumbnail, guest name, caption, and total reaction count. Data from `GET /gallery/:id/summary` (JWT-guarded): uses Prisma `groupBy` on `SubmissionReaction` to find the top submission in one query. Loaded in parallel with `listSubmissions` on mount. | ✅ Resolved |
 | H13 | Get a reminder before my photos are deleted | `ReminderService` runs a daily cron (`EVERY_DAY_AT_9AM`). Queries all ended galleries still within their 30-day window. Sends a 7-day warning when `daysElapsed >= 23` and `reminder7DaySentAt IS NULL`; sends a 24-hour warning when `daysElapsed >= 29` and `reminder24HrSentAt IS NULL`. Both flags persisted on `Gallery` to prevent duplicates. `MailService.sendExportReminder()` sends via SES in prod; logs to console in dev (no credentials). Migration `20260425000000_add_gallery_reminder_tracking` adds `reminder7DaySentAt` and `reminder24HrSentAt` nullable columns. | ✅ Resolved |
 | H14 | Share a curated final gallery with guests | New `/g/[galleryId]/gallery` page: columns-2 masonry grid of all approved photos with caption overlay on hover. Header shows event title + ended date. Footer watermark "Powered by Glimpse · Create your own event →" links to `/`. Expired after `endedAt + 30 days` — shows "archive window closed" message. Moderation page post-event section adds a "Share the final gallery" banner with a "Copy link" button (2s confirmation). | ✅ Resolved |
+| H15 | Manage my guest list outside the card editor, in its own dedicated space | Standalone `/events/[id]/guests` page extracted from the editor sidebar. Accessible via a **Guests** tile on the Event Hub. Tile shows live guest count fetched on load. | ✅ Resolved |
+| H16 | Add a named guest (and optionally their email) to generate a personalised invite link | Add-guest form at the top of the Guests page: name field (required), email field (optional), Enter key or "Add Guest" button. Guest appears in the table immediately. | ✅ Resolved |
+| H17 | Copy a unique shareable link for each guest so I can send it via WhatsApp, SMS, or DM | "Copy link" button on every guest row. Constructs `{origin}/view/{slug}?g={token}`. Shows "✓ Copied" for 2 s. Disabled (greyed out, cursor-not-allowed, tooltip) when the card is not yet published. | ✅ Resolved |
+| H18 | Fix a guest's name or email without deleting and re-adding them | Inline edit: click any name or email cell → input appears with the current value; blur or Enter saves via `PATCH /events/:eventId/guests/:guestId`; Escape cancels. No-op if unchanged or name is blank. | ✅ Resolved |
+| H19 | Remove a guest who is no longer attending | ✕ delete button on every row. Removes via `DELETE /events/:eventId/guests/:guestId` and filters local state immediately. | ✅ Resolved |
+| H20 | See at a glance how many guests I've added without opening the guest page | Guests tile on the Event Hub calls `api.listGuests(card.id)` on mount and shows the count as a large number + "N guests" label. Updates each time the hub loads. | ✅ Resolved |
 
 ### Host drop-off moments
 - ~~**H1 → H2**~~ — ✅ Resolved. Welcome modal now explains both products before the user creates anything.
 - ~~**H2**~~ — ✅ Resolved. Creation modal now surfaces date alongside title.
 - ~~**H5 → H6**~~ — ✅ Resolved. PNG download + copy link + usage hint ("Print for tables · Share in group chat · Project on screen") close the guidance gap.
-- ~~**H10 → H13**~~ — ✅ Resolved. Daily cron sends 7-day and 24-hour warning emails before the export window closes.
+- ~~**H10 → H13**~~ — ✅ Resolved. `ReminderService` daily cron sends 7-day (day 23) and 24-hour (day 29) warning emails. H10's export download feature was already solid; the notification gap is now closed.
 - ~~**H14**~~ — ✅ Resolved. Final gallery page at `/g/[galleryId]/gallery` + "Share the final gallery" copy-link button in the moderation page.
+- ~~**H15–H20**~~ — ✅ Resolved. Guest list extracted from the editor sidebar into a standalone `/events/[id]/guests` page with full CRUD (add, inline edit, delete) and per-row copy-link action. Guests tile added to the Event Hub with live count.
 
 ---
 
@@ -71,6 +78,8 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 | G8 | Upload again later | Upload page reads `glimpse-token-map:${galleryId}` from localStorage to count prior submissions. Cap is 3 per device per gallery. Under the cap: `DoneScreen` shows "Share another moment →" and mounts a fresh `MomentForm` via `key` increment. At the cap: a `LimitScreen` replaces the form with a link to the feed. Count is incremented in state on each `onDone()`. | ✅ Resolved |
 | G9 | Remove my photo if I change my mind | Uploader can delete their own **pending** submission from the feed via a Delete button (token-authenticated, no login needed). Removal propagates via SSE to all viewers instantly. | **Partially resolved.** Approved submissions cannot be self-deleted — that remains host-only. Pending deletion also only works on the same device/browser (token stored in localStorage; clearing storage or switching device loses the ability). |
 | G10 | Know how my photo may be used | Consent checkbox above the Post button: "I consent to my photos being displayed on the event feed and shared with guests by the host." Custom amber checkbox, `canPost` blocks submission until checked. `finalise()` API requires `consent: true` — server throws 400 if missing. Schema stores `consentGiven Boolean` + `consentAt DateTime?` on `GallerySubmission` (migration: `add_consent_to_submissions`). | ✅ Resolved |
+| G11 | Receive the invitation by email | Host sends invitations via H4 share modal → SES → guest receives a Glimpse-themed HTML email: event title header, "View Invitation" CTA button (card URL), "View Live Feed" link, and a step-by-step iOS/Android home-screen tutorial ("tap Share → Add to Home Screen" / "tap ⋮ → Add to Home Screen"). Dev mode: email logged to console, not sent. | ✅ Resolved |
+| G12 | Open my personalised link and see the invitation addressed to me | Host sends `{origin}/view/{slug}?g={token}` (copied from the Guests page). `PublicViewClient` extracts `?g=` and calls `GET /guests/token/:token` (public, no auth). Resolved `{ name, eventId }` is passed as `guestName` prop to `PreviewLayout` → `PreviewCanvas` → `GuestNameElement`, which renders the actual name in place of the `{{Guest Name}}` placeholder. Silent no-op if token is invalid or absent — card still renders, name cell is empty. | ✅ Resolved |
 
 ### Guest drop-off moments
 - ~~**G7**~~ — ✅ Resolved. "See the live feed →" closes the social loop after posting.
@@ -115,6 +124,7 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 
 | Gap | Story refs | Resolution |
 |-----|-----------|------------|
+| No email invitation for guests | G11 | Host share modal → `POST /publish/:id/share` → SES HTML email with card CTA, feed link, iOS/Android home-screen tutorial. Dev: console fallback. |
 | No photo usage consent at upload | G10 | Consent checkbox required before posting; `consentGiven` + `consentAt` stored on submission. |
 | No pagination / lazy loading on feed | V4 | Cursor pagination + IntersectionObserver auto-load (20/page, capped at 50). |
 | No home screen shortcut for feed | V9 | Dynamic per-gallery PWA manifest + Apple meta tags; icon from existing brand asset. |
@@ -123,14 +133,14 @@ _Last updated: 2026-04-25 — G10 consent; H6 QR guidance; G8 submission cap; V4
 | Moderation page not usable on mobile | H8 | Row layout on mobile (~80px/row). Bulk approve all pending. Responsive grid. |
 | No QR code guidance for hosts | H6 | PNG download (branded canvas card), copy link, usage hint. |
 | No in-product card sharing | H4 | "Share" button on Card tile → email modal → SES send. HTML email includes card link, feed link, iOS/Android home-screen tutorial. Dev: console fallback. |
-| No export-expiry notification | H10, H13 | `ReminderService` daily cron at 9 AM. 7-day warning at day 23; 24-hour warning at day 29. Flags `reminder7DaySentAt` / `reminder24HrSentAt` on Gallery prevent duplicates. `MailService.sendExportReminder()` — SES in prod, console in dev. |
+| No export-expiry notification; host never returns to download | H10, H13 | `ReminderService` daily cron at 9 AM. 7-day warning at day 23; 24-hour warning at day 29. Flags `reminder7DaySentAt` / `reminder24HrSentAt` on Gallery prevent duplicates. `MailService.sendExportReminder()` — SES in prod, console in dev. |
 | No final gallery share link | H14, V10 | `/g/[galleryId]/gallery` — masonry grid, caption overlays, expired-window check, Glimpse watermark footer. Moderation page adds "Share the final gallery" banner with copy-link button. Feed post-event banner adds "View final gallery →" CTA. |
+| Guest management buried inside card editor | H15–H20, G12 | Extracted from editor sidebar into standalone `/events/[id]/guests` page. Full CRUD table (add, inline edit name/email, delete, copy link per row). Guests tile added to Event Hub with live count. Backend adds `PATCH /events/:eventId/guests/:guestId`. Personalised link resolves guest name onto the public card via `?g={token}`. |
 | No post-event summary | H12 | `GET /gallery/:id/summary` returns totalSubmissions, approvedCount, uniqueGuests, topSubmission (via `groupBy` on reactions). Summary section in moderation page: 3 stat tiles + most-loved moment card with thumbnail and reaction count. |
 | Multiple submissions per guest not handled | G8 | 3-submission cap per device via localStorage token map; `LimitScreen` at cap. |
 
 ## Enhancements
 - Feedback feature from host
 - S3 / Cloudflare R2 CDN
-- Separate guest module
 - Landing page improvements (screenshots, social proof, annual pricing)
 - Custom domain hosting for event pages

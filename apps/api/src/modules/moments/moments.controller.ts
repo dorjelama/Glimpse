@@ -28,6 +28,7 @@ import * as sharp from 'sharp';
 import { StorageService } from '../storage/storage.service';
 import { ApiTags, ApiOperation, ApiParam, ApiConsumes, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { MomentsService } from './moments.service';
 import { FeedEventsService } from './feed-events.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
@@ -37,28 +38,6 @@ import { SetGalleryOpenDto } from './dto/set-gallery-open.dto';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
 const HEIC_TYPES = new Set(['image/heic', 'image/heif']);
-
-// In-memory token bucket: 30 reactions/min per key. Evicts buckets after 5 min idle.
-const REACTION_RATE_MAX = 30;
-const REACTION_RATE_WINDOW_MS = 60_000;
-const reactionBuckets = new Map<string, { count: number; resetAt: number }>();
-function reactionRateLimiter(key: string): boolean {
-  const now = Date.now();
-  const b = reactionBuckets.get(key);
-  if (!b || now >= b.resetAt) {
-    reactionBuckets.set(key, { count: 1, resetAt: now + REACTION_RATE_WINDOW_MS });
-    return true;
-  }
-  if (b.count >= REACTION_RATE_MAX) return false;
-  b.count++;
-  return true;
-}
-setInterval(() => {
-  const now = Date.now();
-  for (const [k, b] of reactionBuckets) {
-    if (now >= b.resetAt + REACTION_RATE_WINDOW_MS * 4) reactionBuckets.delete(k);
-  }
-}, 5 * 60_000).unref?.();
 
 @ApiTags('Moments')
 @Controller('gallery')
@@ -77,6 +56,8 @@ export class MomentsController {
   }
 
   @Post(':galleryId/submissions')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ public: { limit: 15, ttl: 60000 } })
   @ApiOperation({ summary: 'Create a guest submission (public)' })
   @ApiParam({ name: 'galleryId' })
   createSubmission(
@@ -93,6 +74,8 @@ export class MomentsController {
   }
 
   @Post('submission/:token/photos')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ public: { limit: 10, ttl: 60000 } })
   @ApiOperation({ summary: 'Upload a photo to a submission' })
   @ApiConsumes('multipart/form-data')
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } }))
@@ -115,6 +98,9 @@ export class MomentsController {
       buffer = await sharp(buffer).rotate().jpeg({ quality: 90 }).toBuffer();
       ext = '.jpg';
       contentType = 'image/jpeg';
+    } else {
+      try { await sharp(buffer).metadata(); }
+      catch { throw new BadRequestException('Invalid or corrupt image file'); }
     }
 
     const key = `moments/${sub.id}/${uuidv4()}${ext}`;
@@ -182,18 +168,15 @@ export class MomentsController {
   }
 
   @Post('submission/:submissionId/react')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ public: { limit: 30, ttl: 60000 } })
   @ApiOperation({ summary: 'Toggle an emoji reaction on a submission (public, session-based)' })
   toggleReaction(
     @Param('submissionId') submissionId: string,
     @Body('sessionId') sessionId: string,
     @Body('emoji') emoji: string,
-    @Req() req: any,
   ) {
     if (!sessionId || !emoji) throw new BadRequestException('sessionId and emoji are required');
-    const ip = (req.ip ?? req.socket?.remoteAddress ?? 'unknown') as string;
-    if (!reactionRateLimiter(`${sessionId}:${ip}`)) {
-      throw new BadRequestException('Too many reactions — slow down');
-    }
     return this.momentsService.toggleReaction(submissionId, sessionId, emoji);
   }
 

@@ -6,6 +6,7 @@ import {
   ApiParam,
   ApiBearerAuth,
 } from '@nestjs/swagger';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { PublishService } from './publish.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EventsService } from '../events/events.service';
@@ -105,10 +106,12 @@ export class PublishController {
   }
 
   @Post(':id/share')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, ThrottlerGuard)
+  @Throttle({ public: { limit: 10, ttl: 3600000 } }) // 10 sends per hour per IP
   @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Send card invitation emails via SES (host only)' })
   @ApiParam({ name: 'id', description: 'Event ID' })
+  @ApiResponse({ status: 429, description: 'Too many sends — maximum 10 per hour.' })
   async shareCard(
     @Param('id') id: string,
     @Body('emails') emails: string[],

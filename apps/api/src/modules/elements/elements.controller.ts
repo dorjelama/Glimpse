@@ -52,7 +52,7 @@ export class ElementsController {
       select: { ownerId: true },
     });
     if (!event) throw new ForbiddenException();
-    if (event.ownerId && event.ownerId !== userId) throw new ForbiddenException();
+    if (event.ownerId !== userId) throw new ForbiddenException();
   }
 
   @Post()

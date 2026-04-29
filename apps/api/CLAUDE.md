@@ -43,11 +43,12 @@ DATABASE_URL  postgresql://glimpse:glimpse@localhost:5432/glimpse
 PORT          3001
 JWT_SECRET    (change in production)
 FRONTEND_URL  http://localhost:3000
+REDIS_URL     redis://localhost:6379  (optional — falls back to in-memory throttler if unset)
 ```
 
 ## Startup
 ```bash
-docker-compose up -d                            # start Postgres
+docker-compose up -d                            # start Postgres + Redis
 npx prisma migrate dev --name init              # first run only
 pnpm dev                                        # or from root: pnpm dev:api
 ```

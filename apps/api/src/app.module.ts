@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { RedisThrottlerStorage } from './modules/throttler/redis-throttler.storage';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { SentryModule, SentryGlobalFilter } from '@sentry/nestjs/setup';
@@ -28,13 +29,17 @@ import { MailModule } from './modules/mail/mail.module';
         redact: ['req.headers.authorization'], // Never log JWT tokens
       },
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'auth',
-        ttl: 15 * 60 * 1000, // 15 minutes in ms
-        limit: 5,
-      },
-    ]),
+    ThrottlerModule.forRoot({
+      // Use Redis storage when REDIS_URL is configured (production + local dev with docker-compose).
+      // Falls back to in-memory when REDIS_URL is absent (CI, unit tests).
+      ...(process.env.REDIS_URL
+        ? { storage: new RedisThrottlerStorage(process.env.REDIS_URL) }
+        : {}),
+      throttlers: [
+        { name: 'auth',   ttl: 15 * 60 * 1000, limit: 5  }, // 5 / 15 min
+        { name: 'public', ttl: 60 * 1000,       limit: 60 }, // 60 / min; routes override
+      ],
+    }),
     SentryModule.forRoot(),
     ScheduleModule.forRoot(),
     PrismaModule,      // @Global — PrismaService available everywhere

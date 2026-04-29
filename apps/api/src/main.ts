@@ -16,14 +16,16 @@ async function bootstrap() {
     app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
   }
 
+  const isProd = process.env.NODE_ENV === 'production';
+
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          // Swagger UI requires inline scripts and styles
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          // Allow inline scripts/styles only in dev (Swagger UI requires them)
+          scriptSrc: isProd ? ["'self'"] : ["'self'", "'unsafe-inline'"],
+          styleSrc: isProd ? ["'self'"] : ["'self'", "'unsafe-inline'"],
           imgSrc: [
             "'self'",
             'data:',
@@ -49,10 +51,7 @@ async function bootstrap() {
   );
 
   app.enableCors({
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://192.168.1.68:3000',
-    ],
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
     credentials: true,
   });
 
@@ -60,42 +59,42 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
-      forbidNonWhitelisted: false,
+      forbidNonWhitelisted: true,
     }),
   );
 
   app.setGlobalPrefix('api');
 
-  // ── Swagger / OpenAPI ──────────────────────────────────────────────────────
-  // SwaggerModule.setup registers raw Express middleware and bypasses the
-  // global 'api' prefix, so we pass the full path 'api/docs' explicitly.
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Glimpse API')
-    .setDescription('Invitation Builder SaaS — REST API reference')
-    .setVersion('1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'Enter the JWT token returned by POST /api/auth/login',
-      },
-      'JWT',
-    )
-    .addTag('Auth', 'User registration and authentication')
-    .addTag('Projects', 'Invitation project CRUD and lifecycle')
-    .addTag('Elements', 'Canvas element operations within a project')
-    .addTag('Publish', 'Publish/unpublish projects and public viewer')
-    .build();
+  // ── Swagger / OpenAPI (dev only) ──────────────────────────────────────────
+  if (!isProd) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Glimpse API')
+      .setDescription('Invitation Builder SaaS — REST API reference')
+      .setVersion('1.0')
+      .addBearerAuth(
+        {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+          description: 'Enter the JWT token returned by POST /api/auth/login',
+        },
+        'JWT',
+      )
+      .addTag('Auth', 'User registration and authentication')
+      .addTag('Projects', 'Invitation project CRUD and lifecycle')
+      .addTag('Elements', 'Canvas element operations within a project')
+      .addTag('Publish', 'Publish/unpublish projects and public viewer')
+      .build();
 
-  const document = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('api/docs', app, document, {
-    swaggerOptions: {
-      persistAuthorization: true,
-      tagsSorter: 'alpha',
-      operationsSorter: 'alpha',
-    },
-  });
+    const document = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('api/docs', app, document, {
+      swaggerOptions: {
+        persistAuthorization: true,
+        tagsSorter: 'alpha',
+        operationsSorter: 'alpha',
+      },
+    });
+  }
   // ──────────────────────────────────────────────────────────────────────────
 
   const port = process.env.PORT || 3001;

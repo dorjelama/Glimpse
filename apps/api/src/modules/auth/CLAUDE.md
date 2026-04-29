@@ -1,7 +1,7 @@
 # CLAUDE.md — auth module (backend)
 
 ## What this module does
-Handles user registration, login, and JWT-based authentication backed by PostgreSQL (via Prisma). Passwords are hashed with bcrypt (10 rounds).
+Handles user registration, login, and JWT-based authentication backed by PostgreSQL (via Prisma). Passwords are hashed with bcrypt (12 rounds).
 
 ## Key files
 | File | Purpose |
