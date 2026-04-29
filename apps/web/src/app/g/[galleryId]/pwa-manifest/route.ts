@@ -4,11 +4,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { galleryId: string } },
+  { params }: { params: Promise<{ galleryId: string }> },
 ) {
+  const { galleryId } = await params;
   let eventTitle = 'Glimpses';
   try {
-    const res = await fetch(`${API_URL}/gallery/${params.galleryId}`, {
+    const res = await fetch(`${API_URL}/gallery/${galleryId}`, {
       next: { revalidate: 300 },
     });
     if (res.ok) {
@@ -21,7 +22,7 @@ export async function GET(
     name: eventTitle,
     short_name: 'Glimpses',
     description: 'Live photo feed for your event',
-    start_url: `/g/${params.galleryId}/feed`,
+    start_url: `/g/${galleryId}/feed`,
     display: 'standalone',
     background_color: '#fdf6e8',
     theme_color: '#B85C37',

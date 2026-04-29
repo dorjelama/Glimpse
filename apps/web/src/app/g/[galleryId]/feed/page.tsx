@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import FeedClient from './FeedClient';
 
 interface Props {
-  params: { galleryId: string };
+  params: Promise<{ galleryId: string }>;
 }
 
 async function fetchGalleryTitle(galleryId: string): Promise<string | null> {
@@ -20,9 +20,10 @@ async function fetchGalleryTitle(galleryId: string): Promise<string | null> {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const title = await fetchGalleryTitle(params.galleryId);
+  const { galleryId } = await params;
+  const title = await fetchGalleryTitle(galleryId);
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-  const url = `${base}/g/${params.galleryId}/feed`;
+  const url = `${base}/g/${galleryId}/feed`;
 
   const pageTitle = title ? `${title} — Live Glimpses` : 'Event Gallery — Glimpse';
   const description = title
@@ -48,6 +49,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function FeedPage({ params }: Props) {
-  return <FeedClient params={params} />;
+export default async function FeedPage({ params }: Props) {
+  const resolved = await params;
+  return <FeedClient params={resolved} />;
 }

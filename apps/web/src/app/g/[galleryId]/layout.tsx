@@ -2,10 +2,11 @@ import type { ReactNode } from 'react';
 import type { Metadata, Viewport } from 'next';
 
 export async function generateMetadata(
-  { params }: { params: { galleryId: string } },
+  { params }: { params: Promise<{ galleryId: string }> },
 ): Promise<Metadata> {
+  const { galleryId } = await params;
   return {
-    manifest: `/g/${params.galleryId}/pwa-manifest`,
+    manifest: `/g/${galleryId}/pwa-manifest`,
     appleWebApp: {
       capable: true,
       statusBarStyle: 'black-translucent',

@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-canvas: #f3f4f6;
+  --color-panel: #1e1e2e;
+  --color-panel-light: #2a2a3d;
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+  --color-terra: #B85C37;
+  --color-ink: #1E130C;
+  --color-cream: #F6EBDD;
+  --color-gold: #CFAC64;
+  --color-blush: #F9CDB5;
+}
 
 :root {
   --canvas-bg: #f3f4f6;

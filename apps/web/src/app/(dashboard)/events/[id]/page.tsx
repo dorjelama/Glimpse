@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
-import QRCode from 'react-qr-code';
+import QRCodeLib from 'react-qr-code';
+const QRCode = QRCodeLib as unknown as ComponentType<{ value: string; size?: number }>;
 import { api, type GlimpseProject } from '@/lib/api';
 import DashboardShell from '@/components/DashboardShell';
 

@@ -6,7 +6,7 @@ const SNAP_THRESHOLD = 6; // canvas-space pixels
 
 interface UseDragOptions {
   element: CanvasElement;
-  canvasRef: React.RefObject<HTMLDivElement>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
   scale: number;
 }
 

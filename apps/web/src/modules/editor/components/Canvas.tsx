@@ -49,7 +49,7 @@ function ElementWrapper({
   scale,
 }: {
   element: CanvasElement;
-  canvasRef: React.RefObject<HTMLDivElement>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
   scale: number;
 }) {
   const selectedIds    = useEditorStore((s) => s.selectedIds);

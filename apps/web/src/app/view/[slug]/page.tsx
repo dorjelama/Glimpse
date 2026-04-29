@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import PublicViewClient from './PublicViewClient';
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 async function fetchProject(slug: string) {
@@ -18,7 +18,8 @@ async function fetchProject(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const project = await fetchProject(params.slug);
+  const { slug } = await params;
+  const project = await fetchProject(slug);
   const base = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
   if (!project) {
@@ -30,7 +31,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = `${project.title} — You're invited!`;
   const description = `Open your invitation to ${project.title}`;
-  const url = `${base}/view/${params.slug}`;
+  const url = `${base}/view/${slug}`;
 
   return {
     title,
@@ -51,7 +52,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default function PublicViewPage({ params }: Props) {
+export default async function PublicViewPage({ params }: Props) {
+  const { slug } = await params;
   return (
     <Suspense
       fallback={
@@ -60,7 +62,7 @@ export default function PublicViewPage({ params }: Props) {
         </div>
       }
     >
-      <PublicViewClient slug={params.slug} />
+      <PublicViewClient slug={slug} />
     </Suspense>
   );
 }
