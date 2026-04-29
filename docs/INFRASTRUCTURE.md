@@ -23,51 +23,56 @@ Decisions made before first production deployment. Covers services chosen, prici
 ### Cloudflare — DNS + File Storage
 
 **DNS (free)**
-- Transfer nameservers at register.com.np to Cloudflare
-- All DNS records (A, CNAME, MX, SPF, DKIM) managed from Cloudflare dashboard
+- Nameservers transferred at register.com.np to Cloudflare ✅
+- All DNS records (A, CNAME, DKIM) managed from Cloudflare dashboard
 - Route 53 was ruled out: $0.50/month with no advantage over Cloudflare for this setup
 
 **R2 — File Storage**
-- Bucket: `glimpse-uploads`
+- Bucket: `glimpse-uploads` ✅ created
 - Storage: $0.015/GB/month
 - Egress: **free** — no data transfer costs when guests view cards
-- Why not AWS S3: S3 charges $0.09/GB egress; for a card-sharing product where assets are repeatedly fetched by guests, R2's egress-free model gives significantly better unit economics at scale
+- API token: `glimpse-api` scoped to `glimpse-uploads` bucket
 
 ---
 
-### AWS SES — Email
+### AWS — EC2 + RDS + SES
 
-- Transactional email: signup confirmation, password reset, guest invitations
-- Cost: $0.10 per 1,000 emails (~$0.50-5/month at launch scale)
-- DNS records (MX, SPF, DKIM, DMARC) configured on Cloudflare for `elegant.com.np`
-- No dedicated IP needed at launch; add later if deliverability becomes an issue ($24.95/month)
+**Account**: `elegantdecorationsnepal@gmail.com` (new account, free tier active)
+**Region**: US East (N. Virginia) for EC2/RDS, Asia Pacific (Singapore) for SES
+
+**EC2 t3.micro — NestJS API** ✅
+- Instance: `glimpse-api`
+- Elastic IP: `98.88.106.82` (permanent)
+- OS: Ubuntu 24.04 LTS
+- Stack: Node.js 20 + pnpm + PM2 + Nginx + Certbot
+- SSL: Let's Encrypt via Certbot (auto-renews)
+- App path: `/home/ubuntu/Glimpse`
+- PM2 process: `glimpse-api` (auto-starts on reboot)
+- Free tier: 750hrs/month for 12 months
+
+**RDS db.t4g.micro — PostgreSQL** ✅
+- Identifier: `glimpse-db`
+- Endpoint: `glimpse-db.cmz00uk481dc.us-east-1.rds.amazonaws.com`
+- Username: `glimpse`
+- Port: 5432
+- Database: `glimpse`
+- Free tier: 750hrs/month for 12 months
+
+**SES — Email** ✅ (pending domain verification)
+- Region: ap-southeast-1 (Singapore)
+- Domain: `elegant.com.np` — 3 DKIM CNAME records added to Cloudflare
+- IAM user: `glimpse-ses` with AmazonSESFullAccess
+- Currently in sandbox mode — request production access before launch
+- Cost: $0.10 per 1,000 emails
 
 ---
 
-### Vercel — Next.js Frontend
+### Vercel — Next.js Frontend ✅
 
-- Plan: Pro ($20/month)
+- Plan: Free (Hobby)
 - Hosts `apps/web`
-- Custom domain: `glimpse.elegant.com.np` — add CNAME in Cloudflare pointing to Vercel's edge
-- Includes: CDN, edge functions, preview deployments per branch, automatic HTTPS
-
----
-
-### Fly.io — NestJS API
-
-- Hosts `apps/api`
-- Custom domain: `api.glimpse.elegant.com.np`
-- ~$5-15/month depending on instance size
-- Alternative: Railway (slightly simpler DX, similar pricing)
-
----
-
-### Neon — PostgreSQL
-
-- Serverless Postgres
-- Free tier sufficient for launch (500MB, 0.5 vCPU)
-- Pro: $19/month when you outgrow the free tier
-- Provides a `DATABASE_URL` connection string on creation
+- Custom domain: `glimpse.elegant.com.np` — CNAME in Cloudflare → Vercel
+- Upgrade to Pro ($20/month) when going commercial
 
 ---
 
@@ -77,50 +82,71 @@ Decisions made before first production deployment. Covers services chosen, prici
 |---------|--------|
 | AWS S3 | Egress costs add up fast for a photo/card sharing product; R2 is strictly better here |
 | AWS Route 53 | $0.50/month hosted zone with no benefit over free Cloudflare DNS |
-| AWS EC2 + RDS | More ops overhead than needed at launch; revisit if compliance or VPC isolation is required |
-| Self-hosted Postgres | Managed (Neon) is cheaper and lower risk for a small team |
+| Azure | Quota issues with new accounts in all nearby regions |
+| Fly.io / Railway / Neon | AWS free tier saves ~$34/month for year 1 |
 
 ---
 
 ## Cost estimate
 
-| Service | Monthly at launch | Monthly at 1K users |
-|---------|------------------|---------------------|
-| Vercel Pro | $20 | $20 |
-| Fly.io (API) | $5-10 | $15-25 |
-| Neon (Postgres) | $0 (free tier) | $19 |
+| Service | Year 1 (free tier) | Year 2+ |
+|---------|-------------------|---------|
+| EC2 t3.micro | $0 | ~$8/month |
+| RDS db.t4g.micro | $0 | ~$15/month |
+| Vercel | $0 | $0 (or $20 Pro) |
 | Cloudflare R2 | ~$0.50 | ~$5 |
 | AWS SES | ~$0.10 | ~$0.50-5 |
-| **Total** | **~$26-31/month** | **~$60-74/month** |
+| **Total** | **~$1/month** | **~$23-48/month** |
 
 ---
 
-## DNS setup checklist
+## DNS records in Cloudflare
 
-- [ ] Log in to register.com.np and replace nameservers with Cloudflare's two NS records
-- [ ] Wait for propagation (up to 48hrs, usually under 2hrs)
-- [ ] In Cloudflare, add CNAME: `glimpse` → Vercel deployment URL
-- [ ] In Cloudflare, add CNAME: `api.glimpse` → Fly.io app URL
-- [ ] Verify Vercel custom domain is confirmed (Vercel dashboard → Domains)
-- [ ] Verify Fly.io custom domain is confirmed
-- [ ] In AWS SES, start domain verification for `elegant.com.np` and paste the CNAME/TXT records into Cloudflare
-- [ ] Confirm SES domain status shows "Verified"
-- [ ] Request SES production access (removes sandbox sending limit)
+| Type | Name | Value | Proxy |
+|------|------|-------|-------|
+| A | `api.glimpse` | `98.88.106.82` | DNS only |
+| CNAME | `glimpse` | Vercel deployment URL | DNS only |
+| CNAME | `vvrfdshdrfeztfpdte37wnnjrb3nk4ml._domainkey` | `vvrfdshdrfeztfpdte37wnnjrb3nk4ml.dkim.amazonses.com` | DNS only |
+| CNAME | `dlumz5lm7vnjlbozfiwa6szd4wsdrzs2._domainkey` | `dlumz5lm7vnjlbozfiwa6szd4wsdrzs2.dkim.amazonses.com` | DNS only |
+| CNAME | `ktndb35qwaeszw2475o6iem4ld65yhj7._domainkey` | `ktndb35qwaeszw2475o6iem4ld65yhj7.dkim.amazonses.com` | DNS only |
 
 ---
 
-## Environment variables added by this infrastructure
+## Remaining checklist
+
+- [ ] SES domain verification confirmed (check SES console — up to 72hrs)
+- [ ] Request SES production access (removes sandbox 200 email/day limit)
+- [ ] Test full login/register flow end to end
+- [ ] Test API health endpoint: `https://api.glimpse.elegant.com.np/api/health`
+- [ ] Set up automated deploys (GitHub Actions → EC2)
+
+---
+
+## Server SSH access
+
+```bash
+ssh -i "path/to/glimpse-key.pem" ubuntu@98.88.106.82
+```
+
+Key file: `glimpse-key.pem` — store in a safe location, never commit to git.
+
+---
+
+## Environment variables
 
 | Variable | App | Value source |
 |----------|-----|-------------|
+| `DATABASE_URL` | API | RDS endpoint + glimpse user credentials |
+| `JWT_SECRET` | API | Generated with `openssl rand -hex 32` |
+| `FRONTEND_URL` | API | `https://glimpse.elegant.com.np` |
 | `R2_ACCOUNT_ID` | API | Cloudflare dashboard → R2 |
 | `R2_ACCESS_KEY_ID` | API | Cloudflare R2 → API tokens |
 | `R2_SECRET_ACCESS_KEY` | API | Cloudflare R2 → API tokens |
 | `R2_BUCKET_NAME` | API | `glimpse-uploads` |
-| `R2_PUBLIC_URL` | API | Cloudflare R2 bucket public URL |
-| `SES_REGION` | API | e.g. `ap-southeast-1` (Singapore, closest to Nepal) |
-| `SES_ACCESS_KEY_ID` | API | AWS IAM → SES user |
-| `SES_SECRET_ACCESS_KEY` | API | AWS IAM → SES user |
-| `SES_FROM_EMAIL` | API | e.g. `hello@elegant.com.np` |
+| `R2_ENDPOINT` | API | `https://<account-id>.r2.cloudflarestorage.com` |
+| `SES_REGION` | API | `ap-southeast-1` |
+| `SES_ACCESS_KEY_ID` | API | AWS IAM → glimpse-ses user |
+| `SES_SECRET_ACCESS_KEY` | API | AWS IAM → glimpse-ses user |
+| `SES_FROM_EMAIL` | API | `hello@elegant.com.np` |
 | `NEXT_PUBLIC_APP_URL` | Web | `https://glimpse.elegant.com.np` |
 | `NEXT_PUBLIC_API_URL` | Web | `https://api.glimpse.elegant.com.np/api` |

@@ -1,0 +1,30 @@
+name: Deploy API
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/api/**'
+      - 'packages/**'
+      - 'pnpm-lock.yaml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd ~/Glimpse
+            git pull origin master
+            pnpm install
+            cd apps/api
+            npx prisma generate
+            npx prisma migrate deploy
+            pnpm build
+            pm2 restart glimpse-api
