@@ -114,11 +114,20 @@ Decisions made before first production deployment. Covers services chosen, prici
 
 ## Remaining checklist
 
-- [ ] SES domain verification confirmed (check SES console — up to 72hrs)
-- [ ] Request SES production access (removes sandbox 200 email/day limit)
-- [ ] Test full login/register flow end to end
-- [ ] Test API health endpoint: `https://api.glimpse.elegant.com.np/api/health`
-- [ ] Set up automated deploys (GitHub Actions → EC2)
+- [x] SES domain verification confirmed
+- [x] Request SES production access submitted (awaiting AWS approval ~24hrs)
+- [x] API health endpoint live: `https://api.glimpse.elegant.com.np/api/health`
+- [x] Set up automated deploys (GitHub Actions → EC2) — triggers on `apps/api/**` changes
+- [x] Admin account registered at `glimpse.elegant.com.np`
+- [ ] SES production access approved
+- [ ] Test full login/register + email flow end to end
+- [ ] Verify editor, preview, publish flow in production
+
+## Known issues fixed
+
+- PM2 was crashing due to `OADATABASE_URL` typo in `.env` — fixed, now uses `ecosystem.config.js` with explicit `cwd`
+- Next.js 16 async `params` — fixed in all 4 dynamic routes (`events/[id]`, `editor/[id]`, `preview/[id]`, `glimpses/[id]`, `guests/[id]`)
+- Next.js 16 `middleware` renamed to `proxy` — fixed export name in `proxy.ts`
 
 ---
 
