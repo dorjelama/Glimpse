@@ -29,6 +29,7 @@ export class UpdateElementDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: { color: '#7c3aed', fontWeight: '700' },
     description: 'Style properties to merge into the existing styles object (patch semantics).',
   })

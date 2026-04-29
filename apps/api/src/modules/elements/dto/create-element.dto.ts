@@ -36,6 +36,7 @@ export class CreateElementDto {
 
   @ApiPropertyOptional({
     type: 'object',
+    additionalProperties: true,
     example: { fontSize: '24px', fontFamily: 'Georgia, serif', color: '#1a1a1a', textAlign: 'center' },
     description: 'CSS-style properties applied to the element. Merged with type defaults.',
   })

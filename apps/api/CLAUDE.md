@@ -6,7 +6,7 @@ REST API for Glimpse. Handles project CRUD, per-element operations, auth (JWT), 
 ## Swagger / OpenAPI
 Interactive API docs are served at **`http://localhost:3001/api/docs`** when the dev server is running.
 
-- Built with `@nestjs/swagger` v7 + `swagger-ui-express`
+- Built with `@nestjs/swagger` v11 + `swagger-ui-express`
 - Bearer auth scheme configured — click "Authorize" and paste a JWT from POST /api/auth/login
 - `persistAuthorization: true` keeps the token across page reloads
 - All controllers are tagged; all DTOs have `@ApiProperty` with examples
@@ -26,7 +26,7 @@ To regenerate docs: just restart the server — docs are built dynamically from 
 ## API overview
 | Tag | Endpoints |
 |-----|-----------|
-| Auth | POST /auth/register, POST /auth/login, GET /auth/me, PATCH /auth/me, DELETE /auth/me |
+| Auth | POST /auth/register, POST /auth/login, GET /auth/me, PATCH /auth/me, DELETE /auth/me, POST /auth/forgot-password, POST /auth/reset-password, POST /auth/verify-email |
 | Events | POST /events, GET /events, GET/PATCH/DELETE /events/:id |
 | Elements | POST/PATCH/DELETE /events/:id/elements/:eid |
 | Publish | POST /publish/:id, DELETE /publish/:id, GET /publish/view/:slug (public) |
