@@ -28,7 +28,7 @@ src/
 ├── lib/
 │   ├── api.ts                    API client + shared TypeScript types
 │   └── authStore.ts              Zustand auth store with JWT persistence
-├── middleware.ts                 Edge middleware: protect all routes except /, /auth/*, /view/*, /g/*
+├── proxy.ts                      Edge proxy: protect all routes except /, /auth/*, /view/*, /g/*
 └── modules/
     ├── editor/                   Editor module (see editor/CLAUDE.md)
     ├── preview/                  Preview module (see preview/CLAUDE.md)

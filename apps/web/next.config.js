@@ -19,5 +19,5 @@ module.exports = withSentryConfig(nextConfig, {
     disable: !process.env.SENTRY_AUTH_TOKEN,
   },
   // Tree-shake Sentry debug code in production bundles
-  disableLogger: true,
+  webpack: { treeshake: { removeDebugLogging: true } },
 });
