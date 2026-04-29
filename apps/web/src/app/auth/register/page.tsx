@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [turnstileToken, setTurnstileToken] = useState<string | null>(TURNSTILE_SITE_KEY ? null : 'skip');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   useEffect(() => {
     if (token) router.replace('/dashboard');
@@ -28,7 +29,8 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register({ name, email, password, cfTurnstileToken: turnstileToken ?? undefined });
-      router.push('/dashboard');
+      setRegistered(true);
+      setTimeout(() => router.push('/dashboard'), 3000);
     } catch (err: any) {
       setError(err.message ?? 'Registration failed');
       setTurnstileToken(TURNSTILE_SITE_KEY ? null : 'skip');
@@ -36,6 +38,19 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  if (registered) {
+    return (
+      <div className="w-full max-w-sm bg-blush/50 border border-gold/30 rounded-2xl p-8 shadow-sm text-center">
+        <div className="text-3xl mb-4">📬</div>
+        <h2 className="text-xl font-semibold text-ink mb-2" style={{ fontFamily: 'Georgia, serif' }}>Account created!</h2>
+        <p className="text-sm text-ink/60 leading-relaxed mb-2">
+          We've sent a verification email to <strong>{email}</strong>. Check your inbox to verify before publishing your first card.
+        </p>
+        <p className="text-xs text-ink/40">Taking you to your dashboard…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-sm bg-blush/50 border border-gold/30 rounded-2xl p-8 shadow-sm">

@@ -16,22 +16,31 @@ Handles user registration, login, and JWT-based authentication backed by Postgre
 ## Data model (Prisma)
 ```prisma
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  projects     Project[]
+  id                     String    @id @default(uuid())
+  email                  String    @unique
+  passwordHash           String
+  name                   String
+  role                   UserRole  @default(USER)
+  emailVerified          Boolean   @default(false)
+  emailVerificationToken String?   @unique
+  passwordResetToken     String?   @unique
+  passwordResetExpiresAt DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
 }
 ```
 
 ## API endpoints
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| POST | /api/auth/register | None | Create account → returns JWT |
+| POST | /api/auth/register | None | Create account → returns JWT + sends verification email |
 | POST | /api/auth/login | None | Login → returns JWT |
-| GET | /api/auth/me | Bearer JWT | Returns current user |
+| GET | /api/auth/me | Bearer JWT | Returns current user (fresh DB read, includes emailVerified) |
+| PATCH | /api/auth/me | Bearer JWT | Update name or password |
+| DELETE | /api/auth/me | Bearer JWT | Delete account |
+| POST | /api/auth/forgot-password | None | Send password reset email (silent if email not found) |
+| POST | /api/auth/reset-password | None | Reset password with token (expires 1 hour) |
+| POST | /api/auth/verify-email | None | Mark email as verified using token from email |
 
 ## JWT payload shape
 ```json

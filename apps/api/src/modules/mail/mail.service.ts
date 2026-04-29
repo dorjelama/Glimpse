@@ -1,6 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 
+interface VerificationEmailParams {
+  to: string;
+  name: string;
+  verifyUrl: string;
+}
+
+interface PasswordResetEmailParams {
+  to: string;
+  name: string;
+  resetUrl: string;
+}
+
 interface ExportReminderParams {
   to: string;
   eventTitle: string;
@@ -46,6 +58,156 @@ export class MailService {
       this.ses = null;
       this.logger.warn('SES credentials not set — emails will be logged to console (dev mode)');
     }
+  }
+
+  async sendVerificationEmail(params: VerificationEmailParams): Promise<void> {
+    const { to, name, verifyUrl } = params;
+    const subject = 'Verify your email — Glimpse';
+    const html = /* html */`<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /><title>Verify your email</title></head>
+<body style="margin:0;padding:0;background-color:#fdf6e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf6e8;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;">
+        <tr><td align="center" style="padding-bottom:28px;">
+          <span style="font-size:13px;font-weight:700;letter-spacing:0.12em;color:#B85C37;text-transform:uppercase;">Glimpse</span>
+        </td></tr>
+        <tr><td style="background:#fffdf7;border:1px solid #e8d5b0;border-radius:20px;overflow:hidden;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:#B85C37;padding:28px 32px;">
+              <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;color:rgba(246,235,221,0.65);text-transform:uppercase;">Action required</p>
+              <h1 style="margin:0;font-size:22px;font-weight:700;color:#F6EBDD;font-family:Georgia,serif;line-height:1.3;">Verify your email address</h1>
+            </td></tr>
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding:32px;">
+              <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#5c3d1e;">
+                Hi <strong>${escapeHtml(name)}</strong>, thanks for joining Glimpse! Click the button below to verify your email address. This link never expires.
+              </p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr><td style="background:#B85C37;border-radius:12px;">
+                  <a href="${verifyUrl}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#F6EBDD;text-decoration:none;">
+                    Verify Email →
+                  </a>
+                </td></tr>
+              </table>
+              <p style="margin:0;font-size:12px;color:#b09060;line-height:1.6;">
+                Or copy this link: <a href="${verifyUrl}" style="color:#B85C37;">${verifyUrl}</a>
+              </p>
+            </td></tr>
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding:0 32px 28px;">
+              <hr style="border:none;border-top:1px solid #e8d5b0;margin:0 0 20px;" />
+              <p style="margin:0;font-size:12px;color:#b09060;line-height:1.6;">
+                If you didn't create a Glimpse account, you can safely ignore this email.
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td align="center" style="padding-top:24px;">
+          <p style="margin:0;font-size:11px;color:#c0a070;">Sent by <strong>Glimpse</strong></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+    const text = `Hi ${name},\n\nVerify your Glimpse email address:\n${verifyUrl}\n\nIf you didn't create a Glimpse account, you can safely ignore this email.`;
+
+    if (this.isDev || !this.ses) {
+      this.logger.log('──── [DEV] Verification email (not sent) ────');
+      this.logger.log(`To:  ${to}`);
+      this.logger.log(`URL: ${verifyUrl}`);
+      this.logger.log('─────────────────────────────────────────────');
+      return;
+    }
+
+    await this.ses.send(new SendEmailCommand({
+      Source: `Glimpse <${this.from}>`,
+      Destination: { ToAddresses: [to] },
+      Message: {
+        Subject: { Data: subject, Charset: 'UTF-8' },
+        Body: { Html: { Data: html, Charset: 'UTF-8' }, Text: { Data: text, Charset: 'UTF-8' } },
+      },
+    }));
+    this.logger.log(`Verification email sent to ${to}`);
+  }
+
+  async sendPasswordResetEmail(params: PasswordResetEmailParams): Promise<void> {
+    const { to, name, resetUrl } = params;
+    const subject = 'Reset your Glimpse password';
+    const html = /* html */`<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width,initial-scale=1.0" /><title>Reset your password</title></head>
+<body style="margin:0;padding:0;background-color:#fdf6e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf6e8;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:560px;">
+        <tr><td align="center" style="padding-bottom:28px;">
+          <span style="font-size:13px;font-weight:700;letter-spacing:0.12em;color:#B85C37;text-transform:uppercase;">Glimpse</span>
+        </td></tr>
+        <tr><td style="background:#fffdf7;border:1px solid #e8d5b0;border-radius:20px;overflow:hidden;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="background:#B85C37;padding:28px 32px;">
+              <p style="margin:0 0 4px;font-size:11px;letter-spacing:0.14em;color:rgba(246,235,221,0.65);text-transform:uppercase;">Password reset</p>
+              <h1 style="margin:0;font-size:22px;font-weight:700;color:#F6EBDD;font-family:Georgia,serif;line-height:1.3;">Reset your password</h1>
+            </td></tr>
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding:32px;">
+              <p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#5c3d1e;">
+                Hi <strong>${escapeHtml(name)}</strong>, we received a request to reset your Glimpse password. Click the button below to set a new one. <strong>This link expires in 1 hour.</strong>
+              </p>
+              <table cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr><td style="background:#B85C37;border-radius:12px;">
+                  <a href="${resetUrl}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#F6EBDD;text-decoration:none;">
+                    Reset Password →
+                  </a>
+                </td></tr>
+              </table>
+              <p style="margin:0;font-size:12px;color:#b09060;line-height:1.6;">
+                Or copy this link: <a href="${resetUrl}" style="color:#B85C37;">${resetUrl}</a>
+              </p>
+            </td></tr>
+          </table>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="padding:0 32px 28px;">
+              <hr style="border:none;border-top:1px solid #e8d5b0;margin:0 0 20px;" />
+              <p style="margin:0;font-size:12px;color:#b09060;line-height:1.6;">
+                If you didn't request a password reset, you can safely ignore this email. Your password won't change.
+              </p>
+            </td></tr>
+          </table>
+        </td></tr>
+        <tr><td align="center" style="padding-top:24px;">
+          <p style="margin:0;font-size:11px;color:#c0a070;">Sent by <strong>Glimpse</strong></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+    const text = `Hi ${name},\n\nReset your Glimpse password (expires in 1 hour):\n${resetUrl}\n\nIf you didn't request this, you can safely ignore this email.`;
+
+    if (this.isDev || !this.ses) {
+      this.logger.log('──── [DEV] Password reset email (not sent) ────');
+      this.logger.log(`To:  ${to}`);
+      this.logger.log(`URL: ${resetUrl}`);
+      this.logger.log('───────────────────────────────────────────────');
+      return;
+    }
+
+    await this.ses.send(new SendEmailCommand({
+      Source: `Glimpse <${this.from}>`,
+      Destination: { ToAddresses: [to] },
+      Message: {
+        Subject: { Data: subject, Charset: 'UTF-8' },
+        Body: { Html: { Data: html, Charset: 'UTF-8' }, Text: { Data: text, Charset: 'UTF-8' } },
+      },
+    }));
+    this.logger.log(`Password reset email sent to ${to}`);
   }
 
   async sendExportReminder(params: ExportReminderParams): Promise<void> {

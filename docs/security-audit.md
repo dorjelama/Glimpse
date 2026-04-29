@@ -77,7 +77,7 @@ Severity scale: **Critical** (auth bypass / direct data takeover) · **High** (p
 | M2 | forbidNonWhitelisted false | ✅ Resolved 2026-04-28 — set to true |
 | M3 | unsafe-inline CSP | ✅ Resolved 2026-04-28 — dropped in production (Swagger gated) |
 | H1 | JWT in localStorage | Open — requires auth flow refactor |
-| H4 | No password reset / email verification | Open — next iteration |
+| H4 | No password reset / email verification | ✅ Resolved 2026-04-29 — `POST /auth/forgot-password`, `POST /auth/reset-password`, `POST /auth/verify-email` added; verification email sent at registration (fire-and-forget); publish gated behind `emailVerified`; 1-hour reset token expiry |
 | H5 | No invite send rate cap | ✅ Resolved 2026-04-29 — `@Throttle({ public: { limit: 10, ttl: 3600000 } })` on `POST /publish/:id/share` (10 sends/hour per IP, 50 recipients/send max already enforced) |
 | M4 | Cascade audit | ✅ Verified 2026-04-28 — all owner chains (Project, Event, Guest, Page, Element, Gallery subtree) have `onDelete: Cascade` |
 | M5 | No JWT refresh/revocation | Open — next iteration |

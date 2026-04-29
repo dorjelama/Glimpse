@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { TurnstileService } from './turnstile.service';
 import { RegisterDto, LoginDto } from './dto/login.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ForgotPasswordDto, ResetPasswordDto, VerifyEmailDto } from './dto/password-reset.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @ApiTags('Auth')
@@ -27,11 +28,11 @@ export class AuthController {
   @ApiBody({ type: RegisterDto })
   @ApiResponse({
     status: 201,
-    description: 'Account created. Returns a signed JWT and the new user record.',
+    description: 'Account created. Returns a signed JWT and the new user record. A verification email is sent.',
     schema: {
       example: {
         token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        user: { id: 'uuid-...', email: 'alice@example.com', name: 'Alice', createdAt: '2025-04-14T10:00:00.000Z' },
+        user: { id: 'uuid-...', email: 'alice@example.com', name: 'Alice', emailVerified: false, createdAt: '2025-04-14T10:00:00.000Z' },
       },
     },
   })
@@ -53,7 +54,7 @@ export class AuthController {
     schema: {
       example: {
         token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
-        user: { id: 'uuid-...', email: 'alice@example.com', name: 'Alice', createdAt: '2025-04-14T10:00:00.000Z' },
+        user: { id: 'uuid-...', email: 'alice@example.com', name: 'Alice', emailVerified: true, createdAt: '2025-04-14T10:00:00.000Z' },
       },
     },
   })
@@ -68,17 +69,16 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   @ApiBearerAuth('JWT')
-  @ApiOperation({ summary: 'Return the currently authenticated user' })
+  @ApiOperation({ summary: 'Return the currently authenticated user (fresh DB read)' })
   @ApiResponse({
     status: 200,
-    description: 'JWT is valid. Returns the decoded user payload.',
     schema: {
-      example: { userId: 'uuid-...', email: 'alice@example.com', name: 'Alice' },
+      example: { id: 'uuid-...', email: 'alice@example.com', name: 'Alice', emailVerified: true, createdAt: '2025-04-14T10:00:00.000Z' },
     },
   })
   @ApiResponse({ status: 401, description: 'Missing or invalid Bearer token.' })
   me(@Request() req: any) {
-    return req.user;
+    return this.authService.getMe(req.user.userId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -102,5 +102,46 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Missing or invalid Bearer token.' })
   deleteMe(@Request() req: any) {
     return this.authService.deleteMe(req.user.userId);
+  }
+
+  @Post('forgot-password')
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(200)
+  @ApiOperation({
+    summary: 'Request a password reset email',
+    description: 'Always returns 200 — never reveals whether the email is registered.',
+  })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({ status: 200, description: 'If that email is registered, a reset link has been sent.' })
+  @ApiResponse({ status: 429, description: 'Too many requests.' })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(dto.email);
+    return { message: "If that email is registered, we've sent a reset link. Check your inbox." };
+  }
+
+  @Post('reset-password')
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Reset password using a token from the reset email' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 200, description: 'Password updated successfully.' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token.' })
+  @ApiResponse({ status: 429, description: 'Too many requests.' })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.newPassword);
+    return { message: 'Password updated. You can now log in with your new password.' };
+  }
+
+  @Post('verify-email')
+  @UseGuards(ThrottlerGuard)
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Verify email address using the token from the verification email' })
+  @ApiBody({ type: VerifyEmailDto })
+  @ApiResponse({ status: 200, description: 'Email verified.' })
+  @ApiResponse({ status: 404, description: 'Invalid verification token.' })
+  @ApiResponse({ status: 429, description: 'Too many requests.' })
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    await this.authService.verifyEmail(dto.token);
+    return { emailVerified: true };
   }
 }

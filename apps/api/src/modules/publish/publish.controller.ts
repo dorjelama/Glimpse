@@ -11,6 +11,7 @@ import { PublishService } from './publish.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { EventsService } from '../events/events.service';
 import { MailService } from '../mail/mail.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 const EVENT_EXAMPLE = {
   id: 'evt_a1b2c3d4e5f6',
@@ -30,6 +31,7 @@ export class PublishController {
     private readonly publishService: PublishService,
     private readonly eventsService: EventsService,
     private readonly mailService: MailService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @Post(':id')
@@ -57,6 +59,15 @@ export class PublishController {
   async publishEvent(@Param('id') id: string, @Req() req: any) {
     const event = await this.eventsService.findOne(id);
     if (event.ownerId && event.ownerId !== req.user.userId) throw new ForbiddenException();
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { emailVerified: true },
+    });
+    if (user && !user.emailVerified) {
+      throw new ForbiddenException('Please verify your email address before publishing.');
+    }
+
     return this.publishService.publishEvent(id);
   }
 

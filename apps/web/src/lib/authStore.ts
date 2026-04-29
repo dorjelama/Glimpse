@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: string;
+  emailVerified: boolean;
   createdAt: string;
 }
 

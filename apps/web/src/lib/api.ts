@@ -23,7 +23,14 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    const msg = await res.text().catch(() => res.statusText);
+    let msg: string;
+    try {
+      const body = await res.json();
+      const raw = body.message;
+      msg = Array.isArray(raw) ? raw[0] : (raw ?? res.statusText);
+    } catch {
+      msg = res.statusText;
+    }
     throw new Error(msg);
   }
   if (res.status === 204) return undefined as T;
@@ -90,6 +97,16 @@ export const api = {
 
   resolveGuest: (token: string) =>
     request<{ name: string; eventId: string }>(`/guests/token/${token}`),
+
+  // Auth utilities (no bearer token needed)
+  forgotPassword: (email: string) =>
+    request<{ message: string }>('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+
+  resetPassword: (token: string, newPassword: string) =>
+    request<{ message: string }>('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, newPassword }) }),
+
+  verifyEmail: (token: string) =>
+    request<{ emailVerified: boolean }>('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) }),
 
   // Admin
   getAdminStats: () => request<AdminStats>('/admin/stats'),
