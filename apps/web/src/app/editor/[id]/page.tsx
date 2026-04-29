@@ -1,9 +1,11 @@
+import { use } from 'react';
 import EditorLayout from '@/modules/editor/components/EditorLayout';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function EditorPage({ params }: Props) {
-  return <EditorLayout eventId={params.id} />;
+  const { id } = use(params);
+  return <EditorLayout eventId={id} />;
 }

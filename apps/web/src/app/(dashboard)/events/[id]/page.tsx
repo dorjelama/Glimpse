@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, type ComponentType } from 'react';
+import { useState, useEffect, useRef, useCallback, use, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import QRCodeLib from 'react-qr-code';
 const QRCode = QRCodeLib as unknown as ComponentType<{ value: string; size?: number }>;
@@ -550,7 +550,8 @@ function GuestsFeatureTile({ project }: { project: GlimpseProject }) {
   );
 }
 
-export default function EventHubPage({ params }: { params: { id: string } }) {
+export default function EventHubPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [project, setProject] = useState<GlimpseProject | null>(null);
   const [loading, setLoading] = useState(true);
@@ -558,11 +559,11 @@ export default function EventHubPage({ params }: { params: { id: string } }) {
   const [titleDraft, setTitleDraft] = useState('');
 
   useEffect(() => {
-    api.getProject(params.id)
+    api.getProject(id)
       .then(setProject)
       .catch(() => router.push('/dashboard'))
       .finally(() => setLoading(false));
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleTitleSave = async () => {
     if (!project || !titleDraft.trim() || titleDraft === project.title) {

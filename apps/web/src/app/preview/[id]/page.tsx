@@ -1,22 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { api, type GlimpseEvent } from '@/lib/api';
 import PreviewLayout from '@/modules/preview/components/PreviewLayout';
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export default function PreviewPage({ params }: Props) {
+  const { id } = use(params);
   const [event, setEvent] = useState<GlimpseEvent | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    api.getEvent(params.id)
+    api.getEvent(id)
       .then(setEvent)
       .catch((e) => setError(e.message));
-  }, [params.id]);
+  }, [id]);
 
   if (error) {
     return (

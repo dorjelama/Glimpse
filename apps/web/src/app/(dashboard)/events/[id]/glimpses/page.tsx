@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, type GallerySubmission, type GlimpseProject, type GallerySummary } from '@/lib/api';
 import DashboardShell from '@/components/DashboardShell';
@@ -182,7 +182,8 @@ function SubmissionCard({
   );
 }
 
-export default function GlimpsesModerationPage({ params }: { params: { id: string } }) {
+export default function GlimpsesModerationPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
   const [project, setProject] = useState<GlimpseProject | null>(null);
   const [submissions, setSubmissions] = useState<GallerySubmission[]>([]);
@@ -197,7 +198,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
   const [summary, setSummary] = useState<GallerySummary | null>(null);
 
   useEffect(() => {
-    api.getProject(params.id)
+    api.getProject(id)
       .then(async (p) => {
         setProject(p);
         if (p.gallery) {
@@ -210,7 +211,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
       })
       .catch(() => router.push('/dashboard'))
       .finally(() => setLoading(false));
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleToggleApprove = async (sub: GallerySubmission) => {
     if (!project?.gallery) return;
@@ -315,7 +316,7 @@ export default function GlimpsesModerationPage({ params }: { params: { id: strin
         {/* ── Terra header ─────────────────────────────────────── */}
         <div style={{ backgroundColor: '#B85C37', borderBottom: '2px solid #9e4e2f' }} className="px-4 py-5 md:px-8">
           <button
-            onClick={() => router.push(`/events/${params.id}`)}
+            onClick={() => router.push(`/events/${id}`)}
             className="text-xs mb-3 block transition-opacity hover:opacity-80"
             style={{ color: 'rgba(246,235,221,0.6)' }}
           >
