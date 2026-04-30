@@ -1,5 +1,29 @@
 import Link from 'next/link';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  USD: '$', NPR: 'Rs.', EUR: '€', GBP: '£', INR: '₹', AUD: 'A$', CAD: 'C$',
+};
+
+interface PricingConfig {
+  proMonthly: number;
+  businessMonthly: number;
+  currency: string;
+}
+
+async function fetchPricing(): Promise<PricingConfig | null> {
+  try {
+    const res = await fetch(`${API_URL}/admin/pricing`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 const WORKFLOW_STEPS = [
   {
     number: '01',
@@ -270,7 +294,10 @@ function GlimpsesWorkflowMockup() {
   );
 }
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const pricing = await fetchPricing();
+  const symbol = pricing ? (CURRENCY_SYMBOLS[pricing.currency] ?? pricing.currency + ' ') : '$';
+
   return (
     <div className="min-h-screen bg-cream text-ink" style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
       <header className="sticky top-0 z-50 border-b border-gold/30 bg-cream/95 backdrop-blur">
@@ -416,34 +443,88 @@ export default function LandingPage() {
             <div className="mx-auto max-w-2xl text-center">
               <p className="text-xs font-bold uppercase tracking-[0.22em] text-terra">Pricing</p>
               <h2 className="mt-3 text-3xl font-bold text-ink sm:text-4xl" style={{ fontFamily: 'Georgia, serif' }}>
-                Pricing is being finalized
+                Simple plans for every event
               </h2>
               <p className="mt-4 text-base leading-relaxed text-ink/60">
-                Glimpse is in beta while we shape plans around invitation cards, Glimpses, moderation, reactions, and photo export.
+                Start free with the card builder. Add Glimpses when you want guests to share live photos.
               </p>
             </div>
 
-            <div className="mx-auto mt-12 max-w-3xl rounded-lg border border-gold/40 bg-white p-6 shadow-lg shadow-ink/10 sm:p-8">
-              <div className="grid gap-6 md:grid-cols-[1fr_auto] md:items-center">
-                <div>
-                  <p className="text-sm font-bold text-terra">Beta access</p>
-                  <h3 className="mt-2 text-2xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>
-                    We are learning what event hosts need before publishing plans.
-                  </h3>
-                  <p className="mt-3 text-sm leading-relaxed text-ink/65">
-                    You can join the beta now, try the invitation workflow, and follow along as Glimpses packaging becomes clearer.
+            {pricing ? (
+              <div className="mx-auto mt-12 grid max-w-5xl gap-5 md:grid-cols-3">
+                {/* Free */}
+                <div className="rounded-lg border border-gold/40 bg-white p-6 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink/55">Free</p>
+                  <p className="mt-3 text-3xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>
+                    {symbol}0
+                    <span className="ml-1 text-sm font-semibold text-ink/45">/ mo</span>
                   </p>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row md:flex-col">
-                  <Link href="/auth/register" className="rounded-lg bg-terra px-6 py-3 text-center text-sm font-bold text-white transition-colors hover:bg-terra/90">
-                    Join beta
+                  <p className="mt-2 text-sm text-ink/60">Card builder for one event.</p>
+                  <ul className="mt-5 space-y-2 text-sm text-ink/70">
+                    <li>· Drag-and-drop card editor</li>
+                    <li>· One active event</li>
+                    <li>· Shareable public link</li>
+                  </ul>
+                  <Link
+                    href="/auth/register"
+                    className="mt-6 block rounded-lg border-2 border-ink/15 px-5 py-2.5 text-center text-sm font-bold text-ink transition-colors hover:border-terra/60 hover:text-terra"
+                  >
+                    Start free
                   </Link>
-                  <Link href="mailto:hello@glimpse.app" className="rounded-lg border border-ink/20 px-6 py-3 text-center text-sm font-bold text-ink transition-colors hover:border-terra/50 hover:text-terra">
+                </div>
+
+                {/* Pro */}
+                <div className="relative rounded-lg border-2 border-terra bg-white p-6 shadow-lg shadow-terra/15">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-md bg-terra px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white">
+                    Most popular
+                  </span>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-terra">Pro</p>
+                  <p className="mt-3 text-3xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>
+                    {symbol}{pricing.proMonthly}
+                    <span className="ml-1 text-sm font-semibold text-ink/45">/ mo</span>
+                  </p>
+                  <p className="mt-2 text-sm text-ink/60">Glimpses live photo sharing.</p>
+                  <ul className="mt-5 space-y-2 text-sm text-ink/70">
+                    <li>· Everything in Free</li>
+                    <li>· Glimpses live feed + QR upload</li>
+                    <li>· Host moderation + reactions</li>
+                    <li>· 30-day photo export window</li>
+                  </ul>
+                  <Link
+                    href="/auth/register"
+                    className="mt-6 block rounded-lg bg-terra px-5 py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-terra/90"
+                  >
+                    Get Pro
+                  </Link>
+                </div>
+
+                {/* Business */}
+                <div className="rounded-lg border border-gold/40 bg-white p-6 shadow-sm">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-ink/55">Business</p>
+                  <p className="mt-3 text-3xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>
+                    {symbol}{pricing.businessMonthly}
+                    <span className="ml-1 text-sm font-semibold text-ink/45">/ mo</span>
+                  </p>
+                  <p className="mt-2 text-sm text-ink/60">Multiple concurrent events.</p>
+                  <ul className="mt-5 space-y-2 text-sm text-ink/70">
+                    <li>· Everything in Pro</li>
+                    <li>· Multiple concurrent galleries</li>
+                    <li>· 60-day photo export window</li>
+                    <li>· Priority support</li>
+                  </ul>
+                  <Link
+                    href="mailto:hello@glimpse.app"
+                    className="mt-6 block rounded-lg border-2 border-ink/15 px-5 py-2.5 text-center text-sm font-bold text-ink transition-colors hover:border-terra/60 hover:text-terra"
+                  >
                     Contact us
                   </Link>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="mx-auto mt-12 max-w-3xl rounded-lg border border-gold/40 bg-white p-6 text-center shadow-lg shadow-ink/10 sm:p-8">
+                <p className="text-sm text-ink/60">Pricing will appear here shortly.</p>
+              </div>
+            )}
           </div>
         </section>
 

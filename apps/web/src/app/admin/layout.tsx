@@ -18,9 +18,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!user || user.role !== 'ADMIN') return null;
 
   const navLinks = [
-    { href: '/admin',        label: 'Dashboard', icon: '◈' },
-    { href: '/admin/users',  label: 'Users',     icon: '◎' },
-    { href: '/admin/events', label: 'Events',    icon: '◇' },
+    { href: '/admin',         label: 'Dashboard', icon: '◈' },
+    { href: '/admin/users',   label: 'Users',     icon: '◎' },
+    { href: '/admin/events',  label: 'Events',    icon: '◇' },
+    { href: '/admin/pricing', label: 'Pricing',   icon: '◐' },
   ];
 
   return (

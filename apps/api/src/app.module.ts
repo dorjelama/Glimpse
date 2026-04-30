@@ -14,6 +14,7 @@ import { PublishModule } from './modules/publish/publish.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { GuestsModule } from './modules/guests/guests.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { PricingModule } from './modules/pricing/pricing.module';
 import { ProjectsModule } from './modules/projects/projects.module';
 import { MomentsModule } from './modules/moments/moments.module';
 import { MailModule } from './modules/mail/mail.module';
@@ -51,6 +52,7 @@ import { MailModule } from './modules/mail/mail.module';
     AuthModule,
     GuestsModule,
     AdminModule,
+    PricingModule,
     ProjectsModule,
     MomentsModule,
     MailModule,

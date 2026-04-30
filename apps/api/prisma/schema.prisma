@@ -192,6 +192,16 @@ model Guest {
   @@map("guests")
 }
 
+model PricingConfig {
+  id              Int      @id @default(1)
+  proMonthly      Int      @default(15)
+  businessMonthly Int      @default(49)
+  currency        String   @default("USD")
+  updatedAt       DateTime @updatedAt
+
+  @@map("pricing_config")
+}
+
 model Element {
   id     String @id @default(uuid())
   page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)

@@ -108,6 +108,11 @@ export const api = {
   verifyEmail: (token: string) =>
     request<{ emailVerified: boolean }>('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) }),
 
+  // Pricing (GET public, PATCH admin-only)
+  getPricing: () => request<PricingConfig>('/admin/pricing'),
+  updatePricing: (body: Partial<Pick<PricingConfig, 'proMonthly' | 'businessMonthly' | 'currency'>>) =>
+    request<PricingConfig>('/admin/pricing', { method: 'PATCH', body: JSON.stringify(body) }),
+
   // Admin
   getAdminStats: () => request<AdminStats>('/admin/stats'),
   listAdminUsers: () => request<AdminUser[]>('/admin/users'),
@@ -258,6 +263,14 @@ export interface Guest {
   email?: string;
   token: string;
   createdAt: string;
+}
+
+export interface PricingConfig {
+  id: number;
+  proMonthly: number;
+  businessMonthly: number;
+  currency: string;
+  updatedAt: string;
 }
 
 export interface AdminUser {

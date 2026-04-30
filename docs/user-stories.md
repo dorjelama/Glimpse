@@ -1,5 +1,5 @@
 # Glimpse — User Story Map
-_Last updated: 2026-04-28 — G11 email invitation receive; G10 consent; H10 export download resolved via H13; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H8 mobile moderation; H4 card sharing; V3 real-time status; H13 export reminder cron; H14 final gallery page; V10 feed post-event CTA; H12 post-event summary; H15–H20 + G12 guest list module_
+_Last updated: 2026-05-01 — A1–A4 admin pricing stories added; S1–S9 subscription stories added; G11 email invitation receive; G10 consent; H10 export download resolved via H13; H6 QR guidance; G8 submission cap; V4 pagination; V9 PWA; H7 real-time moderation; H8 mobile moderation; H4 card sharing; V3 real-time status; H13 export reminder cron; H14 final gallery page; V10 feed post-event CTA; H12 post-event summary; H15–H20 + G12 guest list module_
 
 ---
 
@@ -9,6 +9,7 @@ _Last updated: 2026-04-28 — G11 email invitation receive; G10 consent; H10 exp
 - **Host** — creates the event, builds the card, manages the Glimpses gallery, controls who sees what
 - **Guest** — receives the invite link, views the card, uploads glimpses during the event
 - **Viewer** — sees the public feed (could be the same guest, or a screen at the venue)
+- **Admin** — internal operator; manages platform configuration, users, and business settings via `/admin`
 
 ---
 
@@ -17,7 +18,7 @@ _Last updated: 2026-04-28 — G11 email invitation receive; G10 consent; H10 exp
 | # | Story | Current state | Gap |
 |---|-------|--------------|-----|
 | P1 | Land on the site and immediately understand what Glimpse is | Landing page has a clear headline ("Create beautiful digital invitations"), subheadline, and two feature sections (Card Editor + Glimpses). | **No product screenshot or video.** Feature sections use placeholder boxes. A real screenshot would dramatically raise conversion. |
-| P2 | See which features are free vs paid before signing up | Pricing section shows Free / Pro / Business tiers with feature lists. Glimpses is marked as Pro. | **No in-app upgrade path yet.** Free users hit an invisible wall — the product doesn't explain why Glimpses is locked or prompt an upgrade. |
+| P2 | See which features are free vs paid before signing up | Pricing section shows Free / Pro / Business tiers with feature lists. Glimpses is marked as Pro. | **No in-app upgrade path yet.** Free users hit an invisible wall — the product doesn't explain why Glimpses is locked or prompt an upgrade. See S2, S3, S8 for the in-app resolution path. |
 | P3 | Sign up from the landing page | "Get started free" and "Start for free →" CTAs link to `/auth/register`. | Solid. |
 | P4 | Return and sign in from the landing page | "Sign in" link in navbar → `/auth/login`. | Solid. |
 | P5 | Understand the pricing before committing | Pricing section shows three tiers with feature lists. Pro is highlighted as most popular. | **No annual pricing option.** Monthly-only increases perceived cost. No FAQ or money-back language to reduce commitment anxiety. |
@@ -110,15 +111,65 @@ _Last updated: 2026-04-28 — G11 email invitation receive; G10 consent; H10 exp
 
 ---
 
+## Subscription
+
+_Tiers: **Free** (card editor, 1 active event, no Glimpses) / **Pro** (~$15/mo, Glimpses enabled, 30-day export) / **Business** (~$49/mo, multiple concurrent galleries, 60-day export). The card editor is the acquisition hook; Glimpses is the paid activation._
+
+| # | Story | Current state | Gap |
+|---|-------|--------------|-----|
+| S1 | See my current plan, limits, and renewal date at a glance | No billing or account settings page exists. Plan is never surfaced inside the product after signup. | **No plan visibility.** Host has no way to know they're on Free, when Pro renews, or how close they are to any limit. Erodes trust; increases churn. |
+| S2 | Be clearly gated — not silently blocked — when I try to enable Glimpses on Free | Behavior undefined. Free hosts attempting to enable Glimpses may receive an error or silent failure. | **No upgrade gate.** When built, the gate modal must show concrete value (a real feed screenshot or demo link, not a generic feature list) — a weak gate is worse than no gate. References S8 for trial CTA. |
+| S3 | Complete an upgrade to Pro (payment flow) | No Stripe integration. Pro is defined in landing-page copy but is not purchasable anywhere. | **No revenue path.** This is the single highest-priority subscription gap — no checkout means no revenue regardless of all other work. |
+| S4 | Manage my subscription (view, cancel, update card) | No billing management. Cancellation requires contacting support. | **Support burden.** Hosts who want to cancel have no self-serve path. Stripe Customer Portal resolves this with minimal code. |
+| S5 | Keep my data when I downgrade or cancel | No downgrade policy. No schema flags for plan-lapsed state. | **Schema decision required before Stripe webhooks are wired.** Must decide: soft-deactivate galleries (`isActive` flag — can view, can't create new) or hard-lock. Retrofitting after Stripe is live is risky. |
+| S6 | Receive an invoice by email after each billing cycle | Not configured. | **Low effort.** Stripe Customer Portal + billing email settings handle this natively — no custom code needed. |
+| S7 | Access Business-tier features (multiple concurrent galleries, 60-day export) | No gallery count limit enforced. Any user can currently create unlimited galleries — unintended free access to a Business feature. | **No plan enforcement.** Gallery creation must be gated by plan tier. Business tier not yet purchasable. |
+| S8 | Try Glimpses before I pay (14-day Pro trial or guided demo) | No trial. Free hosts hit the S2 gate with no prior felt value. | **Highest conversion-leverage gap.** A cold gate without a trial converts poorly. A 14-day trial (or a single explorable demo gallery) dramatically increases upgrade rate. Gate and trial should ship as a pair. |
+| S9 | See an upgrade nudge while I'm building my card (not just at the gate) | No in-editor teaser. Free hosts building cards may never discover Glimpses as a companion feature. | **Missed conversion moment.** The Glimpses tab or section in the card editor should show a "Glimpses ✨ Pro" badge with a soft "Learn more →" that opens the S2 gate. Catches the curious user; the gate catches the motivated one. |
+
+### Subscription drop-off moments
+- **S2 + S8** — Free host clicks "Enable Glimpses", hits a cold gate with no trial and no felt value. Modal closes. No upgrade.
+- **S3** — Host is ready to pay but there is no checkout flow. They email support or churn.
+- **S9** — Free host builds a card, publishes it, never discovers Glimpses exists. Leaves money on the table permanently.
+- **S5** — Pro host cancels. Data fate is unclear. They export everything out of panic and don't return.
+
+---
+
+## Admin
+
+_Admin users (role `ADMIN`) manage the platform via `/admin`. Pricing config is stored in the database so prices can be updated without a code deployment._
+
+| # | Story | Current state | Gap |
+|---|-------|--------------|-----|
+| A1 | Set Pro and Business subscription prices from the admin panel | `PricingConfig` singleton table (`id=1`, `proMonthly`, `businessMonthly`, `currency`, `updatedAt`) seeded with defaults via migration `20260501000000_add_pricing_config`. `PricingService.get()` lazily creates the row on first read. `PATCH /admin/pricing` (JWT + AdminGuard) validates whole-integer non-negative amounts ≤ 100,000. `/admin/pricing` settings page: form with currency dropdown + Pro/Business amount inputs, save button (disabled until dirty), inline ✓ Saved toast, last-updated timestamp. Pricing nav link added to admin sidebar. | ✅ Resolved |
+| A2 | Set the display currency for all pricing surfaces | Currency stored on `PricingConfig` row; whitelist of 7 codes (USD, NPR, EUR, GBP, INR, AUD, CAD) enforced server-side. Admin pricing page renders the chosen symbol live next to both inputs. Landing page maps the code to a symbol (`$`, `Rs.`, `€`, `£`, `₹`, `A$`, `C$`) and falls back to the code itself if unknown. | ✅ Resolved |
+| A3 | See price changes reflected on the landing page immediately after saving | Landing page is now an `async` Server Component; `fetchPricing()` calls `GET /admin/pricing` with `next: { revalidate: 60 }`. Static "Pricing is being finalized" copy replaced with three-tier card layout (Free / Pro / Business) showing live amounts and currency symbol. Fallback panel renders if the API is unreachable. | ✅ Resolved |
+| A4 | Manage platform users — view, search, promote to admin, delete | Basic user table exists at `/admin/users` showing all registered accounts. | Solid for read. **No inline edit of plan tier** — once Stripe is integrated (S3), admin should be able to manually override a user's plan (e.g. comps, refunds, support cases) without touching the DB directly. |
+
+### Admin notes
+- `GET /admin/pricing` should be **public** (no auth) so the landing page and upgrade gate modal can fetch current prices without a user session.
+- `PATCH /admin/pricing` is **admin-only** (`JwtAuthGuard` + role check).
+- The terms page (`/terms`) references specific prices — once pricing is dynamic, remove hardcoded amounts from legal text to avoid auto-updating legal language.
+- A1 and A2 are a natural paired sprint with S3 (Stripe checkout) — prices must be readable from the DB before the checkout session is created.
+
+---
+
 ## Priority gaps
 
 ### Open
 
 | Priority | Gap | Story refs | Notes |
 |----------|-----|-----------|-------|
-| 1 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI; hurts conversion. |
-| 2 | No in-app upgrade path for Glimpses | P2 | Free users hit a wall with no prompt to upgrade. |
-| 3 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
+| 1 | No Stripe checkout — Pro tier not purchasable | S3 | No revenue path. Pricing config (A1) is in place; Stripe can now read live amounts from `GET /admin/pricing`. |
+| 2 | No upgrade gate when Free host tries to enable Glimpses | S2 | Gate modal must show a real screenshot or demo — a weak gate is worse than none. Pair with S8 (trial). |
+| 3 | No trial or preview of Glimpses before paywall | S8 | Cold gate without felt value converts poorly. 14-day trial or demo gallery dramatically increases upgrade rate. |
+| 4 | No billing or plan visibility in the product | S1 | Hosts don't know their plan, limits, or renewal date. Erodes trust; accelerates churn. |
+| 5 | No product screenshot or video on landing page | P1 | Placeholder boxes instead of real UI; hurts top-of-funnel conversion. |
+| 6 | No in-editor Glimpses upgrade nudge | S9 | Curious users building cards never discover Glimpses exists. Grayed tab + "Pro" badge + "Learn more →" captures them. |
+| 7 | No self-serve billing management | S4 | Cancellation requires contacting support. Stripe Customer Portal resolves with minimal code. |
+| 8 | Downgrade data policy undefined (schema gap) | S5 | Must decide soft-deactivate vs hard-lock before Stripe webhooks are wired. Risk of retrofitting under pressure. |
+| 9 | Guest pending deletion device-bound | G9 | Token in localStorage; switching device loses the delete option. |
+| 10 | Admin override of user plan tier | A4 | Once Stripe is integrated, admin should be able to manually set a user's plan from the users table (comps, refunds, support cases). |
 
 ### Resolved
 
@@ -138,6 +189,7 @@ _Last updated: 2026-04-28 — G11 email invitation receive; G10 consent; H10 exp
 | Guest management buried inside card editor | H15–H20, G12 | Extracted from editor sidebar into standalone `/events/[id]/guests` page. Full CRUD table (add, inline edit name/email, delete, copy link per row). Guests tile added to Event Hub with live count. Backend adds `PATCH /events/:eventId/guests/:guestId`. Personalised link resolves guest name onto the public card via `?g={token}`. |
 | No post-event summary | H12 | `GET /gallery/:id/summary` returns totalSubmissions, approvedCount, uniqueGuests, topSubmission (via `groupBy` on reactions). Summary section in moderation page: 3 stat tiles + most-loved moment card with thumbnail and reaction count. |
 | Multiple submissions per guest not handled | G8 | 3-submission cap per device via localStorage token map; `LimitScreen` at cap. |
+| Prices hardcoded — no admin control over subscription amounts | A1, A2, A3 | `PricingConfig` singleton table + migration `20260501000000_add_pricing_config`. `GET /admin/pricing` (public) + `PATCH /admin/pricing` (admin-only) in new `PricingModule`. `/admin/pricing` settings page with currency dropdown + amount inputs. Landing page now an async Server Component that fetches live pricing with 60s revalidation; renders three-tier (Free/Pro/Business) card layout. |
 
 ## Enhancements
 - Feedback feature from host

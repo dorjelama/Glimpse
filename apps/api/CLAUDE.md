@@ -22,6 +22,8 @@ To regenerate docs: just restart the server — docs are built dynamically from 
 | `elements` | `src/modules/elements/` | Per-element add/update/delete/reorder (JWT-guarded) |
 | `publish` | `src/modules/publish/` | Thin wrapper: publish flow + public slug lookup |
 | `guests` | `src/modules/guests/` | Guest list management (JWT-guarded); token resolve is public |
+| `admin` | `src/modules/admin/` | Platform-wide admin: stats, users, events (all routes JWT + AdminGuard) |
+| `pricing` | `src/modules/pricing/` | Singleton `PricingConfig` (Pro / Business amounts + currency). GET public, PATCH admin-only |
 
 ## API overview
 | Tag | Endpoints |
@@ -31,6 +33,8 @@ To regenerate docs: just restart the server — docs are built dynamically from 
 | Elements | POST/PATCH/DELETE /events/:id/elements/:eid |
 | Publish | POST /publish/:id, DELETE /publish/:id, GET /publish/view/:slug (public) |
 | Guests | GET/POST/DELETE /events/:id/guests, GET /guests/token/:token (public) |
+| Admin | GET /admin/stats, GET/DELETE /admin/users, PATCH /admin/users/:id/role, GET/DELETE /admin/events |
+| Pricing | GET /admin/pricing (public), PATCH /admin/pricing (admin-only) |
 
 All routes are prefixed with `/api` (global prefix set in `main.ts`).
 
