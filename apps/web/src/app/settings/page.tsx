@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/authStore';
 import { useStatusStore } from '@/lib/statusStore';
 import DashboardShell from '@/components/DashboardShell';
+import Breadcrumbs from '@/components/Breadcrumbs';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -90,6 +91,7 @@ export default function SettingsPage() {
       <div className="px-4 py-6 md:px-8 md:py-8 max-w-xl">
 
         <div className="mb-8">
+          <Breadcrumbs crumbs={[{ label: 'Dashboard', href: '/dashboard' }, { label: 'Settings' }]} />
           <h1 className="text-2xl font-bold text-ink" style={{ fontFamily: 'Georgia, serif' }}>Settings</h1>
           <p className="text-sm text-ink/40 mt-1">Manage your account and preferences.</p>
         </div>

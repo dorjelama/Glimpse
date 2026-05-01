@@ -43,7 +43,7 @@ export default function Toolbar() {
       <header className="h-12 bg-panel border-b border-white/10 hidden md:flex items-center px-4 gap-4 flex-shrink-0">
         {/* Logo */}
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.push('/dashboard')}
           className="flex items-center gap-2 flex-shrink-0 hover:opacity-80 transition-opacity"
           aria-label="Back to dashboard"
         >

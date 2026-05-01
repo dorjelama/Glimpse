@@ -31,7 +31,7 @@ export default function MobileToolbar() {
       <header className="h-12 bg-panel border-b border-white/10 flex items-center px-3 gap-2 flex-shrink-0 md:hidden">
         {/* Back / Logo */}
         <button
-          onClick={() => router.push('/')}
+          onClick={() => router.push('/dashboard')}
           className="flex-shrink-0 hover:opacity-80 transition-opacity"
           aria-label="Back to dashboard"
         >
