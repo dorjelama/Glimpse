@@ -53,7 +53,9 @@ export class AdminService {
     if (!user) throw new NotFoundException(`User ${id} not found`);
     return this.prisma.user.update({
       where: { id },
-      data: { role },
+      data: role === 'ADMIN'
+        ? { role, emailVerified: true, emailVerificationToken: null }
+        : { role },
       select: { id: true, email: true, name: true, role: true, createdAt: true, _count: { select: { events: true } } },
     });
   }
