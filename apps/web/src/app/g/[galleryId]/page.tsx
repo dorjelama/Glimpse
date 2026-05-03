@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 
-export default function GalleryIndexPage({ params }: { params: { galleryId: string } }) {
-  redirect(`/g/${params.galleryId}/feed`);
+export default async function GalleryIndexPage({ params }: { params: Promise<{ galleryId: string }> }) {
+  const { galleryId } = await params;
+  redirect(`/g/${galleryId}/feed`);
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, use } from 'react';
 import Link from 'next/link';
 import { api, type GalleryPhoto, type GallerySubmission } from '@/lib/api';
 
@@ -346,7 +346,8 @@ function MomentForm({
 
 // ─── Main page ───────────────────────────────────────────────────────────────
 
-export default function GuestUploadPage({ params }: { params: { galleryId: string } }) {
+export default function GuestUploadPage({ params }: { params: Promise<{ galleryId: string }> }) {
+  const { galleryId } = use(params);
   const [eventTitle, setEventTitle] = useState('');
   const [isOpen, setIsOpen] = useState(true);
   const [ended, setEnded] = useState(false);
@@ -357,21 +358,21 @@ export default function GuestUploadPage({ params }: { params: { galleryId: strin
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    api.getGallery(params.galleryId)
+    api.getGallery(galleryId)
       .then(g => {
         setEventTitle(g.project.title);
         setIsOpen(g.isOpen);
         setEnded(!!g.endedAt);
         try {
           const map: Record<string, string> = JSON.parse(
-            localStorage.getItem(`glimpse-token-map:${params.galleryId}`) || '{}'
+            localStorage.getItem(`glimpse-token-map:${galleryId}`) || '{}'
           );
           setSubmissionCount(Object.keys(map).length);
         } catch { /* ignore storage errors */ }
       })
       .catch(() => setInitError('Gallery not found.'))
       .finally(() => setReady(true));
-  }, [params.galleryId]);
+  }, [galleryId]);
 
   const handleShareAnother = () => {
     setDone(false);
@@ -397,18 +398,18 @@ export default function GuestUploadPage({ params }: { params: { galleryId: strin
   if (done) return (
     <DoneScreen
       eventTitle={eventTitle}
-      galleryId={params.galleryId}
+      galleryId={galleryId}
       onShareAnother={submissionCount < MAX_SUBMISSIONS ? handleShareAnother : undefined}
     />
   );
   if (!isOpen) return <ClosedScreen ended={ended} eventTitle={eventTitle} />;
-  if (submissionCount >= MAX_SUBMISSIONS) return <LimitScreen eventTitle={eventTitle} galleryId={params.galleryId} />;
+  if (submissionCount >= MAX_SUBMISSIONS) return <LimitScreen eventTitle={eventTitle} galleryId={galleryId} />;
 
   return (
     <MomentForm
       key={formKey}
       eventTitle={eventTitle}
-      galleryId={params.galleryId}
+      galleryId={galleryId}
       onDone={() => {
         setDone(true);
         setSubmissionCount(prev => prev + 1);

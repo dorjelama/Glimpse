@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? 'http://localhost:3001';
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api';
@@ -29,7 +29,8 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
-export default function GalleryPage({ params }: { params: { galleryId: string } }) {
+export default function GalleryPage({ params }: { params: Promise<{ galleryId: string }> }) {
+  const { galleryId } = use(params);
   const [data, setData] = useState<GalleryData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
@@ -39,7 +40,7 @@ export default function GalleryPage({ params }: { params: { galleryId: string } 
     const load = async () => {
       try {
         // Fetch up to 200 approved submissions — gallery is a static archive
-        const res = await fetch(`${API_URL}/gallery/${params.galleryId}/feed?limit=200&sessionId=gallery`);
+        const res = await fetch(`${API_URL}/gallery/${galleryId}/feed?limit=200&sessionId=gallery`);
         if (!res.ok) { setError('Gallery not found.'); return; }
         const json: GalleryData = await res.json();
 
@@ -54,7 +55,7 @@ export default function GalleryPage({ params }: { params: { galleryId: string } 
       }
     };
     load();
-  }, [params.galleryId]);
+  }, [galleryId]);
 
   if (expired) {
     return (
