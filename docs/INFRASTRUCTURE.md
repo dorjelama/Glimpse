@@ -1,5 +1,25 @@
 # Glimpse — Infrastructure Decisions
 
+> ## ⚠️ AWS PRODUCTION WAS TORN DOWN — 2026-09-17
+>
+> The AWS footprint described below **no longer exists**. It was costing ~$25/month against
+> $0.79 of remaining free-plan credits, with the free period ending 2026-10-29.
+>
+> **Destroyed:** RDS `glimpse-db` (deleted, no final snapshot, no data retained) ·
+> EC2 `i-06462bef281be023e` (terminated) · Elastic IP `98.88.106.82` (**released — not
+> recoverable**) · EBS `vol-0a3d4b4d5510577eb` (deleted with the instance).
+>
+> **Still alive:** Cloudflare DNS zone + DKIM records · domain registration · Vercel Hobby
+> frontend (will error on every API call until a new backend exists) · SES identity and the
+> `glimpse-ses` IAM user.
+>
+> **No database backup was taken** — this was a deliberate choice. There is no recovery path
+> for the production data.
+>
+> Treat everything below as a historical record of the old setup, not current state.
+> Relaunch guidance — on a ~$0–5/month shape rather than this one — is in
+> [TEARDOWN.md](TEARDOWN.md).
+
 Decisions made before first production deployment. Covers services chosen, pricing rationale, and what was ruled out and why.
 
 ---
@@ -67,6 +87,19 @@ Decisions made before first production deployment. Covers services chosen, prici
 
 ---
 
+### IAM users (verified 2026-09-17)
+
+| User | Access | Keys | Notes |
+|---|---|---|---|
+| `glimpse-admin` | AdministratorAccess | none | **Console login** (created 2026-04-29). This is the sign-in account. |
+| `glimpse-ses` | AmazonSESFullAccess | 1 active, created 2026-04-29 | Key was stored in the API `.env` on the now-terminated EC2 host. Deactivate if SES is unused. |
+| ~~`glimpse-teardown`~~ | ~~AdministratorAccess~~ | deleted | Temporary user created for the 2026-09-17 teardown. Access key deleted; **delete the user object from the console.** |
+
+Account ID: `116715028746`. Billing alarm `glimpse-billing-alert` exists in CloudWatch (free tier
+covers the first 10 alarms) — keep it.
+
+---
+
 ### Vercel — Next.js Frontend ✅
 
 - Plan: Free (Hobby)
@@ -112,16 +145,21 @@ Decisions made before first production deployment. Covers services chosen, prici
 
 ---
 
-## Remaining checklist
+## Remaining checklist — VOIDED by the 2026-09-17 teardown
 
-- [x] SES domain verification confirmed
-- [x] Request SES production access submitted (awaiting AWS approval ~24hrs)
-- [x] API health endpoint live: `https://api.glimpse.elegant.com.np/api/health`
-- [x] Set up automated deploys (GitHub Actions → EC2) — triggers on `apps/api/**` changes
-- [x] Admin account registered at `glimpse.elegant.com.np`
-- [ ] SES production access approved
-- [ ] Test full login/register + email flow end to end
-- [ ] Verify editor, preview, publish flow in production
+Everything below was true of the old AWS stack. None of it holds now; kept for reference when
+rebuilding.
+
+- [x] ~~SES domain verification confirmed~~ — identity still exists, still verified
+- [x] ~~Request SES production access submitted~~ — status unknown; re-check before relying on it
+- [x] ~~API health endpoint live: `https://api.glimpse.elegant.com.np/api/health`~~ — **dead**,
+      the host is terminated and the IP released
+- [x] ~~Automated deploys (GitHub Actions → EC2)~~ — **disabled**, push trigger commented out in
+      `.github/workflows/deploy-api.yml`
+- [x] ~~Admin account registered at `glimpse.elegant.com.np`~~ — **gone with the database**
+- [ ] ~~SES production access approved~~
+- [ ] ~~Test full login/register + email flow end to end~~
+- [ ] ~~Verify editor, preview, publish flow in production~~ — never completed before teardown
 
 ## Known issues fixed
 

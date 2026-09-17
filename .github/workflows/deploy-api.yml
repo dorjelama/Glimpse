@@ -1,12 +1,18 @@
 name: Deploy API
 
+# DISABLED 2026-09-17 — the EC2 target was terminated during the AWS teardown.
+# See docs/TEARDOWN.md. Left as workflow_dispatch so the config survives for relaunch;
+# the push trigger is commented out so it stops failing on every commit to apps/api.
+# To re-enable: restore the `push:` block below and set the EC2_HOST / EC2_USER /
+# EC2_SSH_KEY secrets to the new host.
 on:
-  push:
-    branches: [master]
-    paths:
-      - 'apps/api/**'
-      - 'packages/**'
-      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+  # push:
+  #   branches: [master]
+  #   paths:
+  #     - 'apps/api/**'
+  #     - 'packages/**'
+  #     - 'pnpm-lock.yaml'
 
 jobs:
   deploy:
